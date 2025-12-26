@@ -27,12 +27,8 @@ vendor/
 node_modules/
 /frontend-nuxt/node_modules/
 
-.nuxt/
-/frontend-nuxt/.nuxt/
-.output/
-/frontend-nuxt/.output/
 dist/
-/frontend-nuxt/dist/
+/frontend-vue/dist/
 
 .env
 .data/
