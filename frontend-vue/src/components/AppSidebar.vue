@@ -1,72 +1,52 @@
 <script setup lang="ts">
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-} from "@/components/ui/sidebar"
-import { 
-  Wallet, 
-  Settings, 
-  Bot,
-  FolderOpen,
-  ArrowLeftRight,
-  TrendingUp,
-  ToolCase,
-  CalendarCheck,
-  FileChartColumn
-} from "lucide-vue-next"
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
+import { Wallet, Settings, Bot, FolderOpen, ArrowLeftRight, TrendingUp, ToolCase, CalendarCheck, FileChartColumn } from "lucide-vue-next";
 
 const items = [
-  { 
-    title: "Dashboard", 
-    url: "/dashboard", 
-    icon: ToolCase
+  {
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: ToolCase,
   },
-  { 
-    title: "AI Assistant", 
-    url: "/chat", 
-    icon: Bot, 
+  {
+    title: "AI Assistant",
+    url: "/chat",
+    icon: Bot,
   },
-  { 
-    title: "Dompet Saya", 
-    url: "/wallet", 
-    icon: Wallet, 
+  {
+    title: "Dompet Saya",
+    url: "/wallet",
+    icon: Wallet,
   },
-  { 
-    title: "Kategori", 
-    url: "/categories", 
-    icon: FolderOpen, 
+  {
+    title: "Kategori",
+    url: "/category",
+    icon: FolderOpen,
   },
-  { 
-    title: "Transaksi", 
-    url: "/transactions", 
-    icon: ArrowLeftRight 
+  {
+    title: "Transaksi",
+    url: "/transactions",
+    icon: ArrowLeftRight,
   },
-  { 
-    title: "Kalender", 
-    url: "/calendar", 
-    icon: CalendarCheck
+  {
+    title: "Kalender",
+    url: "/calendar",
+    icon: CalendarCheck,
   },
-  { 
-    title: "Laporan", 
-    url: "/reports", 
-    icon: FileChartColumn
+  {
+    title: "Laporan",
+    url: "/reports",
+    icon: FileChartColumn,
   },
-]
+];
 
 const settingsItems = [
-  { 
-    title: "Pengaturan", 
-    url: "/settings", 
-    icon: Settings 
+  {
+    title: "Pengaturan",
+    url: "/settings",
+    icon: Settings,
   },
-]
+];
 </script>
 
 <template>
@@ -82,7 +62,7 @@ const settingsItems = [
         </div>
       </div>
     </SidebarHeader>
-    
+
     <SidebarContent>
       <SidebarGroup>
         <SidebarGroupLabel>Menu Utama</SidebarGroupLabel>
