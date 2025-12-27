@@ -43,7 +43,7 @@ const items = [
 const settingsItems = [
   {
     title: "Pengaturan",
-    url: "/settings",
+    url: "/setting",
     icon: Settings,
   },
 ];

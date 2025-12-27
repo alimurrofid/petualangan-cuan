@@ -4,6 +4,8 @@ import AppSidebar from "@/components/AppSidebar.vue";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ModeToggle from "@/components/ModeToggle.vue";
 import { Separator } from "@/components/ui/separator";
+import MobileBottomNav from "@/components/MobileBottomNav.vue";
+import FloatingActionMenu from "@/components/FloatingActionMenu.vue";
 </script>
 
 <template>
@@ -34,9 +36,12 @@ import { Separator } from "@/components/ui/separator";
         </div>
       </header>
 
-      <div class="flex-1 p-4 pt-0 space-y-4 md:p-6">
+      <div class="flex-1 p-4 pt-0 space-y-4 md:p-6 pb-24 md:pb-6">
         <RouterView />
       </div>
     </SidebarInset>
+
+    <MobileBottomNav />
+    <FloatingActionMenu />
   </SidebarProvider>
 </template>

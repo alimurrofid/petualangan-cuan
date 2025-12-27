@@ -13,6 +13,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/Dashboard.vue"),
       },
       {
+         path: "chat",
+         name: "Chat",
+         component: () => import("@/views/chat/Index.vue"),
+      },
+      {
         path: "wallet",
         name: "Wallet",
         component: () => import("@/views/wallet/Index.vue"),
@@ -21,6 +26,26 @@ const routes: RouteRecordRaw[] = [
         path: "category",
         name: "Category",
         component: () => import("@/views/category/Index.vue"),
+      },
+      {
+        path: "transaction",
+        name: "Transaction",
+        component: () => import("@/views/transaction/Index.vue"),
+      },
+      {
+        path: "calendar",
+        name: "Calendar",
+        component: () => import("@/views/calendar/Index.vue"),
+      },
+      {
+        path: "report",
+        name: "Report",
+        component: () => import("@/views/report/Index.vue"),
+      },
+      {
+         path: "setting",
+         name: "Setting",
+         component: () => import("@/views/setting/Index.vue"),
       },
     ],
   },
