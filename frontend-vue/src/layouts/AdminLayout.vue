@@ -6,6 +6,21 @@ import ModeToggle from "@/components/ModeToggle.vue";
 import { Separator } from "@/components/ui/separator";
 import MobileBottomNav from "@/components/MobileBottomNav.vue";
 import FloatingActionMenu from "@/components/FloatingActionMenu.vue";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import { User, CreditCard, LifeBuoy, Lock, LogOut } from "lucide-vue-next";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+const handleLogout = () => {
+    router.push('/login');
+};
 </script>
 
 <template>
@@ -26,13 +41,42 @@ import FloatingActionMenu from "@/components/FloatingActionMenu.vue";
 
           <div class="w-px h-6 bg-border"></div>
 
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-foreground">Heyho, Bro</span>
-            <Avatar class="w-8 h-8">
-              <AvatarImage src="https://github.com/shadcn.png" />
-              <AvatarFallback>CN</AvatarFallback>
-            </Avatar>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <div class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+                    <span class="text-sm font-medium text-foreground">Heyho, Bro</span>
+                    <Avatar class="w-8 h-8 border border-border">
+                        <AvatarImage src="https://github.com/shadcn.png" />
+                        <AvatarFallback>CN</AvatarFallback>
+                    </Avatar>
+                </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="router.push('/setting?tab=profile')">
+                    <User class="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                    <CreditCard class="mr-2 h-4 w-4" />
+                    <span>Payment History</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                    <LifeBuoy class="mr-2 h-4 w-4" />
+                    <span>Help Center</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="router.push('/setting?tab=password')">
+                    <Lock class="mr-2 h-4 w-4" />
+                    <span>Change Password</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="handleLogout" class="text-red-500 focus:text-red-500">
+                    <LogOut class="mr-2 h-4 w-4" />
+                    <span>Logout</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

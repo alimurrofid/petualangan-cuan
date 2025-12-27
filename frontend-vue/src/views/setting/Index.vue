@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
+const route = useRoute();
 const activeTab = ref("currency");
 
 const tabs = [
@@ -22,6 +24,22 @@ const formData = ref({
     currency: "IDR",
     showDecimal: "Hide"
 });
+
+const updateTabFromQuery = () => {
+    const tab = route.query.tab as string;
+    if (tab && tabs.some(t => t.id === tab)) {
+        activeTab.value = tab;
+    }
+};
+
+onMounted(() => {
+    updateTabFromQuery();
+});
+
+watch(() => route.query.tab, () => {
+    updateTabFromQuery();
+});
+
 
 </script>
 

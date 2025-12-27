@@ -3,6 +3,16 @@ import AdminLayout from "@/layouts/AdminLayout.vue";
 
 const routes: RouteRecordRaw[] = [
   {
+    path: "/login",
+    name: "Login",
+    component: () => import("@/views/auth/Login.vue"),
+  },
+  {
+    path: "/register",
+    name: "Register",
+    component: () => import("@/views/auth/Register.vue"),
+  },
+  {
     path: "/",
     component: AdminLayout,
     redirect: "/dashboard",
