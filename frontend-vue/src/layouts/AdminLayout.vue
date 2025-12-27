@@ -1,24 +1,32 @@
 <script setup lang="ts">
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/AppSidebar.vue";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ModeToggle from "@/components/ModeToggle.vue";
+import { Separator } from "@/components/ui/separator";
 </script>
 
 <template>
   <SidebarProvider>
     <AppSidebar />
 
-    <main class="w-full bg-background min-h-screen">
-      <header class="flex h-14 items-center justify-end border-b bg-card px-4">
+    <SidebarInset>
+      <header class="flex h-14 shrink-0 items-center gap-2 border-b bg-card px-4 sticky top-0 z-50 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+        <div class="flex items-center gap-2 px-4">
+          <SidebarTrigger class="-ml-1" />
+          <Separator orientation="vertical" class="h-4 mr-2" />
+        </div>
+
+        <div class="flex-1"></div>
+
         <div class="flex items-center gap-4">
           <ModeToggle />
 
-          <div class="h-6 w-px bg-border"></div>
+          <div class="w-px h-6 bg-border"></div>
 
           <div class="flex items-center gap-2">
             <span class="text-sm font-medium text-foreground">Heyho, Bro</span>
-            <Avatar class="h-8 w-8">
+            <Avatar class="w-8 h-8">
               <AvatarImage src="https://github.com/shadcn.png" />
               <AvatarFallback>CN</AvatarFallback>
             </Avatar>
@@ -26,9 +34,9 @@ import ModeToggle from "@/components/ModeToggle.vue";
         </div>
       </header>
 
-      <div class="p-4 md:p-6">
+      <div class="flex-1 p-4 pt-0 space-y-4 md:p-6">
         <RouterView />
       </div>
-    </main>
+    </SidebarInset>
   </SidebarProvider>
 </template>
