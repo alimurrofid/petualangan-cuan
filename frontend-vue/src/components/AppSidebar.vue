@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import { Wallet, Settings, Bot, FolderOpen, ArrowLeftRight, TrendingUp, ToolCase, CalendarCheck, FileChartColumn } from "lucide-vue-next";
+import { Wallet, Bot, FolderOpen, ArrowLeftRight, TrendingUp, ToolCase, CalendarCheck, FileChartColumn, Settings2 } from "lucide-vue-next";
 
 const items = [
   {
@@ -44,7 +44,7 @@ const settingsItems = [
   {
     title: "Pengaturan",
     url: "/setting",
-    icon: Settings,
+    icon: Settings2,
   },
 ];
 </script>

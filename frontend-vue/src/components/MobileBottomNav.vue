@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
-import { ToolCase, Wallet, ArrowLeftRight, FileChartColumn, Settings } from "lucide-vue-next";
+import { ToolCase, Wallet, ArrowLeftRight, FileChartColumn, Settings2 } from "lucide-vue-next";
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: ToolCase },
   { title: "Wallet", url: "/wallet", icon: Wallet },
   { title: "Transaksi", url: "/transaction", icon: ArrowLeftRight },
   { title: "Laporan", url: "/report", icon: FileChartColumn },
-  { title: "Setting", url: "/setting", icon: Settings },
+  { title: "Setting", url: "/setting", icon: Settings2 },
 ];
 </script>
 
