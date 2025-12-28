@@ -8,7 +8,7 @@ import (
 	"cuan-backend/internal/repository"
 	"cuan-backend/internal/service"
 
-	// _ "cuan-backend/docs" // UNCOMMENT THIS AFTER RUNNING swag init
+	_ "cuan-backend/docs" // UNCOMMENT THIS AFTER RUNNING swag init
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -30,6 +30,10 @@ func main() {
 	config.Connect()
 
 	// 2. Init Layers
+	userRepo := repository.NewUserRepository(config.DB)
+	userSvc := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userSvc)
+
 	repo := repository.NewTransactionRepository(config.DB)
 	svc := service.NewTransactionService(repo)
 	h := handler.NewTransactionHandler(svc)
@@ -42,6 +46,12 @@ func main() {
 	api := app.Group("/api")
 	api.Get("/transactions", h.GetTransactions)
 	api.Post("/webhook", h.WebhookReceiver)
+
+	// Auth Routes
+	auth := app.Group("/auth")
+	auth.Post("/register", userHandler.Register)
+	auth.Post("/login", userHandler.Login)
+	auth.Post("/logout", userHandler.Logout)
 
 	// Swagger Route
 	app.Get("/swagger/*", swagger.HandlerDefault) 
