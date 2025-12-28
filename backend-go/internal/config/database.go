@@ -1,11 +1,11 @@
-package database
+package config
 
 import (
 	"fmt"
 	"log"
 	"os"
 
-	"cuan-backend/models"
+	"cuan-backend/internal/entity"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -33,5 +33,5 @@ func Connect() {
 	fmt.Println("✅ Terhubung ke Database!")
 
 	fmt.Println("Running Auto Migration...")
-	DB.AutoMigrate(&models.Transaction{})
+	DB.AutoMigrate(&entity.Transaction{})
 }
