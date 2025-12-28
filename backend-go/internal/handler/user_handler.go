@@ -27,7 +27,7 @@ func NewUserHandler(userService service.UserService) UserHandler {
 // @Accept json
 // @Produce json
 // @Param request body service.RegisterInput true "Register Request"
-// @Success 201 {object} map[string]string
+// @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Router /auth/register [post]
 func (h *userHandler) Register(c *fiber.Ctx) error {
@@ -36,13 +36,14 @@ func (h *userHandler) Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	token, err := h.userService.Register(input)
+	user, token, err := h.userService.Register(input)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"token": token,
+		"user":  user,
 	})
 }
 
@@ -53,7 +54,7 @@ func (h *userHandler) Register(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param request body service.LoginInput true "Login Request"
-// @Success 200 {object} map[string]string
+// @Success 200 {object} map[string]interface{}
 // @Failure 401 {object} map[string]string
 // @Router /auth/login [post]
 func (h *userHandler) Login(c *fiber.Ctx) error {
@@ -62,13 +63,14 @@ func (h *userHandler) Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	token, err := h.userService.Login(input)
+	user, token, err := h.userService.Login(input)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"token": token,
+		"user":  user,
 	})
 }
 

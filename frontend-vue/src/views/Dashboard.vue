@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useAuthStore } from "@/stores/auth";
 import { 
   Card, 
   CardContent, 
@@ -7,6 +8,8 @@ import {
   CardTitle,
   CardDescription
 } from '@/components/ui/card';
+
+const authStore = useAuthStore();
 import { 
   ArrowUp, 
   ArrowDown, 
@@ -234,7 +237,7 @@ const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideI
     <div class="flex items-center justify-between">
       <div>
           <h2 class="text-3xl font-bold tracking-tight">Dashboard</h2>
-          <p class="text-sm text-muted-foreground mt-1">Selamat datang kembali, Alimurrofid!</p>
+          <p class="text-sm text-muted-foreground mt-1">Selamat datang kembali, {{ authStore.user?.name || 'User' }} 👋</p>
       </div>
     </div>
 

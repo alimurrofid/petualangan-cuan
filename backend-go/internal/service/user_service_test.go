@@ -50,10 +50,12 @@ func TestRegister(t *testing.T) {
 
 	mockRepo.On("Create", mock.AnythingOfType("*entity.User")).Return(nil)
 
-	token, err := userService.Register(input)
+	user, token, err := userService.Register(input)
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, token)
+	assert.NotNil(t, user)
+	assert.Equal(t, input.Name, user.Name)
 	mockRepo.AssertExpectations(t)
 }
 
@@ -78,10 +80,12 @@ func TestLogin(t *testing.T) {
 		Password: "password123",
 	}
 
-	token, err := userService.Login(input)
+	userRes, token, err := userService.Login(input)
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, token)
+	assert.NotNil(t, userRes)
+	assert.Equal(t, user.Email, userRes.Email)
 	mockRepo.AssertExpectations(t)
 }
 
@@ -106,10 +110,11 @@ func TestLogin_InvalidPassword(t *testing.T) {
 		Password: "wrongpassword",
 	}
 
-	token, err := userService.Login(input)
+	userRes, token, err := userService.Login(input)
 
 	assert.Error(t, err)
 	assert.Empty(t, token)
+	assert.Nil(t, userRes)
 	assert.Equal(t, "invalid email or password", err.Error())
 	mockRepo.AssertExpectations(t)
 }
@@ -125,10 +130,11 @@ func TestLogin_UserNotFound(t *testing.T) {
 		Password: "password123",
 	}
 
-	token, err := userService.Login(input)
+	userRes, token, err := userService.Login(input)
 
 	assert.Error(t, err)
 	assert.Empty(t, token)
+	assert.Nil(t, userRes)
 	assert.Equal(t, "invalid email or password", err.Error())
 	mockRepo.AssertExpectations(t)
 }

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"cuan-backend/internal/entity"
 	"cuan-backend/internal/handler"
 	"cuan-backend/internal/service"
 
@@ -21,14 +22,20 @@ type MockUserService struct {
 	mock.Mock
 }
 
-func (m *MockUserService) Register(input service.RegisterInput) (string, error) {
+func (m *MockUserService) Register(input service.RegisterInput) (*entity.User, string, error) {
 	args := m.Called(input)
-	return args.String(0), args.Error(1)
+	if args.Get(0) == nil {
+		return nil, args.String(1), args.Error(2)
+	}
+	return args.Get(0).(*entity.User), args.String(1), args.Error(2)
 }
 
-func (m *MockUserService) Login(input service.LoginInput) (string, error) {
+func (m *MockUserService) Login(input service.LoginInput) (*entity.User, string, error) {
 	args := m.Called(input)
-	return args.String(0), args.Error(1)
+	if args.Get(0) == nil {
+		return nil, args.String(1), args.Error(2)
+	}
+	return args.Get(0).(*entity.User), args.String(1), args.Error(2)
 }
 
 func (m *MockUserService) Logout(token string) error {
@@ -50,7 +57,9 @@ func TestRegisterHandler(t *testing.T) {
 	}
 	body, _ := json.Marshal(input)
 
-	mockService.On("Register", input).Return("mock_token", nil)
+	// Mock return: User, Token, Error
+	mockUser := &entity.User{Name: "Test User", Email: "test@example.com"}
+	mockService.On("Register", input).Return(mockUser, "mock_token", nil)
 
 	req := httptest.NewRequest("POST", "/auth/register", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -73,7 +82,8 @@ func TestLoginHandler(t *testing.T) {
 	}
 	body, _ := json.Marshal(input)
 
-	mockService.On("Login", input).Return("mock_token", nil)
+	mockUser := &entity.User{Name: "Test User", Email: "test@example.com"}
+	mockService.On("Login", input).Return(mockUser, "mock_token", nil)
 
 	req := httptest.NewRequest("POST", "/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -96,7 +106,7 @@ func TestLoginHandler_InvalidCredentials(t *testing.T) {
 	}
 	body, _ := json.Marshal(input)
 
-	mockService.On("Login", input).Return("", errors.New("invalid credentials"))
+	mockService.On("Login", input).Return(nil, "", errors.New("invalid credentials"))
 
 	req := httptest.NewRequest("POST", "/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

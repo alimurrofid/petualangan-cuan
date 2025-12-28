@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Mail, Lock, User, Eye, EyeOff } from "lucide-vue-next";
+import { useAuthStore } from "@/stores/auth";
 
-const router = useRouter();
+const authStore = useAuthStore();
 const isLoading = ref(false);
 const name = ref("");
 const email = ref("");
@@ -14,14 +14,31 @@ const password = ref("");
 const confirmPassword = ref("");
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+const errorMessage = ref("");
 
 const handleRegister = async () => {
+    if (password.value !== confirmPassword.value) {
+        errorMessage.value = "Konfirmasi password tidak sesuai.";
+        return;
+    }
+
   isLoading.value = true;
-  // Simulate API call
-  setTimeout(() => {
+  errorMessage.value = "";
+  try {
+    await authStore.register({
+        name: name.value,
+        email: email.value,
+        password: password.value
+    });
+  } catch (error: any) {
+    if (error.response && error.response.data && error.response.data.error) {
+        errorMessage.value = error.response.data.error;
+    } else {
+        errorMessage.value = "Gagal mendaftar. Silakan coba lagi.";
+    }
+  } finally {
     isLoading.value = false;
-    router.push("/dashboard");
-  }, 1500);
+  }
 };
 </script>
 
@@ -64,6 +81,10 @@ const handleRegister = async () => {
                 </div>
                 <h2 class="text-3xl font-bold tracking-tight">Buat Akun Baru</h2>
                 <p class="text-muted-foreground">Isi data diri Anda untuk mendaftar.</p>
+            </div>
+
+            <div v-if="errorMessage" class="bg-red-50 text-red-600 p-3 rounded-md text-sm text-center">
+                {{ errorMessage }}
             </div>
 
             <div class="space-y-6">

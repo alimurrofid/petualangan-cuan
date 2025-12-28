@@ -21,8 +21,8 @@ type LoginInput struct {
 }
 
 type UserService interface {
-	Register(input RegisterInput) (string, error)
-	Login(input LoginInput) (string, error)
+	Register(input RegisterInput) (*entity.User, string, error)
+	Login(input LoginInput) (*entity.User, string, error)
 	Logout(token string) error
 }
 
@@ -34,10 +34,10 @@ func NewUserService(userRepository repository.UserRepository) UserService {
 	return &userService{userRepository}
 }
 
-func (s *userService) Register(input RegisterInput) (string, error) {
+func (s *userService) Register(input RegisterInput) (*entity.User, string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	user := &entity.User{
@@ -48,34 +48,34 @@ func (s *userService) Register(input RegisterInput) (string, error) {
 
 	err = s.userRepository.Create(user)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	token, err := middleware.GenerateToken(user.ID)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
-	return token, nil
+	return user, token, nil
 }
 
-func (s *userService) Login(input LoginInput) (string, error) {
+func (s *userService) Login(input LoginInput) (*entity.User, string, error) {
 	user, err := s.userRepository.FindByEmail(input.Email)
 	if err != nil {
-		return "", errors.New("invalid email or password")
+		return nil, "", errors.New("invalid email or password")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password))
 	if err != nil {
-		return "", errors.New("invalid email or password")
+		return nil, "", errors.New("invalid email or password")
 	}
 
 	token, err := middleware.GenerateToken(user.ID)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
-	return token, nil
+	return user, token, nil
 }
 
 func (s *userService) Logout(token string) error {
