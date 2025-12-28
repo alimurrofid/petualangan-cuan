@@ -40,6 +40,11 @@ func (m *TransactionRepositoryMock) FindSummaryByDateRange(userID uint, startDat
 	return args.Get(0).([]entity.TransactionSummary), args.Error(1)
 }
 
+func (m *TransactionRepositoryMock) GetCategoryBreakdown(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error) {
+	args := m.Called(userID, startDate, endDate, walletID, filterType)
+	return args.Get(0).([]entity.CategoryBreakdown), args.Error(1)
+}
+
 func (m *TransactionRepositoryMock) WithTx(tx *gorm.DB) repository.TransactionRepository {
 	args := m.Called(tx)
 	return args.Get(0).(repository.TransactionRepository)

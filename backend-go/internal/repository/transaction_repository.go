@@ -12,6 +12,7 @@ type TransactionRepository interface {
 	FindByID(id uint, userID uint) (*entity.Transaction, error)
 	Delete(id uint, userID uint) error
 	FindSummaryByDateRange(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error)
+	GetCategoryBreakdown(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error)
 	// Used for transactions, we need access to DB transaction object
 	WithTx(tx *gorm.DB) TransactionRepository
 }
@@ -67,4 +68,41 @@ func (r *transactionRepository) FindSummaryByDateRange(userID uint, startDate, e
 		Scan(&results).Error
 
 	return results, err
+}
+
+func (r *transactionRepository) GetCategoryBreakdown(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error) {
+	var results []entity.CategoryBreakdown
+
+	query := r.db.Table("transactions as t").
+		Select("c.name as category_name, c.icon as category_icon, t.type, SUM(t.amount) as total_amount, c.budget_limit").
+		Joins("JOIN categories c ON c.id = t.category_id").
+		Where("t.user_id = ? AND t.date BETWEEN ? AND ?", userID, startDate, endDate)
+
+	if walletID != nil {
+		query = query.Where("t.wallet_id = ?", *walletID)
+	}
+
+	if filterType != nil && *filterType != "all" {
+		query = query.Where("t.type = ?", *filterType)
+	} else {
+		query = query.Where("t.type IN (?, ?)", "income", "expense")
+	}
+
+	err := query.Group("c.name, c.icon, t.type, c.budget_limit").Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+    // Calculate IsOverBudget
+    for i := range results {
+        if results[i].Type == "expense" && results[i].BudgetLimit > 0 {
+            if results[i].TotalAmount > results[i].BudgetLimit {
+                results[i].IsOverBudget = true
+            }
+             // Optional: Calculate Percentage if needed in backend, otherwise frontend can do it
+             // results[i].Percentage = (results[i].TotalAmount / results[i].BudgetLimit) * 100
+        }
+    }
+
+	return results, nil
 }

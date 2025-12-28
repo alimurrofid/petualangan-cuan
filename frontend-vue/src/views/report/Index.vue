@@ -1,68 +1,40 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import { 
-  format, 
-  parseISO, 
-  startOfMonth, 
-  endOfMonth, 
-  isWithinInterval, 
-  addMonths, 
-  startOfWeek, 
-  endOfWeek, 
-  addWeeks, 
-  startOfDay, 
-  endOfDay, 
-  addDays,
-} from "date-fns";
+import { ref, computed, onMounted, watch } from "vue";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay, addMonths, addWeeks, addDays } from "date-fns";
 import { id } from "date-fns/locale";
+
+import { useTransactionStore, type CategoryBreakdown } from "@/stores/transaction";
+import { useWalletStore } from "@/stores/wallet";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import DateRangePicker from "@/components/DateRangePicker.vue";
 
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, PieChart as PieChartIcon } from "lucide-vue-next";
+import * as LucideIcons from "lucide-vue-next";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, PieChart } from "lucide-vue-next";
 
-interface WalletItem {
-  id: number;
-  name: string;
-}
-
-interface CategoryItem {
-  id: number;
-  name: string;
-  icon: string;
-  isEmoji: boolean;
-  type: "income" | "expense";
-  budgetLimit?: number;
-}
-
-interface Transaction {
-  id: number;
-  title: string;
-  amount: number;
-  date: string;
-  walletId: number;
-  categoryId: number;
-  type: "income" | "expense";
-}
+const transactionStore = useTransactionStore();
+const walletStore = useWalletStore();
 
 type PeriodType = 'monthly' | 'weekly' | 'daily' | 'custom';
-type TransactionType = 'all' | 'income' | 'expense';
-
-const transactions = ref<Transaction[]>([]);
-const wallets = ref<WalletItem[]>([]);
-const categories = ref<CategoryItem[]>([]);
 
 const filterWallet = ref<string>("all");
-const filterType = ref<TransactionType>("expense");
+const filterType = ref<string>("all"); // Default to all as requested
 const periodType = ref<PeriodType>('monthly');
-
 const selectedDate = ref(new Date());
 const customDateRange = ref({
   start: new Date(),
   end: new Date() 
+});
+
+const showDatePicker = ref(false);
+
+const reportData = ref<CategoryBreakdown[]>([]);
+
+onMounted(async () => {
+    await walletStore.fetchWallets();
+    await fetchData();
 });
 
 const dateRange = computed(() => {
@@ -102,131 +74,143 @@ const navigateDate = (amount: number) => {
   }
 };
 
-const loadData = () => {
-    const savedWallets = localStorage.getItem("mock_wallets");
-    if (savedWallets) wallets.value = JSON.parse(savedWallets);
-    else wallets.value = [{ id: 1, name: "BCA Utama" }];
-
-    const savedCategories = localStorage.getItem("mock_categories");
-    if (savedCategories) categories.value = JSON.parse(savedCategories);
-    else {
-        categories.value = [
-            { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense", budgetLimit: 2000000 },
-            { id: 2, name: "Gaji", icon: "💰", isEmoji: true, type: "income" },
-            { id: 3, name: "Transport", icon: "Car", isEmoji: false, type: "expense", budgetLimit: 1000000 },
-            { id: 4, name: "Bonus", icon: "Gift", isEmoji: false, type: "income" },
-            { id: 5, name: "Belanja", icon: "ShoppingBag", isEmoji: false, type: "expense", budgetLimit: 1500000 },
-            { id: 6, name: "Hiburan", icon: "Gamepad2", isEmoji: false, type: "expense", budgetLimit: 500000 },
-            { id: 7, name: "Tagihan", icon: "Zap", isEmoji: false, type: "expense", budgetLimit: 750000 },
-        ];
+const fetchData = async () => {
+    const { start, end } = dateRange.value;
+    const startDate = format(start, 'yyyy-MM-dd');
+    const endDate = format(end, 'yyyy-MM-dd');
+    
+    // Call store action
+    const data = await transactionStore.fetchReport(
+        startDate, 
+        endDate, 
+        filterWallet.value === 'all' ? undefined : Number(filterWallet.value), 
+        filterType.value === 'all' ? undefined : filterType.value
+    );
+    
+    if (data) {
+        reportData.value = data;
     }
-
-    const savedTransactions = localStorage.getItem("mock_transactions");
-    if (savedTransactions) transactions.value = JSON.parse(savedTransactions);
 };
 
-onMounted(loadData);
+watch([periodType, selectedDate, customDateRange, filterWallet, filterType], () => {
+    // Avoid double fetch if custom date logic causes duplicate updates or period change triggers date reset
+    fetchData();
+}, { deep: true });
 
-const filteredTransactions = computed(() => {
-  return transactions.value.filter((t) => {
-    const tDate = parseISO(t.date);
-    const { start, end } = dateRange.value;
-    if (!start || !end) return false;
-
-    const matchesPeriod = isWithinInterval(tDate, { start, end });
-    const matchesWallet = filterWallet.value === "all" || t.walletId === Number(filterWallet.value);
-    const matchesType = filterType.value === "all" || t.type === filterType.value;
-
-    return matchesPeriod && matchesWallet && matchesType;
-  });
+watch(periodType, (val) => {
+  showDatePicker.value = val === 'custom';
 });
+
+
+// Charts & Visuals
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
+};
 
 const totalAmount = computed(() => {
-    return filteredTransactions.value.reduce((sum, t) => sum + t.amount, 0);
+    return reportData.value.reduce((sum, item) => sum + item.total_amount, 0);
 });
 
-const categoryBreakdown = computed(() => {
-    const groups: Record<number, number> = {};
-    filteredTransactions.value.forEach(t => {
-        if (!groups[t.categoryId]) groups[t.categoryId] = 0;
-        groups[t.categoryId] = (groups[t.categoryId] || 0) + t.amount;
-    });
-
-    return Object.keys(groups).map(catId => {
-        const id = Number(catId);
-        const cat = categories.value.find(c => c.id === id);
-        const budget = cat?.budgetLimit || 0;
-        const spendingPercentage = budget > 0 ? ((groups[id] || 0) / budget) * 100 : 0;
-        
-        return {
-            name: cat?.name || 'Unknown',
-            amount: groups[id] || 0,
-            percentage: totalAmount.value ? ((groups[id] || 0) / totalAmount.value) * 100 : 0,
-            budget,
-            spendingPercentage,
-            isOverbudget: budget > 0 && (groups[id] || 0) > budget
-        };
-    }).sort((a,b) => (b.amount || 0) - (a.amount || 0));
+const chartSeries = computed(() => {
+    return reportData.value.map(item => item.total_amount);
 });
 
-const chartSeries = computed(() => categoryBreakdown.value.map(c => c.amount));
-const chartLabels = computed(() => categoryBreakdown.value.map(c => c.name));
-
-const chartOptions = computed(() => ({
-    chart: { type: 'donut', fontFamily: 'inherit', foreColor: '#94a3b8' },
-    labels: chartLabels.value,
-    plotOptions: {
-        pie: {
-            donut: {
-                size: '65%',
-                labels: {
-                    show: true,
-                    total: {
+const chartOptions = computed(() => {
+    return {
+        chart: { type: 'donut', fontFamily: 'inherit', foreColor: '#94a3b8' },
+        labels: reportData.value.map(item => item.category_name),
+        colors: ['#10b981', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1'], 
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '70%',
+                    labels: {
                         show: true,
-                        label: 'Total',
-                        formatter: () => formatCurrency(totalAmount.value, true),
-                        color: '#94a3b8'
+                        total: {
+                            show: true,
+                            label: 'Total',
+                            formatter: () => formatCurrency(totalAmount.value)
+                        }
                     }
                 }
             }
+        },
+        legend: { position: 'bottom' },
+        stroke: { show: false },
+        dataLabels: { enabled: false },
+        tooltip: { 
+            theme: 'dark',
+            y: { formatter: (value: number) => formatCurrency(value) }
         }
-    },
-    dataLabels: { enabled: false },
-    legend: { position: 'bottom' },
-    colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'],
-    stroke: { show: false },
-    tooltip: {
-        theme: 'dark',
-        y: { formatter: (val: number) => formatCurrency(val) }
-    }
-}));
+    };
+});
 
-
-const formatCurrency = (value: number, short = false) => {
-    if (short) {
-        if (value >= 1000000) return (value / 1000000).toFixed(1) + 'jt';
-        if (value >= 1000) return (value / 1000).toFixed(0) + 'rb';
-    }
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
+// Helpers
+const getIconComponent = (name: string | undefined) => {
+    if (!name) return LucideIcons.Circle;
+    return (LucideIcons as any)[name] || LucideIcons.Circle;
 };
 
+const emojiCategories: Record<string, string> = {
+  Em_MoneyBag: "💰", Em_DollarBill: "💵", Em_Card: "💳", Em_Bank: "🏦", Em_MoneyWing: "💸", Em_Coin: "🪙",
+  Em_Pizza: "🍕", Em_Cart: "🛒", Em_Coffee: "☕", Em_Game: "🎮", Em_Airplane: "✈️", Em_Gift: "🎁",
+  Em_Star: "⭐", Em_Fire: "🔥", Em_Lock: "🔒", Em_Check: "✅", Em_Idea: "💡"
+};
+
+const getEmoji = (name: string | undefined) => {
+  if (!name) return null;
+  if (emojiCategories[name]) return emojiCategories[name];
+  if (/\p{Emoji}/u.test(name)) return name;
+  return null;
+};
+
+const getDisplayPercentage = (item: CategoryBreakdown) => {
+    // If expense and has budget, use budget as base
+    if (item.type === 'expense' && item.budget_limit > 0) {
+        return Math.round((item.total_amount / item.budget_limit) * 100);
+    }
+    // Fallback to percentage of total amount displayed (contribution)
+    if (totalAmount.value === 0) return 0;
+    return Math.round((item.total_amount / totalAmount.value) * 100);
+};
+
+const getProgressBarWidth = (item: CategoryBreakdown) => {
+    return Math.min(getDisplayPercentage(item), 100);
+};
+
+const getProgressColor = (item: CategoryBreakdown) => {
+    if (item.type === 'expense') {
+        const progress = getDisplayPercentage(item);
+        if (progress >= 100) return 'bg-red-600';
+        if (progress >= 80) return 'bg-yellow-500';
+        return 'bg-emerald-500';
+    }
+    return ''; // No color for income as bar is hidden
+};
 </script>
 
 <template>
-  <div class="p-6 space-y-6 text-foreground min-h-screen bg-background">
-      
+  <div class="p-6 space-y-8 text-foreground min-h-screen bg-background">
     <div class="flex flex-col gap-2">
       <h2 class="text-3xl font-bold tracking-tight">Laporan Keuangan</h2>
-      <p class="text-sm text-muted-foreground">Analisis pengeluaran dan pemasukan Anda secara detail.</p>
+      <p class="text-sm text-muted-foreground">Analisis pengeluaran dan pemasukan per kategori.</p>
     </div>
 
-    <div class="flex flex-col md:flex-row gap-4 items-center justify-between bg-card p-3 rounded-2xl border border-border shadow-sm">
-        
+    <!-- Toolbar -->
+    <div class="flex flex-col md:flex-row gap-4 items-center justify-between bg-card p-3 rounded-2xl border border-border shadow-sm z-20 relative">
+        <!-- Date Nav -->
         <div class="flex items-center gap-2 bg-muted/30 p-1 rounded-xl w-full md:w-auto justify-between md:justify-start">
                 <Button variant="ghost" size="icon" @click="navigateDate(-1)" class="h-8 w-8 rounded-lg hover:bg-background shadow-sm">
                 <ChevronLeft class="h-4 w-4" />
             </Button>
-            <div class="flex-1 text-center md:px-4 text-sm font-bold flex items-center justify-center gap-2 min-w-[140px]">
+            <div 
+                class="flex-1 text-center md:px-4 text-sm font-bold flex items-center justify-center gap-2 min-w-[140px] transition-all duration-200"
+                 :class="{ 
+                    'cursor-pointer bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg py-1.5 shadow-sm': periodType === 'custom',
+                    'py-1': periodType !== 'custom'
+                }"
+                @click="periodType === 'custom' ? (showDatePicker = !showDatePicker) : null"
+            >
                 <CalendarIcon class="h-4 w-4 opacity-50" />
                 {{ formattedDateRange }}
             </div>
@@ -235,10 +219,11 @@ const formatCurrency = (value: number, short = false) => {
             </Button>
         </div>
 
+        <!-- Filters -->
         <div class="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
-            <Select v-model="periodType">
+             <Select v-model="periodType">
                 <SelectTrigger class="w-full md:w-[120px] h-9 rounded-xl text-xs font-semibold">
-                    <SelectValue />
+                    <SelectValue placeholder="Periode" />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="monthly">Bulanan</SelectItem>
@@ -248,98 +233,109 @@ const formatCurrency = (value: number, short = false) => {
                 </SelectContent>
             </Select>
 
-            <div class="flex gap-2 w-full md:w-auto">
-                <Select v-model="filterWallet">
-                    <SelectTrigger class="flex-1 md:w-[140px] h-9 rounded-xl text-xs font-semibold">
-                        <SelectValue placeholder="Semua Dompet" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Semua Dompet</SelectItem>
-                        <SelectItem v-for="w in wallets" :key="w.id" :value="String(w.id)">{{ w.name }}</SelectItem>
-                    </SelectContent>
-                </Select>
+            <Select v-model="filterType">
+                <SelectTrigger class="w-full md:w-[120px] h-9 rounded-xl text-xs font-semibold">
+                    <SelectValue placeholder="Tipe" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Semua Tipe</SelectItem>
+                    <SelectItem value="income">Pemasukan</SelectItem>
+                    <SelectItem value="expense">Pengeluaran</SelectItem>
+                </SelectContent>
+            </Select>
 
-                <Select v-model="filterType">
-                    <SelectTrigger class="flex-1 md:w-[140px] h-9 rounded-xl text-xs font-semibold">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Semua Tipe</SelectItem>
-                        <SelectItem value="expense">Pengeluaran</SelectItem>
-                        <SelectItem value="income">Pemasukan</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+             <Select v-model="filterWallet">
+                <SelectTrigger class="w-full md:w-[140px] h-9 rounded-xl text-xs font-semibold">
+                    <SelectValue placeholder="Semua Dompet" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Semua Dompet</SelectItem>
+                    <SelectItem v-for="w in walletStore.wallets" :key="w.id" :value="String(w.id)">{{ w.name }}</SelectItem>
+                </SelectContent>
+            </Select>
         </div>
     </div>
 
-    <div v-if="periodType === 'custom'" class="flex flex-col md:flex-row gap-4 p-4 bg-muted/40 rounded-2xl border border-dashed border-border">
-        <div class="flex-1 space-y-1">
-            <Label class="text-xs">Dari Tanggal</Label>
-            <Input type="date" :value="format(customDateRange.start, 'yyyy-MM-dd')" @input="(e: any) => customDateRange.start = new Date(e.target.value)" class="bg-background" />
-        </div>
-        <div class="flex-1 space-y-1">
-            <Label class="text-xs">Sampai Tanggal</Label>
-            <Input type="date" :value="format(customDateRange.end, 'yyyy-MM-dd')" @input="(e: any) => customDateRange.end = new Date(e.target.value)" class="bg-background" />
+    <div v-if="periodType === 'custom' && showDatePicker" class="absolute left-0 right-0 top-32 z-50 flex justify-center p-0 animate-in fade-in zoom-in-95 duration-200 pointer-events-none">
+        <div class="pointer-events-auto shadow-xl rounded-xl">
+            <DateRangePicker 
+                :startDate="customDateRange.start"
+                :endDate="customDateRange.end"
+                @update:startDate="(val) => customDateRange.start = val"
+                @update:endDate="(val) => customDateRange.end = val"
+                @apply="showDatePicker = false"
+            />
         </div>
     </div>
 
+    <!-- Content -->
     <div class="grid lg:grid-cols-3 gap-6">
-        
-        <Card class="bg-card border-border shadow-sm rounded-3xl lg:col-span-1 overflow-hidden">
-            <CardHeader>
-                <CardTitle class="text-base flex items-center gap-2">
-                    <PieChartIcon class="h-4 w-4 text-muted-foreground" /> Breakdown Kategori
+        <!-- Chart -->
+        <Card class="bg-card border-border shadow-sm flex flex-col rounded-3xl overflow-hidden min-h-[400px]">
+             <!-- We give it a fixed key to force re-render if needed, but apexchart handles reactivity usually -->
+            <CardHeader class="pb-2 border-b border-border/50">
+                <CardTitle class="text-base font-bold flex items-center gap-2">
+                    <PieChart class="h-4 w-4" /> Distribusi Kategori
                 </CardTitle>
             </CardHeader>
-            <CardContent class="flex items-center justify-center min-h-[300px]">
-                <div v-if="filteredTransactions.length === 0" class="text-center text-muted-foreground text-sm opacity-60">
-                    Tidak ada data untuk ditampilkan.
+            <CardContent class="flex items-center justify-center p-6 bg-muted/10 h-full">
+                <div v-if="reportData.length > 0" class="w-full max-w-[350px]">
+                     <apexchart type="donut" width="100%" :options="chartOptions" :series="chartSeries" />
                 </div>
-                <apexchart v-else type="donut" width="100%" :options="chartOptions" :series="chartSeries" />
-            </CardContent>
-        </Card>
-
-        <Card class="bg-card border-border shadow-sm rounded-3xl lg:col-span-2 flex flex-col h-[500px] overflow-hidden">
-             <CardHeader class="pb-2 border-b border-border/50">
-                <CardTitle class="text-base flex items-center justify-between">
-                     <span>Rincian Kategori</span>
-                     <span class="text-sm font-bold text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">Total: {{ formatCurrency(totalAmount) }}</span>
-                </CardTitle>
-            </CardHeader>
-            <CardContent class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
-                 <div v-if="categoryBreakdown.length === 0" class="text-center py-20 text-muted-foreground opacity-60">
-                    Belum ada data.
-                </div>
-
-                <div v-for="(cat, idx) in categoryBreakdown" :key="idx" class="flex items-center justify-between p-3 rounded-2xl border border-border/60 hover:bg-muted/30 transition-all">
-                     <div class="flex items-center gap-3">
-                         <div class="h-10 w-10 flex items-center justify-center font-bold text-muted-foreground bg-muted rounded-xl">
-                             {{ idx + 1 }}
-                         </div>
-                         <div>
-                             <p class="font-bold text-sm">{{ cat.name }}</p>
-                             <div class="w-24 h-1.5 bg-muted rounded-full mt-1 overflow-hidden" v-if="cat.budget > 0">
-                                 <div :class="['h-full rounded-full', cat.isOverbudget ? 'bg-red-500' : 'bg-primary']" :style="{ width: Math.min(cat.spendingPercentage, 100) + '%' }"></div>
-                             </div>
-                             <div v-else class="w-24 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
-                                  <div class="h-full bg-primary rounded-full" :style="{ width: cat.percentage + '%' }"></div>
-                             </div>
-                         </div>
-                     </div>
-                     <div class="text-right">
-                         <p class="font-bold text-sm">{{ formatCurrency(cat.amount) }}</p>
-                         <p v-if="cat.budget > 0" :class="['text-[10px]', cat.isOverbudget ? 'text-red-500 font-bold' : 'text-muted-foreground']">
-                            {{ cat.isOverbudget ? 'Overbudget' : 'Budget' }}: {{ formatCurrency(cat.budget, true) }}
-                         </p>
-                         <p v-else class="text-[10px] text-muted-foreground">{{ cat.percentage.toFixed(1) }}%</p>
-                     </div>
+                <div v-else class="text-center text-muted-foreground py-10">
+                    <PieChart class="h-12 w-12 mx-auto mb-3 opacity-20" />
+                    <p>Tidak ada data untuk periode ini.</p>
                 </div>
             </CardContent>
         </Card>
 
+        <!-- Category List -->
+        <Card class="lg:col-span-2 bg-card border-border shadow-sm flex flex-col rounded-3xl overflow-hidden">
+            <CardHeader class="pb-3 border-b border-border/50">
+                <CardTitle class="text-base font-bold">Rincian Kategori</CardTitle>
+            </CardHeader>
+            <CardContent class="p-0 custom-scrollbar overflow-y-auto max-h-[500px]">
+                 <div v-if="reportData.length === 0" class="p-8 text-center text-muted-foreground">
+                    <p>Tidak ada transaksi.</p>
+                </div>
+                <div v-else class="divide-y divide-border">
+                    <div v-for="(item, index) in reportData" :key="index" class="p-4 hover:bg-muted/30 transition-colors flex items-center justify-between group">
+                        <div class="flex items-center gap-4 flex-1">
+                             <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm', 
+                                  item.type === 'expense' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600']">
+                                  <span v-if="getEmoji(item.category_icon)" class="text-lg leading-none">{{ getEmoji(item.category_icon) }}</span>
+                                  <component v-else :is="getIconComponent(item.category_icon)" class="h-5 w-5" />
+                            </div>
+                            <div class="flex-1 max-w-md">
+                                <div class="flex justify-between items-center mb-1">
+                                    <p class="font-bold text-sm">{{ item.category_name }}</p>
+                                    <span v-if="item.is_over_budget" class="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full animate-pulse">OVER BUDGET</span>
+                                </div>
+                                <div v-if="item.type === 'expense'" class="flex items-center gap-2">
+                                    <div class="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
+                                        <div class="h-full rounded-full" 
+                                            :class="getProgressColor(item)" 
+                                            :style="{ width: `${getProgressBarWidth(item)}%` }">
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] text-muted-foreground font-medium w-8 text-right">{{ getDisplayPercentage(item) }}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right ml-4">
+                             <p :class="['font-bold text-sm', item.type === 'expense' ? 'text-red-500' : 'text-emerald-600']">
+                                {{ formatCurrency(item.total_amount) }}
+                             </p>
+                             <div v-if="item.type === 'expense' && item.budget_limit > 0" class="flex flex-col items-end">
+                                <p class="text-[10px] text-muted-foreground">Budget: {{ formatCurrency(item.budget_limit) }}</p>
+                             </div>
+                             <p v-else class="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">{{ item.type === 'expense' ? 'Pengeluaran' : '' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
     </div>
-
   </div>
 </template>
 

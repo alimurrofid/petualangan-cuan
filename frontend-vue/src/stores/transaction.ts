@@ -47,8 +47,18 @@ export interface TransactionSummary {
   expense: number;
 }
 
+export interface CategoryBreakdown {
+  category_name: string;
+  category_icon: string;
+  type: string;
+  total_amount: number;
+  budget_limit: number;
+  is_over_budget: boolean;
+}
+
 export const useTransactionStore = defineStore('transaction', () => {
   const transactions = ref<Transaction[]>([]);
+  const reportData = ref<CategoryBreakdown[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
@@ -63,6 +73,30 @@ export const useTransactionStore = defineStore('transaction', () => {
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Failed to fetch transactions';
       console.error(err);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+
+  const fetchReport = async (startDate: string, endDate: string, walletId?: number, type?: string) => {
+    isLoading.value = true;
+    error.value = null;
+    try {
+        let url = `/api/transactions/report?start_date=${startDate}&end_date=${endDate}`;
+        if (walletId) url += `&wallet_id=${walletId}`;
+        if (type) url += `&type=${type}`;
+
+        const response = await api.get(url);
+        if (response.data.status === 'success') {
+          reportData.value = response.data.data;
+          return reportData.value;
+        }
+        return null;
+    } catch (err: any) {
+      error.value = err.response?.data?.message || 'Failed to fetch report';
+      console.error(err);
+      throw err;
     } finally {
       isLoading.value = false;
     }
@@ -144,6 +178,8 @@ export const useTransactionStore = defineStore('transaction', () => {
     createTransaction,
     deleteTransaction,
     transfer,
-    fetchCalendarData
+    fetchCalendarData,
+    fetchReport,
+    reportData
   };
 });

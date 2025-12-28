@@ -14,6 +14,7 @@ type TransactionHandler interface {
 	DeleteTransaction(c *fiber.Ctx) error
 	TransferTransaction(c *fiber.Ctx) error
 	GetCalendarData(c *fiber.Ctx) error
+	GetReport(c *fiber.Ctx) error
 	WebhookReceiver(c *fiber.Ctx) error
 }
 
@@ -155,6 +156,59 @@ func (h *transactionHandler) GetCalendarData(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   summary,
+	})
+}
+
+// GetReport godoc
+// @Summary Get category breakdown for report
+// @Description Get comprehensive report of expenses/income by category
+// @Tags transactions
+// @Accept json
+// @Produce json
+// @Param start_date query string true "Start Date (YYYY-MM-DD)"
+// @Param end_date query string true "End Date (YYYY-MM-DD)"
+// @Param wallet_id query int false "Wallet ID"
+// @Param type query string false "Transaction Type (income, expense, all)"
+// @Security ApiKeyAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /transactions/report [get]
+func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
+	walletIDStr := c.Query("wallet_id")
+	filterType := c.Query("type")
+
+	if startDate == "" || endDate == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "start_date and end_date are required",
+		})
+	}
+
+	var walletID *uint
+	if walletIDStr != "" && walletIDStr != "all" {
+		id, err := strconv.ParseUint(walletIDStr, 10, 32)
+		if err == nil {
+			uid := uint(id)
+			walletID = &uid
+		}
+	}
+
+	var fType *string
+	if filterType != "" && filterType != "all" {
+		fType = &filterType
+	}
+
+	report, err := h.service.GetReport(userID, startDate, endDate, walletID, fType)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   report,
 	})
 }
 

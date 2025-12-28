@@ -70,13 +70,13 @@ func main() {
 	protected.Get("/categories", categoryHandler.GetCategories)
 	protected.Get("/categories/:id", categoryHandler.GetCategory)
 	protected.Put("/categories/:id", categoryHandler.UpdateCategory)
-	protected.Put("/categories/:id", categoryHandler.UpdateCategory)
 	protected.Delete("/categories/:id", categoryHandler.DeleteCategory)
 
 	protected.Get("/transactions", h.GetTransactions)
 	protected.Post("/transactions", h.CreateTransaction)
 	protected.Get("/transactions/calendar", h.GetCalendarData)
-	protected.Post("/transactions/transfer", h.TransferTransaction) // New route
+	protected.Get("/transactions/report", h.GetReport) // New route for reports
+	protected.Post("/transactions/transfer", h.TransferTransaction)
 	protected.Delete("/transactions/:id", h.DeleteTransaction)
 
 	// Auth Routes

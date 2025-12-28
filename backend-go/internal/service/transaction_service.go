@@ -15,6 +15,7 @@ type TransactionService interface {
 	DeleteTransaction(id uint, userID uint) error
 	TransferTransaction(userID uint, input TransferTransactionInput) error
 	GetCalendarData(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error)
+	GetReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error)
 }
 
 type transactionService struct {
@@ -280,4 +281,8 @@ func (s *transactionService) getCategoryForTransfer(userID uint) (uint, error) {
 
 func (s *transactionService) GetCalendarData(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error) {
 	return s.repo.FindSummaryByDateRange(userID, startDate, endDate)
+}
+
+func (s *transactionService) GetReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error) {
+	return s.repo.GetCategoryBreakdown(userID, startDate, endDate, walletID, filterType)
 }
