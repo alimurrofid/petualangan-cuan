@@ -13,6 +13,8 @@ type TransactionRepository interface {
 	Delete(id uint, userID uint) error
 	FindSummaryByDateRange(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error)
 	GetCategoryBreakdown(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error)
+	GetMonthlyTrend(userID uint, startDate, endDate string) ([]entity.MonthlyTrend, error)
+	GetRecentTransactions(userID uint, limit int) ([]entity.Transaction, error)
 	// Used for transactions, we need access to DB transaction object
 	WithTx(tx *gorm.DB) TransactionRepository
 }
@@ -105,4 +107,29 @@ func (r *transactionRepository) GetCategoryBreakdown(userID uint, startDate, end
     }
 
 	return results, nil
+}
+
+func (r *transactionRepository) GetMonthlyTrend(userID uint, startDate, endDate string) ([]entity.MonthlyTrend, error) {
+	var results []entity.MonthlyTrend
+
+	// PostgreSQL: TO_CHAR(date, 'YYYY-MM')
+	err := r.db.Model(&entity.Transaction{}).
+		Select("TO_CHAR(date, 'YYYY-MM') as date, SUM(CASE WHEN type = 'income' OR type = 'transfer_in' THEN amount ELSE 0 END) as income, SUM(CASE WHEN type = 'expense' OR type = 'transfer_out' THEN amount ELSE 0 END) as expense").
+		Where("user_id = ? AND date BETWEEN ? AND ?", userID, startDate, endDate).
+		Group("TO_CHAR(date, 'YYYY-MM')").
+		Order("date ASC").
+		Scan(&results).Error
+
+	return results, err
+}
+
+func (r *transactionRepository) GetRecentTransactions(userID uint, limit int) ([]entity.Transaction, error) {
+	var transactions []entity.Transaction
+	err := r.db.Where("user_id = ?", userID).
+		Preload("Wallet").
+		Preload("Category").
+		Order("date desc, created_at desc").
+		Limit(limit).
+		Find(&transactions).Error
+	return transactions, err
 }

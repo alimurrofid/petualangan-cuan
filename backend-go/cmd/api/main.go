@@ -50,6 +50,10 @@ func main() {
 	categorySvc := service.NewCategoryService(categoryRepo)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 
+	// Dashboard
+	dashboardSvc := service.NewDashboardService(repo, walletRepo)
+	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
+
 	// Init Fiber
 	app := fiber.New()
 	app.Use(cors.New())
@@ -60,6 +64,7 @@ func main() {
 
 	// Protected Routes
 	protected := app.Group("/api", middleware.Protected())
+	protected.Get("/dashboard", dashboardHandler.GetDashboard) // Dashboard
 	protected.Post("/wallets", walletHandler.CreateWallet)
 	protected.Get("/wallets", walletHandler.GetWallets)
 	protected.Get("/wallets/:id", walletHandler.GetWallet)

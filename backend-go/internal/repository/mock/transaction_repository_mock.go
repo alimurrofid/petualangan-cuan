@@ -45,6 +45,16 @@ func (m *TransactionRepositoryMock) GetCategoryBreakdown(userID uint, startDate,
 	return args.Get(0).([]entity.CategoryBreakdown), args.Error(1)
 }
 
+func (m *TransactionRepositoryMock) GetMonthlyTrend(userID uint, startDate, endDate string) ([]entity.MonthlyTrend, error) {
+	args := m.Called(userID, startDate, endDate)
+	return args.Get(0).([]entity.MonthlyTrend), args.Error(1)
+}
+
+func (m *TransactionRepositoryMock) GetRecentTransactions(userID uint, limit int) ([]entity.Transaction, error) {
+	args := m.Called(userID, limit)
+	return args.Get(0).([]entity.Transaction), args.Error(1)
+}
+
 func (m *TransactionRepositoryMock) WithTx(tx *gorm.DB) repository.TransactionRepository {
 	args := m.Called(tx)
 	return args.Get(0).(repository.TransactionRepository)

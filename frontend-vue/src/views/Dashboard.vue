@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useAuthStore } from "@/stores/auth";
+import { useDashboardStore } from "@/stores/dashboard";
 import { 
   Card, 
   CardContent, 
@@ -8,8 +9,8 @@ import {
   CardTitle,
   CardDescription
 } from '@/components/ui/card';
+import { Button } from "@/components/ui/button";
 
-const authStore = useAuthStore();
 import { 
   ArrowUp, 
   ArrowDown, 
@@ -18,92 +19,154 @@ import {
   Lightbulb
 } from 'lucide-vue-next';
 import * as LucideIcons from "lucide-vue-next";
-import { startOfMonth, endOfMonth, isWithinInterval, parseISO, format, isSameDay, subDays } from 'date-fns';
+import { format, parseISO, isSameDay, subDays } from 'date-fns';
 import { id as localeId } from "date-fns/locale";
 
-interface Transaction {
-  id: number;
-  title: string;
-  amount: number;
-  date: string;
-  type: "income" | "expense";
-  categoryId: number;
-  walletId: number;
-}
-
-interface WalletItem {
-  id: number;
-  name: string;
-  type: string;
-  balance: number;
-  cardNumber: string;
-  holderName: string;
-}
-
-interface CategoryItem {
-  id: number;
-  name: string;
-  icon: string;
-  isEmoji: boolean;
-  type: "income" | "expense";
-  budgetLimit?: number;
-}
-
-const transactions = ref<Transaction[]>([]);
-const wallets = ref<WalletItem[]>([]);
-const categories = ref<CategoryItem[]>([]);
+const authStore = useAuthStore();
+const dashboardStore = useDashboardStore();
 
 onMounted(() => {
-    const savedTransactions = localStorage.getItem("mock_transactions");
-    if (savedTransactions) transactions.value = JSON.parse(savedTransactions);
+    dashboardStore.fetchDashboard();
+});
 
-    const savedWallets = localStorage.getItem("mock_wallets");
-    if (savedWallets) wallets.value = JSON.parse(savedWallets);
-    else wallets.value = [
-        { id: 1, name: "BCA Utama", type: "Bank", balance: 15450000, cardNumber: "**** 4521", holderName: "ALIMURROFID" },
-        { id: 2, name: "GoPay", type: "E-Wallet", balance: 250000, cardNumber: "0812****99", holderName: "ALIMURROFID" },
-        { id: 3, name: "Uang Tunai", type: "Cash", balance: 750000, cardNumber: "-", holderName: "-" },
-    ];
+const data = computed(() => dashboardStore.data);
 
-    const savedCategories = localStorage.getItem("mock_categories");
-    if (savedCategories) categories.value = JSON.parse(savedCategories);
-     else {
-         categories.value = [
-            { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense", budgetLimit: 2000000 },
-            { id: 2, name: "Gaji", icon: "💰", isEmoji: true, type: "income" },
-            { id: 3, name: "Transport", icon: "Car", isEmoji: false, type: "expense", budgetLimit: 1000000 },
-            { id: 4, name: "Bonus", icon: "Gift", isEmoji: false, type: "income" },
-            { id: 5, name: "Belanja", icon: "ShoppingBag", isEmoji: false, type: "expense", budgetLimit: 1500000 },
-            { id: 6, name: "Hiburan", icon: "Gamepad2", isEmoji: false, type: "expense", budgetLimit: 500000 },
-            { id: 7, name: "Tagihan", icon: "Zap", isEmoji: false, type: "expense", budgetLimit: 750000 },
-        ];
+// Charts & Visuals
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
+};
+
+// Trend Chart
+const filledMonthlyTrend = computed(() => {
+    if (!data.value) return [];
+    
+    const filled: { date: string; income: number; expense: number }[] = [];
+    const today = new Date();
+    
+    // Generate last 6 months
+    for (let i = 5; i >= 0; i--) {
+        // We just need YYYY-MM keys
+        const dateObj = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const key = format(dateObj, 'yyyy-MM');
+        
+        const existing = data.value.monthly_trend.find(item => item.date === key);
+        if (existing) {
+            filled.push(existing);
+        } else {
+            filled.push({ date: key, income: 0, expense: 0 });
+        }
     }
+    return filled;
 });
 
-const thisMonthTransactions = computed(() => {
-    const now = new Date();
-    const start = startOfMonth(now);
-    const end = endOfMonth(now);
-
-    return transactions.value.filter(t => {
-        return isWithinInterval(parseISO(t.date), { start, end });
-    });
+const chartSeriesArea = computed(() => {
+    return [
+        { name: 'Pemasukan', data: filledMonthlyTrend.value.map(d => d.income) },
+        { name: 'Pengeluaran', data: filledMonthlyTrend.value.map(d => d.expense) }
+    ];
 });
 
-const totalBalance = computed(() => wallets.value.reduce((acc, w) => acc + w.balance, 0));
+const chartOptionsArea = computed(() => ({
+  chart: {
+    type: 'area',
+    toolbar: { show: false },
+    zoom: { enabled: false },
+    foreColor: '#94a3b8' 
+  },
+  dataLabels: { enabled: false },
+  stroke: { curve: 'smooth', width: 2 },
+  colors: ['#10b981', '#ef4444'],
+  fill: {
+    type: 'gradient',
+    gradient: {
+      shadeIntensity: 1,
+      opacityFrom: 0.4,
+      opacityTo: 0.1,
+      stops: [0, 90, 100]
+    }
+  },
+  xaxis: {
+    categories: filledMonthlyTrend.value.map(d => format(parseISO(d.date + "-01"), "MMM", { locale: localeId })),
+    axisBorder: { show: false },
+    axisTicks: { show: false }
+  },
+  yaxis: { show: false },
+  grid: { 
+     show: true,
+     borderColor: '#334155', 
+     strokeDashArray: 4,
+  },
+  tooltip: { theme: 'dark' }
+}));
 
-const totalIncome = computed(() => thisMonthTransactions.value.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0));
-const totalExpense = computed(() => thisMonthTransactions.value.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0));
-
-const recentTransactions = computed(() => {
-    return transactions.value
-        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 5);
+// Donut Chart (Breakdown)
+const chartSeriesDonut = computed(() => {
+    return data.value?.expense_breakdown.map(item => item.total_amount) || [];
 });
 
+const chartLabelsDonut = computed(() => {
+    return data.value?.expense_breakdown.map(item => item.category_name) || [];
+});
+
+const chartOptionsDonut = computed(() => ({
+    chart: { type: 'donut', fontFamily: 'inherit', foreColor: '#94a3b8' },
+    labels: chartLabelsDonut.value,
+    plotOptions: {
+        pie: {
+            donut: {
+                size: '65%',
+                labels: { show: false }
+            }
+        }
+    },
+    dataLabels: { enabled: false },
+    legend: { position: 'bottom' },
+    colors: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'],
+    stroke: { show: false },
+    tooltip: {
+        theme: 'dark',
+        y: { formatter: (val: number) => formatCurrency(val) }
+    }
+}));
+
+// Budget Status (Top 5 Expenses)
+const budgetStatus = computed(() => {
+    if (!data.value) return [];
+    // Filter expense items that have budget logic or just use breakdown
+    return data.value.expense_breakdown
+        .filter(item => item.type === 'expense')
+        // Removed slice(0, 5) to show all categories as requested
+        .map(item => {
+            const limit = item.budget_limit || 0;
+            const spent = item.total_amount;
+            let percentage = 0;
+            if (limit > 0) percentage = Math.round((spent / limit) * 100);
+            
+            return {
+                name: item.category_name,
+                percentage,
+                isOver: item.is_over_budget,
+                limit
+            };
+        })
+        .sort((a, b) => b.percentage - a.percentage);
+});
+
+const getWalletColorClass = (type: string) => {
+    const t = type.toLowerCase();
+    if (t.includes('bank')) return 'from-blue-500 to-blue-600 text-white';
+    if (t.includes('wallet')) return 'from-purple-500 to-purple-600 text-white';
+    // Cash or others
+    return 'from-emerald-500 to-emerald-600 text-white'; 
+};
+
+
+// Recent Transactions Grouping
 const groupedRecentTransactions = computed(() => {
-    const groups: Record<string, Transaction[]> = {};
-    recentTransactions.value.forEach(t => {
+    if (!data.value) return [];
+    const groups: Record<string, any[]> = {};
+    
+    data.value.recent_transactions.forEach(t => {
         const dateKey = format(parseISO(t.date), 'yyyy-MM-dd');
         if (!groups[dateKey]) groups[dateKey] = [];
         groups[dateKey].push(t);
@@ -126,114 +189,31 @@ const groupedRecentTransactions = computed(() => {
     });
 });
 
-const expenseBreakdown = computed(() => {
-    const groups: Record<string, number> = {};
-    thisMonthTransactions.value.filter(t => t.type === 'expense').forEach(t => {
-        const cat = categories.value.find(c => c.id === t.categoryId);
-        const name = cat?.name || 'Lainnya';
-        if (!groups[name]) groups[name] = 0;
-        groups[name] += t.amount;
-    });
-    return groups;
-});
-
-
-const budgetStatus = computed(() => {
-    const status: { name: string; spent: number; limit: number; percentage: number; isOver: boolean }[] = [];
-    
-    categories.value.filter(c => c.type === 'expense' && c.budgetLimit && c.budgetLimit > 0).forEach(c => {
-        const spent = thisMonthTransactions.value
-            .filter(t => t.categoryId === c.id && t.type === 'expense')
-            .reduce((acc, t) => acc + t.amount, 0);
-        
-        status.push({
-            name: c.name,
-            spent,
-            limit: c.budgetLimit || 0,
-            percentage: (spent / (c.budgetLimit || 1)) * 100,
-            isOver: spent > (c.budgetLimit || 0)
-        });
-    });
-
-    return status.sort((a,b) => b.percentage - a.percentage);
-});
-
-const chartSeriesDonut = computed(() => Object.values(expenseBreakdown.value));
-const chartLabelsDonut = computed(() => Object.keys(expenseBreakdown.value));
-
-const chartOptionsDonut = computed(() => ({
-    chart: { type: 'donut', fontFamily: 'inherit', foreColor: '#94a3b8' },
-    labels: chartLabelsDonut.value,
-    plotOptions: {
-        pie: {
-            donut: {
-                size: '65%',
-                labels: {
-                    show: false
-                }
-            }
-        }
-    },
-    dataLabels: { enabled: false },
-    legend: { position: 'bottom' },
-    colors: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'],
-    stroke: { show: false },
-    tooltip: {
-        theme: 'dark',
-        y: { formatter: (val: number) => formatCurrency(val) }
-    }
-}));
-
-const chartOptionsArea = computed(() => ({
-  chart: {
-    type: 'area',
-    toolbar: { show: false },
-    zoom: { enabled: false },
-    foreColor: '#94a3b8' // Slate-400: Readable on both Dark/Light
-  },
-  dataLabels: { enabled: false },
-  stroke: { curve: 'smooth', width: 2 },
-  colors: ['#10b981', '#ef4444'],
-  fill: {
-    type: 'gradient',
-    gradient: {
-      shadeIntensity: 1,
-      opacityFrom: 0.4,
-      opacityTo: 0.1,
-      stops: [0, 90, 100]
-    }
-  },
-  xaxis: {
-    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-    axisBorder: { show: false },
-    axisTicks: { show: false }
-  },
-  yaxis: { show: false },
-  grid: { 
-     show: true,
-     borderColor: '#334155', // Slate-700
-     strokeDashArray: 4,
-  },
-  tooltip: { theme: 'dark' }
-}));
-
-const chartSeriesArea = [
-    { name: 'Pemasukan', data: [120, 200, 150, 300, 250, 400, 350] }, 
-    { name: 'Pengeluaran', data: [80, 100, 120, 180, 150, 200, 180] }
-];
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
-};
-
-const getWalletName = (id: number) => wallets.value.find((w) => w.id === id)?.name || "Unknown Wallet";
-const getCategory = (id: number) => categories.value.find((c) => c.id === id);
+// Helpers
 const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideIcons.Circle;
 
+const emojiCategories: Record<string, string> = {
+  Em_MoneyBag: "💰", Em_DollarBill: "💵", Em_Card: "💳", Em_Bank: "🏦", Em_MoneyWing: "💸", Em_MoneyFly: "💸", Em_Coin: "🪙",
+  Em_Pizza: "🍕", Em_Cart: "🛒", Em_Coffee: "☕", Em_Game: "🎮", Em_Airplane: "✈️", Em_Gift: "🎁",
+  Em_Star: "⭐", Em_Fire: "🔥", Em_Lock: "🔒", Em_Check: "✅", Em_Idea: "💡"
+};
+
+const getEmoji = (name: string | undefined) => {
+  if (!name) return null;
+  if (emojiCategories[name]) return emojiCategories[name];
+  if (/\p{Emoji}/u.test(name)) return name;
+  return null;
+};
 </script>
 
 <template>
-  <div class="flex-1 space-y-6 pt-2">
+  <div class="flex-1 space-y-6 pt-2" v-if="dashboardStore.isLoading">
+      <div class="flex items-center justify-center min-h-[400px]">
+          <p class="text-muted-foreground animate-pulse">Memuat data dashboard...</p>
+      </div>
+  </div>
+  
+  <div class="flex-1 space-y-6 pt-2 text-foreground" v-else-if="data">
     <div class="flex items-center justify-between">
       <div>
           <h2 class="text-3xl font-bold tracking-tight">Dashboard</h2>
@@ -248,7 +228,7 @@ const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideI
           <Wallet class="h-4 w-4 text-white/70" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold">{{ formatCurrency(totalBalance) }}</div>
+          <div class="text-2xl font-bold">{{ formatCurrency(data.total_balance) }}</div>
           <p class="text-xs text-indigo-100/70 mt-1">Total aset saat ini</p>
         </CardContent>
       </Card>
@@ -261,7 +241,7 @@ const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideI
           </div>
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-emerald-600">+{{ formatCurrency(totalIncome) }}</div>
+          <div class="text-2xl font-bold text-emerald-600">+{{ formatCurrency(data.total_income_month) }}</div>
           <p class="text-xs text-muted-foreground mt-1">Bulan Ini</p>
         </CardContent>
       </Card>
@@ -274,7 +254,7 @@ const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideI
           </div>
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-rose-600">-{{ formatCurrency(totalExpense) }}</div>
+          <div class="text-2xl font-bold text-rose-600">-{{ formatCurrency(data.total_expense_month) }}</div>
           <p class="text-xs text-muted-foreground mt-1">Bulan Ini</p>
         </CardContent>
       </Card>
@@ -309,9 +289,9 @@ const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideI
       <Card class="col-span-1 md:col-span-2 lg:col-span-3 bg-card shadow-sm rounded-3xl">
         <CardHeader>
             <CardTitle>Distribusi Pengeluaran</CardTitle>
-            <CardDescription>Berdasarkan kategori.</CardDescription>
+            <CardDescription>Berdasarkan kategori bulan ini.</CardDescription>
         </CardHeader>
-        <CardContent class="flex items-center justify-center">
+        <CardContent class="flex items-center justify-center flex-col">
              <div v-if="chartSeriesDonut.length === 0" class="text-center py-10 text-muted-foreground text-sm">Belum ada data pengeluaran.</div>
              <apexchart v-else type="donut" width="100%" :options="chartOptionsDonut" :series="chartSeriesDonut" />
 
@@ -325,7 +305,7 @@ const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideI
                          </div>
                      </div>
                      <span :class="['text-xs font-bold', item.isOver ? 'text-red-500' : 'text-muted-foreground']">
-                         {{ item.percentage.toFixed(0) }}%
+                         {{ item.percentage }}%
                      </span>
                  </div>
              </div>
@@ -342,7 +322,7 @@ const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideI
             </CardHeader>
             <CardContent>
                 <div class="space-y-4">
-                    <div v-if="recentTransactions.length === 0" class="text-center py-6 text-muted-foreground text-sm">
+                    <div v-if="groupedRecentTransactions.length === 0" class="text-center py-6 text-muted-foreground text-sm">
                         Belum ada transaksi.
                     </div>
                     <div v-for="group in groupedRecentTransactions" :key="group.date" class="space-y-3">
@@ -354,15 +334,13 @@ const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideI
                         <div v-for="t in group.items" :key="t.id" class="group relative flex items-center justify-between p-3 rounded-2xl hover:bg-muted/50 transition-all cursor-default border border-transparent hover:border-border">
                              <div class="flex items-center gap-3">
                                  <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm transition-transform group-hover:scale-105', t.type === 'expense' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600']">
-                                     <template v-if="getCategory(t.categoryId)?.isEmoji">
-                                        {{ getCategory(t.categoryId)?.icon }}
-                                     </template>
-                                     <component v-else :is="getIconComponent(getCategory(t.categoryId)?.icon || 'Circle')" class="h-5 w-5" />
+                                     <span v-if="getEmoji(t.category?.icon)" class="text-lg leading-none">{{ getEmoji(t.category?.icon) }}</span>
+                                     <component v-else :is="getIconComponent(t.category?.icon || 'Circle')" class="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <p class="font-bold text-sm truncate max-w-[120px] pb-1">{{ t.title }}</p>
+                                    <p class="font-bold text-sm truncate max-w-[180px] pb-0.5">{{ t.description || 'Tanpa Keterangan' }}</p>
                                     <p class="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                                        {{ getWalletName(t.walletId) }} • {{ getCategory(t.categoryId)?.name }}
+                                        {{ t.wallet?.name }} • {{ t.category?.name }}
                                     </p>
                                 </div>
                             </div>
@@ -385,12 +363,18 @@ const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideI
             </CardHeader>
             <CardContent>
                 <div class="space-y-4">
-                     <div v-for="w in wallets" :key="w.id" class="p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-zinc-900 dark:to-zinc-800 rounded-xl border border-border/50 flex items-center justify-between w-full">
-                         <div>
-                             <p class="text-xs font-bold text-muted-foreground uppercase">{{ w.type }}</p>
-                             <p class="font-bold text-sm truncate max-w-[120px]">{{ w.name }}</p>
+                     <div v-for="w in data.wallets" :key="w.id" :class="['p-4 rounded-xl border border-transparent shadow-md flex items-center justify-between w-full bg-gradient-to-br min-h-[80px]', getWalletColorClass(w.type)]">
+                         <div class="flex items-center gap-4">
+                             <div class="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl shadow-sm">
+                                  <span v-if="getEmoji(w.icon)" class="text-lg leading-none">{{ getEmoji(w.icon) }}</span>
+                                  <component v-else :is="getIconComponent(w.icon || 'Wallet')" class="h-5 w-5 text-white" />
+                             </div>
+                             <div>
+                                 <p class="text-xs font-bold opacity-80 uppercase tracking-wide">{{ w.type }}</p>
+                                 <p class="font-bold text-base truncate max-w-[140px]">{{ w.name }}</p>
+                             </div>
                          </div>
-                         <p class="font-bold text-sm text-primary whitespace-nowrap">{{ formatCurrency(w.balance) }}</p>
+                         <p class="font-bold text-lg whitespace-nowrap drop-shadow-sm">{{ formatCurrency(w.balance) }}</p>
                      </div>
                      <Button variant="outline" class="w-full text-xs h-8 rounded-xl" @click="$router.push('/wallet')">
                         Lihat Semua Dompet
@@ -399,6 +383,5 @@ const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideI
             </CardContent>
         </Card>
     </div>
-
   </div>
 </template>
