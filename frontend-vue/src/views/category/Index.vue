@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-
+import { useCategoryStore, type Category } from "@/stores/category";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,26 +11,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import * as LucideIcons from "lucide-vue-next";
 import { Plus, Pencil, Trash2, LayoutGrid, Save, TrendingUp, TrendingDown } from "lucide-vue-next";
 
-interface CategoryItem {
+// Define the form structure (frontend representation)
+interface CategoryForm {
   id: number;
   name: string;
   icon: string;
-  isEmoji: boolean;
   type: "income" | "expense";
   budgetLimit?: number;
 }
 
-const categories = ref<CategoryItem[]>([]);
+const categoryStore = useCategoryStore();
 const currentTab = ref<"expense" | "income">("income");
 
 const isDialogOpen = ref(false);
 const isIconPickerOpen = ref(false);
 const isEditMode = ref(false);
-const form = ref<CategoryItem>({
+
+const form = ref<CategoryForm>({
   id: 0,
   name: "",
   icon: "",
-  isEmoji: false,
   type: "expense",
   budgetLimit: 0,
 });
@@ -51,75 +51,110 @@ const iconOptions = [
 ];
 
 const emojiCategories = {
-  Keuangan: ["💰", "💵", "💳", "🏦", "💸", "🪙"],
-  Lifestyle: ["🍕", "🛒", "☕", "🎮", "✈️", "🎁"],
-  Simbol: ["⭐", "🔥", "🔒", "✅", "💡"],
+  Keuangan: [
+    { name: "Em_MoneyBag", emoji: "💰" },
+    { name: "Em_DollarBill", emoji: "💵" },
+    { name: "Em_Card", emoji: "💳" },
+    { name: "Em_Bank", emoji: "🏦" },
+    { name: "Em_MoneyWing", emoji: "💸" },
+    { name: "Em_Coin", emoji: "🪙" },
+  ],
+  Lifestyle: [
+    { name: "Em_Pizza", emoji: "🍕" },
+    { name: "Em_Cart", emoji: "🛒" },
+    { name: "Em_Coffee", emoji: "☕" },
+    { name: "Em_Game", emoji: "🎮" },
+    { name: "Em_Airplane", emoji: "✈️" },
+    { name: "Em_Gift", emoji: "🎁" },
+  ],
+  Simbol: [
+    { name: "Em_Star", emoji: "⭐" },
+    { name: "Em_Fire", emoji: "🔥" },
+    { name: "Em_Lock", emoji: "🔒" },
+    { name: "Em_Check", emoji: "✅" },
+    { name: "Em_Idea", emoji: "💡" },
+  ],
 };
 
-const loadCategories = () => {
-  const saved = localStorage.getItem("mock_categories");
-  if (saved) {
-    categories.value = JSON.parse(saved);
-  } else {
-    const initial: CategoryItem[] = [
-      { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense", budgetLimit: 2000000 },
-      { id: 2, name: "Gaji", icon: "💰", isEmoji: true, type: "income" },
-      { id: 3, name: "Transport", icon: "Car", isEmoji: false, type: "expense", budgetLimit: 1000000 },
-      { id: 4, name: "Bonus", icon: "Gift", isEmoji: false, type: "income" },
-      { id: 5, name: "Belanja", icon: "ShoppingBag", isEmoji: false, type: "expense", budgetLimit: 1500000 },
-      { id: 6, name: "Hiburan", icon: "Gamepad2", isEmoji: false, type: "expense", budgetLimit: 500000 },
-      { id: 7, name: "Tagihan", icon: "Zap", isEmoji: false, type: "expense", budgetLimit: 750000 },
-    ];
-    categories.value = initial;
-    localStorage.setItem("mock_categories", JSON.stringify(initial));
-  }
-};
-
-onMounted(loadCategories);
+onMounted(() => {
+  categoryStore.fetchCategories();
+});
 
 const filteredCategories = computed(() => {
-  return categories.value.filter((c) => c.type === currentTab.value);
+  return categoryStore.categories.filter((c) => c.type === currentTab.value);
 });
 
 const openAdd = () => {
   isEditMode.value = false;
-  form.value = { id: Date.now(), name: "", icon: "", isEmoji: false, type: currentTab.value, budgetLimit: 0 };
+  form.value = { id: 0, name: "", icon: "", type: currentTab.value, budgetLimit: 0 };
   isDialogOpen.value = true;
 };
 
-const openEdit = (category: CategoryItem) => {
+const openEdit = (category: Category) => {
   isEditMode.value = true;
-  form.value = { ...category };
+  form.value = {
+    id: category.id,
+    name: category.name,
+    icon: category.icon || "",
+    type: category.type,
+    // Note: Backend JSON for budget_limit -> category.budget_limit
+    budgetLimit: category.budget_limit || 0,
+  };
   isDialogOpen.value = true;
 };
 
-const selectIcon = (name: string, isEmoji: boolean) => {
+const selectIcon = (name: string) => {
   form.value.icon = name;
-  form.value.isEmoji = isEmoji;
   isIconPickerOpen.value = false;
 };
 
-const handleSave = () => {
+const handleSave = async () => {
   if (!form.value.name || !form.value.icon) return alert("Lengkapi data kategori");
-  if (isEditMode.value) {
-    categories.value = categories.value.map((c) => (c.id === form.value.id ? { ...form.value } : c));
-  } else {
-    categories.value.push({ ...form.value });
-  }
-  localStorage.setItem("mock_categories", JSON.stringify(categories.value));
-  isDialogOpen.value = false;
-};
+  
+  const payload = {
+    name: form.value.name,
+    type: form.value.type,
+    icon: form.value.icon,
+    budget_limit: Number(form.value.budgetLimit),
+  };
 
-const handleDelete = () => {
-  if (confirm("Hapus kategori ini?")) {
-    categories.value = categories.value.filter((c) => c.id !== form.value.id);
-    localStorage.setItem("mock_categories", JSON.stringify(categories.value));
+  try {
+    if (isEditMode.value) {
+      await categoryStore.updateCategory(form.value.id, payload);
+    } else {
+      await categoryStore.createCategory(payload);
+    }
     isDialogOpen.value = false;
+  } catch (error) {
+    alert("Gagal menyimpan data");
   }
 };
 
-const getIconComponent = (name: string) => {
-  return (LucideIcons as any)[name] || LayoutGrid;
+const handleDelete = async () => {
+  if (confirm("Hapus kategori ini?")) {
+    try {
+      await categoryStore.deleteCategory(form.value.id);
+      isDialogOpen.value = false;
+    } catch (error) {
+       alert("Gagal menghapus data");
+    }
+  }
+};
+
+const getIconComponent = (name: string | undefined) => {
+  if (!name) return LayoutGrid;
+  return (LucideIcons as any)[name] || null;
+};
+
+const getEmoji = (name: string | undefined) => {
+  if (!name) return null;
+  for (const category of Object.values(emojiCategories)) {
+    const found = category.find((e) => e.name === name);
+    if (found) return found.emoji;
+  }
+  // Fallback if name itself is an emoji (legacy support)
+  if (/\p{Emoji}/u.test(name)) return name;
+  return null;
 };
 
 const getGradientIcon = (type: string) => {
@@ -127,6 +162,17 @@ const getGradientIcon = (type: string) => {
         ? 'bg-gradient-to-br from-red-50 to-red-100 text-red-600 dark:from-red-900 dark:to-red-800 dark:text-red-100' 
         : 'bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 dark:from-emerald-900 dark:to-emerald-800 dark:text-emerald-100';
 };
+
+const formattedBudgetLimit = computed({
+  get: () => {
+    if (!form.value.budgetLimit) return "";
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(form.value.budgetLimit);
+  },
+  set: (val: string) => {
+    const numericValue = Number(val.replace(/[^0-9]/g, ""));
+    form.value.budgetLimit = numericValue;
+  }
+});
 </script>
 
 <template>
@@ -162,8 +208,9 @@ const getGradientIcon = (type: string) => {
                 <!-- Header: Icon & Edit Hint -->
                 <div class="relative z-10 flex justify-between items-start">
                     <div :class="['h-14 w-14 rounded-2xl flex items-center justify-center border shadow-sm transition-transform group-hover:scale-110', getGradientIcon(item.type), item.type === 'expense' ? 'border-red-100 dark:border-red-800' : 'border-emerald-100 dark:border-emerald-800']">
-                         <span v-if="item.isEmoji" class="text-3xl leading-none filter drop-shadow-sm">{{ item.icon }}</span>
-                         <component v-else :is="getIconComponent(item.icon)" class="h-7 w-7" />
+                         <component v-if="getIconComponent(item.icon)" :is="getIconComponent(item.icon)" class="h-7 w-7" />
+                         <span v-else-if="getEmoji(item.icon)" class="text-3xl leading-none filter drop-shadow-sm">{{ getEmoji(item.icon) }}</span>
+                         <span v-else class="text-xl leading-none filter drop-shadow-sm">{{ item.icon }}</span>
                     </div>
                     <div class="opacity-0 group-hover:opacity-100 transition-opacity">
                          <div class="bg-muted p-2 rounded-full transform rotate-12 group-hover:rotate-0 transition-transform">
@@ -179,8 +226,8 @@ const getGradientIcon = (type: string) => {
                          <div :class="['h-1.5 w-1.5 rounded-full', item.type === 'expense' ? 'bg-red-500' : 'bg-emerald-500']"></div>
                          <p class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">{{ item.type === 'expense' ? 'Pengeluaran' : 'Pemasukan' }}</p>
                     </div>
-                     <p v-if="item.type === 'expense' && item.budgetLimit" class="text-xs text-muted-foreground mt-1">
-                        Target: {{ new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.budgetLimit) }}
+                     <p v-if="item.type === 'expense' && item.budget_limit" class="text-xs text-muted-foreground mt-1">
+                        Target: {{ new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.budget_limit) }}
                     </p>
                 </div>
             </div>
@@ -223,7 +270,7 @@ const getGradientIcon = (type: string) => {
 
           <div v-if="form.type === 'expense'" class="grid gap-2">
             <Label class="text-sm font-semibold opacity-70">Target Pengeluaran (Rp)</Label>
-            <Input v-model="form.budgetLimit" type="number" placeholder="0" class="h-11 bg-background shadow-sm" />
+            <Input v-model="formattedBudgetLimit" type="text" placeholder="Rp 0" class="h-11 bg-background shadow-sm" />
             <p class="text-[10px] text-muted-foreground">Isi 0 jika tidak ingin membatasi pengeluaran.</p>
           </div>
 
@@ -242,8 +289,9 @@ const getGradientIcon = (type: string) => {
               </template>
               <template v-else>
                 <div :class="['h-16 w-16 rounded-2xl flex items-center justify-center text-4xl shadow-md transform group-hover:scale-105 transition-transform', form.type === 'expense' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600']">
-                  <span v-if="form.isEmoji" class="leading-none">{{ form.icon }}</span>
-                  <component v-else :is="getIconComponent(form.icon)" class="h-8 w-8" />
+                  <component v-if="getIconComponent(form.icon)" :is="getIconComponent(form.icon)" class="h-8 w-8" />
+                  <span v-else-if="getEmoji(form.icon)" class="leading-none">{{ getEmoji(form.icon) }}</span>
+                  <span v-else class="leading-none">{{ form.icon }}</span>
                 </div>
                  <div class="text-left">
                     <p class="text-xs font-bold uppercase opacity-50">Icon Terpilih</p>
@@ -276,7 +324,7 @@ const getGradientIcon = (type: string) => {
           </div>
           <TabsContent value="icons" class="flex-1 overflow-y-auto p-6 mt-0">
             <div class="grid grid-cols-4 gap-4">
-              <Button v-for="item in iconOptions" :key="item.name" variant="ghost" type="button" class="h-20 flex flex-col gap-2 hover:bg-primary/10" @click="selectIcon(item.name, false)">
+              <Button v-for="item in iconOptions" :key="item.name" variant="ghost" type="button" class="h-20 flex flex-col gap-2 hover:bg-primary/10" @click="selectIcon(item.name)">
                 <component :is="item.icon" class="h-6 w-6" />
                 <span class="text-[9px] font-medium opacity-60 truncate w-full">{{ item.label }}</span>
               </Button>
@@ -286,7 +334,7 @@ const getGradientIcon = (type: string) => {
             <div v-for="(list, cat) in emojiCategories" :key="cat" class="mb-6">
               <p class="text-[10px] font-bold text-muted-foreground uppercase mb-3 text-left tracking-widest">{{ cat }}</p>
               <div class="grid grid-cols-4 gap-4">
-                <button v-for="e in list" :key="e" type="button" class="text-4xl p-2 hover:bg-accent rounded-2xl transition-transform active:scale-90" @click="selectIcon(e, true)">{{ e }}</button>
+                <button v-for="e in list" :key="e.name" type="button" class="text-4xl p-2 hover:bg-accent rounded-2xl transition-transform active:scale-90" @click="selectIcon(e.name)">{{ e.emoji }}</button>
               </div>
             </div>
           </TabsContent>

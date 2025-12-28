@@ -43,6 +43,10 @@ func main() {
 	walletSvc := service.NewWalletService(walletRepo)
 	walletHandler := handler.NewWalletHandler(walletSvc)
 
+	categoryRepo := repository.NewCategoryRepository(config.DB)
+	categorySvc := service.NewCategoryService(categoryRepo)
+	categoryHandler := handler.NewCategoryHandler(categorySvc)
+
 	// Init Fiber
 	app := fiber.New()
 	app.Use(cors.New())
@@ -59,6 +63,12 @@ func main() {
 	protected.Get("/wallets/:id", walletHandler.GetWallet)
 	protected.Put("/wallets/:id", walletHandler.UpdateWallet)
 	protected.Delete("/wallets/:id", walletHandler.DeleteWallet)
+
+	protected.Post("/categories", categoryHandler.CreateCategory)
+	protected.Get("/categories", categoryHandler.GetCategories)
+	protected.Get("/categories/:id", categoryHandler.GetCategory)
+	protected.Put("/categories/:id", categoryHandler.UpdateCategory)
+	protected.Delete("/categories/:id", categoryHandler.DeleteCategory)
 
 	// Auth Routes
 	auth := app.Group("/auth")
