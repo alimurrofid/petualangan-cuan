@@ -30,3 +30,8 @@ func (m *UserRepositoryMock) FindByID(id uint) (*entity.User, error) {
 	}
 	return args.Get(0).(*entity.User), args.Error(1)
 }
+
+func (m *UserRepositoryMock) Update(user *entity.User) error {
+	args := m.Called(user)
+	return args.Error(0)
+}

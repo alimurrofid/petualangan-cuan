@@ -24,6 +24,18 @@ type UserService interface {
 	Register(input RegisterInput) (*entity.User, string, error)
 	Login(input LoginInput) (*entity.User, string, error)
 	Logout(token string) error
+	UpdateProfile(id uint, input UpdateProfileInput) (*entity.User, error)
+	ChangePassword(id uint, input ChangePasswordInput) error
+}
+
+type UpdateProfileInput struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type ChangePasswordInput struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
 }
 
 type userService struct {
@@ -83,4 +95,41 @@ func (s *userService) Logout(token string) error {
 	// For this task, we will just return nil to satisfy the interface 
 	// and assume the client acts by discarding the token.
 	return nil
+}
+
+func (s *userService) UpdateProfile(id uint, input UpdateProfileInput) (*entity.User, error) {
+	user, err := s.userRepository.FindByID(id)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	user.Name = input.Name
+	user.Email = input.Email // Minimal validation for now
+
+	err = s.userRepository.Update(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (s *userService) ChangePassword(id uint, input ChangePasswordInput) error {
+	user, err := s.userRepository.FindByID(id)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.OldPassword))
+	if err != nil {
+		return errors.New("invalid old password")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.Password = string(hashedPassword)
+	return s.userRepository.Update(user)
 }

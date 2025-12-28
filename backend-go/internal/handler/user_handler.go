@@ -10,6 +10,8 @@ type UserHandler interface {
 	Register(c *fiber.Ctx) error
 	Login(c *fiber.Ctx) error
 	Logout(c *fiber.Ctx) error
+	UpdateProfile(c *fiber.Ctx) error
+	ChangePassword(c *fiber.Ctx) error
 }
 
 type userHandler struct {
@@ -88,5 +90,70 @@ func (h *userHandler) Logout(c *fiber.Ctx) error {
 	// unless a blacklist is implemented.
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Successfully logged out",
+	})
+}
+
+// UpdateProfile godoc
+// @Summary Update user profile
+// @Description Update user name and email
+// @Tags auth
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body service.UpdateProfileInput true "Update Profile Request"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Router /auth/profile [put]
+func (h *userHandler) UpdateProfile(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(uint)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	var input service.UpdateProfileInput
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	user, err := h.userService.UpdateProfile(uint(userID), input)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"user":    user,
+		"message": "Profile updated successfully",
+	})
+}
+
+// ChangePassword godoc
+// @Summary Change user password
+// @Description Change user password
+// @Tags auth
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body service.ChangePasswordInput true "Change Password Request"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Router /auth/password [put]
+func (h *userHandler) ChangePassword(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(uint)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	var input service.ChangePasswordInput
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	err := h.userService.ChangePassword(uint(userID), input)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Password updated successfully",
 	})
 }

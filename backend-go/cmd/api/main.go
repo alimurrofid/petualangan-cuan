@@ -90,6 +90,11 @@ func main() {
 	auth.Post("/login", userHandler.Login)
 	auth.Post("/logout", userHandler.Logout)
 
+	// User Settings Routes (Put under auth for now, or protected route)
+	userRoutes := app.Group("/api/user", middleware.Protected())
+	userRoutes.Put("/profile", userHandler.UpdateProfile)
+	userRoutes.Put("/password", userHandler.ChangePassword)
+
 	// Swagger Route
 	app.Get("/swagger/*", swagger.HandlerDefault) 
 

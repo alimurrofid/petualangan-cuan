@@ -42,5 +42,25 @@ export const useAuthStore = defineStore('auth', () => {
         router.push('/login');
     };
 
-    return { token, user, login, register, logout };
+    const updateProfile = async (data: any) => {
+        try {
+            const response = await api.put('/api/user/profile', data);
+            user.value = response.data.user;
+            localStorage.setItem('user', JSON.stringify(user.value));
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    const changePassword = async (data: any) => {
+        try {
+            const response = await api.put('/api/user/password', data);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    return { token, user, login, register, logout, updateProfile, changePassword };
 });

@@ -42,6 +42,19 @@ func (m *MockUserService) Logout(token string) error {
 	return args.Error(0)
 }
 
+func (m *MockUserService) UpdateProfile(id uint, input service.UpdateProfileInput) (*entity.User, error) {
+	args := m.Called(id, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.User), args.Error(1)
+}
+
+func (m *MockUserService) ChangePassword(id uint, input service.ChangePasswordInput) error {
+	args := m.Called(id, input)
+	return args.Error(0)
+}
+
 func TestRegisterHandler(t *testing.T) {
 	mockService := new(MockUserService)
 	userHandler := handler.NewUserHandler(mockService)
