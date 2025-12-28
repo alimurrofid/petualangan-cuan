@@ -3,7 +3,6 @@ package service
 import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
-	"errors"
 )
 
 type CreateWalletInput struct {
@@ -55,16 +54,7 @@ func (s *walletService) CreateWallet(input CreateWalletInput) (*entity.Wallet, e
 }
 
 func (s *walletService) GetWalletByID(id uint, userID uint) (*entity.Wallet, error) {
-	wallet, err := s.walletRepository.FindByID(id)
-	if err != nil {
-		return nil, err
-	}
-
-	if wallet.UserID != userID {
-		return nil, errors.New("unauthorized access to wallet")
-	}
-
-	return wallet, nil
+	return s.walletRepository.FindByID(id, userID)
 }
 
 func (s *walletService) GetUserWallets(userID uint) ([]entity.Wallet, error) {
@@ -72,13 +62,9 @@ func (s *walletService) GetUserWallets(userID uint) ([]entity.Wallet, error) {
 }
 
 func (s *walletService) UpdateWallet(id uint, userID uint, input UpdateWalletInput) (*entity.Wallet, error) {
-	wallet, err := s.walletRepository.FindByID(id)
+	wallet, err := s.walletRepository.FindByID(id, userID)
 	if err != nil {
 		return nil, err
-	}
-
-	if wallet.UserID != userID {
-		return nil, errors.New("unauthorized access to wallet")
 	}
 
 	wallet.Name = input.Name
@@ -95,14 +81,5 @@ func (s *walletService) UpdateWallet(id uint, userID uint, input UpdateWalletInp
 }
 
 func (s *walletService) DeleteWallet(id uint, userID uint) error {
-	wallet, err := s.walletRepository.FindByID(id)
-	if err != nil {
-		return err
-	}
-
-	if wallet.UserID != userID {
-		return errors.New("unauthorized access to wallet")
-	}
-
-	return s.walletRepository.Delete(id)
+	return s.walletRepository.Delete(id, userID)
 }

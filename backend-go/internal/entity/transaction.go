@@ -2,16 +2,21 @@ package entity
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type Transaction struct {
-	gorm.Model
-	Item       string    `json:"item"`
-	Category   string    `json:"category"`
-	Amount     int64     `json:"amount"`
-	Type       string    `json:"type"`
-	RawChat    string    `json:"raw_chat"`
-	Date       time.Time `json:"date"`
+	ID          uint           `gorm:"primarykey" json:"id"`
+	UserID      uint           `gorm:"not null" json:"user_id"`
+	User        User           `gorm:"foreignKey:UserID" json:"-"`
+	WalletID    uint           `gorm:"not null" json:"wallet_id"`
+	Wallet      Wallet         `gorm:"foreignKey:WalletID" json:"wallet"`
+	CategoryID  uint           `gorm:"not null" json:"category_id"`
+	Category    Category       `gorm:"foreignKey:CategoryID" json:"category"`
+	Amount      float64        `gorm:"not null" json:"amount"`
+	Type        string         `gorm:"not null" json:"type"`
+	Description string         `json:"description"`
+	Date        time.Time      `gorm:"not null" json:"date"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+
 }

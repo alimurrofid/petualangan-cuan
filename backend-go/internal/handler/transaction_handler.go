@@ -2,12 +2,17 @@ package handler
 
 import (
 	"cuan-backend/internal/service"
+	"net/http"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type TransactionHandler interface {
+	CreateTransaction(c *fiber.Ctx) error
 	GetTransactions(c *fiber.Ctx) error
+	DeleteTransaction(c *fiber.Ctx) error
+	TransferTransaction(c *fiber.Ctx) error
 	WebhookReceiver(c *fiber.Ctx) error
 }
 
@@ -19,16 +24,46 @@ func NewTransactionHandler(service service.TransactionService) TransactionHandle
 	return &transactionHandler{service}
 }
 
+// CreateTransaction godoc
+// @Summary Create a new transaction
+// @Description Create a new income or expense transaction
+// @Tags transactions
+// @Accept json
+// @Produce json
+// @Param transaction body service.CreateTransactionInput true "Transaction Input"
+// @Success 201 {object} entity.Transaction
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/transactions [post]
+func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+
+	var input service.CreateTransactionInput
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+	}
+
+	transaction, err := h.service.CreateTransaction(userID, input)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(http.StatusCreated).JSON(transaction)
+}
+
 // GetTransactions godoc
 // @Summary Get all transactions
-// @Description Get a list of all transactions ordered by creation date
+// @Description Get all transactions for the logged in user
 // @Tags transactions
 // @Accept json
 // @Produce json
 // @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions [get]
 func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
-	transactions, err := h.service.GetTransactions()
+	userID := c.Locals("user_id").(uint)
+
+	transactions, err := h.service.GetTransactions(userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
@@ -42,14 +77,54 @@ func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 	})
 }
 
-// WebhookReceiver godoc
-// @Summary Webhook Receiver
-// @Description Receive incoming webhooks
-// @Tags webhook
+// DeleteTransaction godoc
+// @Summary Delete a transaction
+// @Description Delete a transaction by ID and revert balance
+// @Tags transactions
 // @Accept json
 // @Produce json
+// @Param id path int true "Transaction ID"
 // @Success 200 {object} map[string]interface{}
-// @Router /api/webhook [post]
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/transactions/{id} [delete]
+func (h *transactionHandler) DeleteTransaction(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+	id, _ := strconv.Atoi(c.Params("id"))
+
+	err := h.service.DeleteTransaction(uint(id), userID)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "Transaction deleted"})
+}
+
+// TransferTransaction godoc
+// @Summary Transfer money between wallets
+// @Description Create a transfer comprising an expense and an income
+// @Tags transactions
+// @Accept json
+// @Produce json
+// @Param transfer body service.TransferTransactionInput true "Transfer Input"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/transactions/transfer [post]
+func (h *transactionHandler) TransferTransaction(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+
+	var input service.TransferTransactionInput
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+	}
+
+	if err := h.service.TransferTransaction(userID, input); err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "Transfer successful"})
+}
+
 func (h *transactionHandler) WebhookReceiver(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "Webhook receiver is ready!",

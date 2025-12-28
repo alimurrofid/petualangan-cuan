@@ -1,49 +1,20 @@
 package service_test
 
 import (
+	"errors"
 	"testing"
 
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/service"
 
+	"cuan-backend/internal/repository/mock"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	testifyMock "github.com/stretchr/testify/mock"
 )
 
-type MockWalletRepository struct {
-	mock.Mock
-}
-
-func (m *MockWalletRepository) Create(wallet *entity.Wallet) error {
-	args := m.Called(wallet)
-	return args.Error(0)
-}
-
-func (m *MockWalletRepository) Update(wallet *entity.Wallet) error {
-	args := m.Called(wallet)
-	return args.Error(0)
-}
-
-func (m *MockWalletRepository) Delete(id uint) error {
-	args := m.Called(id)
-	return args.Error(0)
-}
-
-func (m *MockWalletRepository) FindByID(id uint) (*entity.Wallet, error) {
-	args := m.Called(id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entity.Wallet), args.Error(1)
-}
-
-func (m *MockWalletRepository) FindByUserID(userID uint) ([]entity.Wallet, error) {
-	args := m.Called(userID)
-	return args.Get(0).([]entity.Wallet), args.Error(1)
-}
-
 func TestCreateWallet(t *testing.T) {
-	mockRepo := new(MockWalletRepository)
+	mockRepo := new(mock.WalletRepositoryMock)
 	walletService := service.NewWalletService(mockRepo)
 
 	input := service.CreateWalletInput{
@@ -54,7 +25,7 @@ func TestCreateWallet(t *testing.T) {
 		Icon:    "Landmark",
 	}
 
-	mockRepo.On("Create", mock.AnythingOfType("*entity.Wallet")).Return(nil)
+	mockRepo.On("Create", testifyMock.AnythingOfType("*entity.Wallet")).Return(nil)
 
 	result, err := walletService.CreateWallet(input)
 
@@ -65,12 +36,13 @@ func TestCreateWallet(t *testing.T) {
 }
 
 func TestGetWalletByID_Success(t *testing.T) {
-	mockRepo := new(MockWalletRepository)
+	mockRepo := new(mock.WalletRepositoryMock)
 	walletService := service.NewWalletService(mockRepo)
 
 	wallet := &entity.Wallet{ID: 1, UserID: 1, Name: "My Wallet"}
 
-	mockRepo.On("FindByID", uint(1)).Return(wallet, nil)
+	// Expect FindByID called with id=1, userID=1
+	mockRepo.On("FindByID", uint(1), uint(1)).Return(wallet, nil)
 
 	result, err := walletService.GetWalletByID(1, 1)
 
@@ -78,17 +50,16 @@ func TestGetWalletByID_Success(t *testing.T) {
 	assert.Equal(t, wallet, result)
 }
 
-func TestGetWalletByID_Unauthorized(t *testing.T) {
-	mockRepo := new(MockWalletRepository)
+func TestGetWalletByID_NotFound(t *testing.T) {
+	mockRepo := new(mock.WalletRepositoryMock)
 	walletService := service.NewWalletService(mockRepo)
 
-	wallet := &entity.Wallet{ID: 1, UserID: 2, Name: "Other Wallet"}
-
-	mockRepo.On("FindByID", uint(1)).Return(wallet, nil)
+	// Simulate not found (e.g. belongs to other user)
+	mockRepo.On("FindByID", uint(1), uint(1)).Return(nil, errors.New("record not found"))
 
 	result, err := walletService.GetWalletByID(1, 1)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, "unauthorized access to wallet", err.Error())
+	assert.Equal(t, "record not found", err.Error())
 }

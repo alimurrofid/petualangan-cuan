@@ -1,66 +1,26 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import { 
-  format, 
-  parseISO, 
-  startOfMonth, 
-  endOfMonth, 
-  isWithinInterval, 
-  eachDayOfInterval, 
-  addMonths, 
-  startOfWeek, 
-  endOfWeek, 
-  addWeeks, 
-  startOfDay, 
-  endOfDay, 
-  addDays, 
-  subDays,
-  isSameDay,
-  subDays as subDaysFn
-} from "date-fns";
+import { ref, computed, onMounted, watch } from "vue";
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval, addMonths, startOfWeek, endOfWeek, addWeeks, startOfDay, endOfDay, addDays, isSameDay, subDays as subDaysFn, eachHourOfInterval, isSameHour } from "date-fns";
 import { id } from "date-fns/locale";
+
+import { useTransactionStore } from "@/stores/transaction";
+import { useWalletStore } from "@/stores/wallet";
+import { useCategoryStore } from "@/stores/category";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import DateRangePicker from "@/components/DateRangePicker.vue";
 
 import * as LucideIcons from "lucide-vue-next";
 import { Search, ChevronLeft, ChevronRight, Calendar as CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-vue-next";
 
-interface WalletItem {
-  id: number;
-  name: string;
-  type: string;
-  icon: string;
-  isEmoji: boolean;
-}
-
-interface CategoryItem {
-  id: number;
-  name: string;
-  icon: string;
-  isEmoji: boolean;
-  type: "income" | "expense";
-}
-
-interface Transaction {
-  id: number;
-  title: string;
-  amount: number;
-  date: string;
-  walletId: number;
-  categoryId: number;
-  type: "income" | "expense";
-}
+const transactionStore = useTransactionStore();
+const walletStore = useWalletStore();
+const categoryStore = useCategoryStore();
 
 type PeriodType = 'monthly' | 'weekly' | 'daily' | 'custom';
-
-const transactions = ref<Transaction[]>([]);
-const wallets = ref<WalletItem[]>([]);
-const categories = ref<CategoryItem[]>([]);
 
 const filterWallet = ref<string>("all");
 const filterCategory = ref<string>("all");
@@ -71,6 +31,24 @@ const selectedDate = ref(new Date());
 const customDateRange = ref({
   start: new Date(),
   end: new Date() 
+});
+
+const showDatePicker = ref(false);
+
+watch(periodType, (val) => {
+  if (val === 'custom') {
+    showDatePicker.value = true;
+  } else {
+    showDatePicker.value = false;
+  }
+});
+
+onMounted(async () => {
+    await Promise.all([
+        transactionStore.fetchTransactions(),
+        walletStore.fetchWallets(),
+        categoryStore.fetchCategories()
+    ]);
 });
 
 const dateRange = computed(() => {
@@ -110,90 +88,33 @@ const navigateDate = (amount: number) => {
   }
 };
 
-const loadData = () => {
-    const savedWallets = localStorage.getItem("mock_wallets");
-    wallets.value = savedWallets 
-        ? JSON.parse(savedWallets) 
-        : [{ id: 1, name: "BCA Utama", type: "Bank", icon: "Landmark", isEmoji: false }];
-
-    const savedCategories = localStorage.getItem("mock_categories");
-    categories.value = savedCategories 
-        ? JSON.parse(savedCategories) 
-        : [
-            { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense", budgetLimit: 2000000 },
-            { id: 2, name: "Gaji", icon: "💰", isEmoji: true, type: "income" },
-            { id: 3, name: "Transport", icon: "Car", isEmoji: false, type: "expense", budgetLimit: 1000000 },
-            { id: 4, name: "Bonus", icon: "Gift", isEmoji: false, type: "income" },
-            { id: 5, name: "Belanja", icon: "ShoppingBag", isEmoji: false, type: "expense", budgetLimit: 1500000 },
-            { id: 6, name: "Hiburan", icon: "Gamepad2", isEmoji: false, type: "expense", budgetLimit: 500000 },
-            { id: 7, name: "Tagihan", icon: "Zap", isEmoji: false, type: "expense", budgetLimit: 750000 },
-        ];
-
-    const savedTransactions = localStorage.getItem("mock_transactions");
-    if (savedTransactions) {
-        transactions.value = JSON.parse(savedTransactions);
-    } else {
-        const dummy: Transaction[] = [];
-        const today = new Date();
-        // Generate specific scenarios for this month to test budget
-        // 1. Makanan (Budget 2jt) -> Overbudget (e.g., 2.5jt)
-        dummy.push({ id: 101, title: "Makan Siang", amount: 50000, date: new Date().toISOString(), walletId: 1, categoryId: 1, type: 'expense' });
-        dummy.push({ id: 102, title: "Traktir Teman", amount: 1500000, date: subDays(today, 2).toISOString(), walletId: 1, categoryId: 1, type: 'expense' });
-        dummy.push({ id: 103, title: "Groceries Bulanan", amount: 1000000, date: subDays(today, 5).toISOString(), walletId: 1, categoryId: 1, type: 'expense' });
-
-        // 2. Belanja (Budget 1.5jt) -> Warning (e.g., 1.4jt)
-        dummy.push({ id: 201, title: "Baju Baru", amount: 500000, date: subDays(today, 10).toISOString(), walletId: 1, categoryId: 5, type: 'expense' });
-        dummy.push({ id: 202, title: "Skincare", amount: 900000, date: subDays(today, 3).toISOString(), walletId: 1, categoryId: 5, type: 'expense' });
-
-        // 3. Transport (Budget 1jt) -> Safe (e.g., 200k)
-        dummy.push({ id: 301, title: "Bensin", amount: 100000, date: subDays(today, 1).toISOString(), walletId: 1, categoryId: 3, type: 'expense' });
-        dummy.push({ id: 302, title: "Grab", amount: 100000, date: subDays(today, 4).toISOString(), walletId: 1, categoryId: 3, type: 'expense' });
-
-        // Fill remaining with random data
-        for (let i = 0; i < 40; i++) {
-            const isExpense = Math.random() > 0.4;
-            const cat = categories.value.find(c => c.type === (isExpense ? 'expense' : 'income') && c.id !== 1 && c.id !== 5 && c.id !== 3) || categories.value[1];
-            const wal = wallets.value[0];
-            
-            if (!cat || !wal) continue;
-            
-            const date = subDays(today, Math.floor(Math.random() * 60));
-
-            dummy.push({
-                id: i + 1,
-                title: isExpense ? `Item ${i}` : `Deposit ${i}`,
-                amount: Math.floor(Math.random() * 500000) + 10000,
-                date: date.toISOString(),
-                walletId: wal.id,
-                categoryId: cat.id,
-                type: isExpense ? 'expense' : 'income'
-            });
-        }
-        transactions.value = dummy.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        localStorage.setItem("mock_transactions", JSON.stringify(dummy));
-    }
-};
-
-onMounted(loadData);
+// Custom date inputs handled by DateRangePicker component now
 
 const filteredTransactions = computed(() => {
-  return transactions.value.filter((t) => {
+  return transactionStore.transactions.filter((t) => {
     const tDate = parseISO(t.date);
     const { start, end } = dateRange.value;
     
     if (!start || !end) return false;
 
-    const matchesPeriod = isWithinInterval(tDate, { start, end });
-    const matchesWallet = filterWallet.value === "all" || t.walletId === Number(filterWallet.value);
-    const matchesCategory = filterCategory.value === "all" || t.categoryId === Number(filterCategory.value);
-    const matchesSearch = t.title.toLowerCase().includes(searchQuery.value.toLowerCase());
+    let matchesPeriod = false;
+    if (periodType.value === 'daily') {
+         matchesPeriod = isSameDay(tDate, selectedDate.value);
+    } else {
+         matchesPeriod = isWithinInterval(tDate, { start, end });
+    }
+
+    const matchesWallet = filterWallet.value === "all" || t.wallet_id === Number(filterWallet.value);
+    const matchesCategory = filterCategory.value === "all" || t.category_id === Number(filterCategory.value);
+    // Backend uses 'description' but UI display uses it as title. Search 'description'
+    const matchesSearch = (t.description || "").toLowerCase().includes(searchQuery.value.toLowerCase());
 
     return matchesPeriod && matchesWallet && matchesCategory && matchesSearch;
   });
 });
 
 const groupedTransactions = computed(() => {
-    const groups: Record<string, Transaction[]> = {};
+    const groups: Record<string, any[]> = {};
     filteredTransactions.value.forEach(t => {
         const dateKey = format(parseISO(t.date), 'yyyy-MM-dd');
         if (!groups[dateKey]) groups[dateKey] = [];
@@ -229,30 +150,67 @@ const totalExpense = computed(() => {
         .reduce((sum, t) => sum + t.amount, 0);
 });
 
-const getWalletName = (id: number) => wallets.value.find((w) => w.id === id)?.name || "Unknown Wallet";
-const getCategory = (id: number) => categories.value.find((c) => c.id === id);
-const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideIcons.Circle;
+// Helper for icons (similarly used in other views)
+const getIconComponent = (name: string | undefined) => {
+    if (!name) return LucideIcons.Circle;
+    return (LucideIcons as any)[name] || LucideIcons.Circle;
+};
+
+const emojiCategories: Record<string, string> = {
+  Em_MoneyBag: "💰", Em_DollarBill: "💵", Em_Card: "💳", Em_Bank: "🏦", Em_MoneyWing: "💸", Em_Coin: "🪙",
+  Em_Pizza: "🍕", Em_Cart: "🛒", Em_Coffee: "☕", Em_Game: "🎮", Em_Airplane: "✈️", Em_Gift: "🎁",
+  Em_Star: "⭐", Em_Fire: "🔥", Em_Lock: "🔒", Em_Check: "✅", Em_Idea: "💡"
+};
+
+const getEmoji = (name: string | undefined) => {
+  if (!name) return null;
+  if (emojiCategories[name]) return emojiCategories[name];
+  if (/\p{Emoji}/u.test(name)) return name;
+  return null;
+};
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
 };
 
-
-
 const chartSeries = computed(() => {
   const { start, end } = dateRange.value;
+  
+  if (periodType.value === 'daily') {
+       // For daily view, show hourly buckets
+       const hours = eachHourOfInterval({ start, end });
+       
+       const incomeData = hours.map(hour => {
+          return filteredTransactions.value
+            .filter(t => t.type.toLowerCase() === 'income' && isSameHour(parseISO(t.date), hour))
+            .reduce((sum, t) => sum + Number(t.amount), 0);
+       });
+
+        const expenseData = hours.map(hour => {
+          return filteredTransactions.value
+            .filter(t => t.type.toLowerCase() === 'expense' && isSameHour(parseISO(t.date), hour))
+            .reduce((sum, t) => sum + Number(t.amount), 0);
+       });
+
+        return [
+            { name: 'Pemasukan', data: incomeData },
+            { name: 'Pengeluaran', data: expenseData }
+        ];
+  }
+
+  // Monthly/Weekly views (daily accumulation)
   const days = eachDayOfInterval({ start, end });
   
   const incomeData = days.map(day => {
       return filteredTransactions.value
-        .filter(t => t.type === 'income' && format(parseISO(t.date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter(t => t.type.toLowerCase() === 'income' && format(parseISO(t.date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))
+        .reduce((sum, t) => sum + Number(t.amount), 0);
   });
   
   const expenseData = days.map(day => {
       return filteredTransactions.value
-        .filter(t => t.type === 'expense' && format(parseISO(t.date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter(t => t.type.toLowerCase() === 'expense' && format(parseISO(t.date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))
+        .reduce((sum, t) => sum + Number(t.amount), 0);
   });
 
   return [
@@ -263,73 +221,30 @@ const chartSeries = computed(() => {
 
 const chartOptions = computed(() => {
     const { start, end } = dateRange.value;
-    const days = eachDayOfInterval({ start, end });
-    const categories = days.map((d) => {
-        return periodType.value === 'daily' ? format(d, 'HH:mm') : format(d, "d MMM", { locale: id });
-    });
+    
+    let categories: string[] = [];
+
+    if (periodType.value === 'daily') {
+         const hours = eachHourOfInterval({ start, end });
+         categories = hours.map(h => format(h, 'HH:mm'));
+    } else {
+        const days = eachDayOfInterval({ start, end });
+        categories = days.map((d) => {
+            return format(d, "d MMM", { locale: id });
+        });
+    }
 
     return {
-        chart: {
-            type: 'area',
-            height: 300,
-            toolbar: { show: false },
-            fontFamily: 'inherit',
-            zoom: { enabled: false },
-            foreColor: '#94a3b8' // Slate-400
-        },
+        chart: { type: 'area', height: 300, toolbar: { show: false }, fontFamily: 'inherit', zoom: { enabled: false }, foreColor: '#94a3b8' },
         dataLabels: { enabled: false },
         stroke: { curve: 'smooth', width: 2 },
-        fill: {
-            type: 'gradient',
-            gradient: {
-                shadeIntensity: 1,
-                opacityFrom: 0.4,
-                opacityTo: 0.05,
-                stops: [0, 90, 100]
-            }
-        },
-        xaxis: {
-            categories: categories,
-            axisBorder: { show: false },
-            axisTicks: { show: false },
-            labels: { 
-                style: { fontSize: '10px' },
-                rotate: 0,
-                hideOverlappingLabels: true,
-            },
-            tooltip: { enabled: false }
-        },
-        yaxis: {
-            labels: {
-                style: { fontSize: '10px' },
-                formatter: (value: number) => {
-                     if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
-                     if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
-                     return value;
-                }
-            }
-        },
-        grid: {
-            borderColor: '#334155', // Slate-700
-            strokeDashArray: 4,
-            yaxis: { lines: { show: true } },
-            xaxis: { lines: { show: false } },
-            padding: { top: 0, right: 0, bottom: 0, left: 10 }
-        },
+        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] } },
+        xaxis: { categories: categories, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { fontSize: '10px' }, rotate: 0, hideOverlappingLabels: true }, tooltip: { enabled: false } },
+        yaxis: { labels: { style: { fontSize: '10px' }, formatter: (value: number) => { if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'; if (value >= 1000) return (value / 1000).toFixed(0) + 'k'; return value; } } },
+        grid: { borderColor: '#334155', strokeDashArray: 4, yaxis: { lines: { show: true } }, xaxis: { lines: { show: false } }, padding: { top: 0, right: 0, bottom: 0, left: 10 } },
         colors: ['#10b981', '#ef4444'],
-        tooltip: {
-            theme: 'dark',
-            x: { show: true },
-            y: {
-                formatter: (value: number) => formatCurrency(value)
-            }
-        },
-        legend: {
-            position: 'top',
-            horizontalAlign: 'right', 
-            offsetY: -20,
-            itemMargin: { horizontal: 10, vertical: 0 }
-        }
+        tooltip: { theme: 'dark', x: { show: true }, y: { formatter: (value: number) => formatCurrency(value) } },
+        legend: { position: 'top', horizontalAlign: 'right', offsetY: -20, itemMargin: { horizontal: 10, vertical: 0 } }
     };
 });
 </script>
@@ -381,7 +296,7 @@ const chartOptions = computed(() => {
     </div>
 
     <!-- Main Content -->
-    <div class="space-y-6">
+    <div class="space-y-6 relative">
         <!-- Toolbar -->
         <div class="flex flex-col md:flex-row gap-4 items-center justify-between bg-card p-3 rounded-2xl border border-border shadow-sm">
             
@@ -390,7 +305,14 @@ const chartOptions = computed(() => {
                  <Button variant="ghost" size="icon" @click="navigateDate(-1)" class="h-8 w-8 rounded-lg hover:bg-background shadow-sm">
                     <ChevronLeft class="h-4 w-4" />
                 </Button>
-                <div class="flex-1 text-center md:px-4 text-sm font-bold flex items-center justify-center gap-2 min-w-[140px]">
+                <div 
+                    class="flex-1 text-center md:px-4 text-sm font-bold flex items-center justify-center gap-2 min-w-[140px] transition-all duration-200"
+                    :class="{ 
+                        'cursor-pointer bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg py-1.5 shadow-sm': periodType === 'custom',
+                        'py-1': periodType !== 'custom'
+                    }"
+                    @click="periodType === 'custom' ? (showDatePicker = !showDatePicker) : null"
+                >
                     <CalendarIcon class="h-4 w-4 opacity-50" />
                     {{ formattedDateRange }}
                 </div>
@@ -420,7 +342,7 @@ const chartOptions = computed(() => {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Semua Dompet</SelectItem>
-                            <SelectItem v-for="w in wallets" :key="w.id" :value="String(w.id)">{{ w.name }}</SelectItem>
+                            <SelectItem v-for="w in walletStore.wallets" :key="w.id" :value="String(w.id)">{{ w.name }}</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -430,21 +352,22 @@ const chartOptions = computed(() => {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Semua Kategori</SelectItem>
-                             <SelectItem v-for="c in categories" :key="c.id" :value="String(c.id)">{{ c.name }}</SelectItem>
+                             <SelectItem v-for="c in categoryStore.categories" :key="c.id" :value="String(c.id)">{{ c.name }}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
             </div>
         </div>
 
-        <div v-if="periodType === 'custom'" class="flex flex-col md:flex-row gap-4 p-4 bg-muted/40 rounded-2xl border border-dashed border-border">
-            <div class="flex-1 space-y-1">
-               <Label class="text-xs">Dari Tanggal</Label>
-               <Input type="date" :value="format(customDateRange.start, 'yyyy-MM-dd')" @input="(e: any) => customDateRange.start = new Date(e.target.value)" class="bg-background" />
-            </div>
-            <div class="flex-1 space-y-1">
-               <Label class="text-xs">Sampai Tanggal</Label>
-               <Input type="date" :value="format(customDateRange.end, 'yyyy-MM-dd')" @input="(e: any) => customDateRange.end = new Date(e.target.value)" class="bg-background" />
+        <div v-if="periodType === 'custom' && showDatePicker" class="absolute left-0 right-0 top-16 z-50 flex justify-center p-0 animate-in fade-in zoom-in-95 duration-200 pointer-events-none">
+            <div class="pointer-events-auto">
+                <DateRangePicker 
+                    :startDate="customDateRange.start"
+                    :endDate="customDateRange.end"
+                    @update:startDate="(val) => customDateRange.start = val"
+                    @update:endDate="(val) => customDateRange.end = val"
+                    @apply="showDatePicker = false"
+                />
             </div>
         </div>
 
@@ -488,22 +411,26 @@ const chartOptions = computed(() => {
                         
                         <div v-for="t in group.items" :key="t.id" class="group relative flex items-center justify-between p-3 rounded-2xl hover:bg-muted/50 transition-all cursor-default border border-transparent hover:border-border">
                              <div class="flex items-center gap-3">
-                                 <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm transition-transform group-hover:scale-105', t.type === 'expense' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600']">
-                                     <template v-if="getCategory(t.categoryId)?.isEmoji">
-                                        {{ getCategory(t.categoryId)?.icon }}
-                                     </template>
-                                     <component v-else :is="getIconComponent(getCategory(t.categoryId)?.icon || 'Circle')" class="h-5 w-5" />
+                                 <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm transition-transform group-hover:scale-105', 
+                                     t.type === 'expense' ? 'bg-red-50 text-red-500' : 
+                                     t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 
+                                     'bg-blue-50 text-blue-600']">
+                                     <span v-if="getEmoji(t.category.icon)" class="text-xl leading-none filter drop-shadow-sm">{{ getEmoji(t.category.icon) }}</span>
+                                     <component v-else :is="getIconComponent(t.category.icon)" class="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <p class="font-bold text-sm truncate max-w-[120px]">{{ t.title }}</p>
+                                    <p class="font-bold text-sm truncate max-w-[120px]">{{ t.description || 'No Description' }}</p>
                                     <p class="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                                        {{ getWalletName(t.walletId) }} • {{ getCategory(t.categoryId)?.name }}
+                                        {{ t.wallet.name }} • {{ t.category.name }}
                                     </p>
                                 </div>
                             </div>
                              <div class="text-right">
-                                 <span :class="['block font-bold text-sm', t.type === 'income' ? 'text-emerald-600' : 'text-red-500']">
-                                    {{ t.type === 'income' ? '+' : '-' }} {{ formatCurrency(t.amount) }}
+                                 <span :class="['block font-bold text-sm', 
+                                    t.type === 'income' ? 'text-emerald-600' : 
+                                    t.type === 'expense' ? 'text-red-500' : 
+                                    'text-blue-600']">
+                                    {{ (t.type === 'income' || t.type === 'transfer_in') ? '+' : '-' }} {{ formatCurrency(t.amount) }}
                                  </span>
                                  <span class="text-[10px] text-muted-foreground">{{ format(parseISO(t.date), 'HH:mm') }}</span>
                             </div>

@@ -7,8 +7,12 @@ import (
 )
 
 type TransactionRepository interface {
-	GetAll() ([]entity.Transaction, error)
-	Create(transaction entity.Transaction) error
+	Create(transaction *entity.Transaction) error
+	FindAll(userID uint) ([]entity.Transaction, error)
+	FindByID(id uint, userID uint) (*entity.Transaction, error)
+	Delete(id uint, userID uint) error
+	// Used for transactions, we need access to DB transaction object
+	WithTx(tx *gorm.DB) TransactionRepository
 }
 
 type transactionRepository struct {
@@ -19,12 +23,34 @@ func NewTransactionRepository(db *gorm.DB) TransactionRepository {
 	return &transactionRepository{db}
 }
 
-func (r *transactionRepository) GetAll() ([]entity.Transaction, error) {
+func (r *transactionRepository) WithTx(tx *gorm.DB) TransactionRepository {
+	return &transactionRepository{db: tx}
+}
+
+func (r *transactionRepository) Create(transaction *entity.Transaction) error {
+	return r.db.Create(transaction).Error
+}
+
+func (r *transactionRepository) FindAll(userID uint) ([]entity.Transaction, error) {
 	var transactions []entity.Transaction
-	err := r.db.Order("created_at desc").Find(&transactions).Error
+	// Preload Wallet and Category to get names and icons
+	err := r.db.Where("user_id = ?", userID).
+		Preload("Wallet").
+		Preload("Category").
+		Order("date desc, created_at desc").
+		Find(&transactions).Error
 	return transactions, err
 }
 
-func (r *transactionRepository) Create(transaction entity.Transaction) error {
-	return r.db.Create(&transaction).Error
+func (r *transactionRepository) FindByID(id uint, userID uint) (*entity.Transaction, error) {
+	var transaction entity.Transaction
+	err := r.db.Where("id = ? AND user_id = ?", id, userID).
+		Preload("Wallet").
+		Preload("Category").
+		First(&transaction).Error
+	return &transaction, err
+}
+
+func (r *transactionRepository) Delete(id uint, userID uint) error {
+	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&entity.Transaction{}).Error
 }

@@ -7,39 +7,15 @@ import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/service"
 
+	"cuan-backend/internal/repository/mock"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	testifyMock "github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// MockUserRepository is a mock of UserRepository
-type MockUserRepository struct {
-	mock.Mock
-}
-
-func (m *MockUserRepository) Create(user *entity.User) error {
-	args := m.Called(user)
-	return args.Error(0)
-}
-
-func (m *MockUserRepository) FindByEmail(email string) (*entity.User, error) {
-	args := m.Called(email)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entity.User), args.Error(1)
-}
-
-func (m *MockUserRepository) FindByID(id uint) (*entity.User, error) {
-	args := m.Called(id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*entity.User), args.Error(1)
-}
-
 func TestRegister(t *testing.T) {
-	mockRepo := new(MockUserRepository)
+	mockRepo := new(mock.UserRepositoryMock)
 	userService := service.NewUserService(mockRepo)
 
 	input := service.RegisterInput{
@@ -48,7 +24,7 @@ func TestRegister(t *testing.T) {
 		Password: "password123",
 	}
 
-	mockRepo.On("Create", mock.AnythingOfType("*entity.User")).Return(nil)
+	mockRepo.On("Create", testifyMock.AnythingOfType("*entity.User")).Return(nil)
 
 	user, token, err := userService.Register(input)
 
@@ -60,7 +36,7 @@ func TestRegister(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	mockRepo := new(MockUserRepository)
+	mockRepo := new(mock.UserRepositoryMock)
 	userService := service.NewUserService(mockRepo)
 
 	password := "password123"
@@ -90,7 +66,7 @@ func TestLogin(t *testing.T) {
 }
 
 func TestLogin_InvalidPassword(t *testing.T) {
-	mockRepo := new(MockUserRepository)
+	mockRepo := new(mock.UserRepositoryMock)
 	userService := service.NewUserService(mockRepo)
 
 	password := "password123"
@@ -120,7 +96,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 }
 
 func TestLogin_UserNotFound(t *testing.T) {
-	mockRepo := new(MockUserRepository)
+	mockRepo := new(mock.UserRepositoryMock)
 	userService := service.NewUserService(mockRepo)
 
 	mockRepo.On("FindByEmail", "notfound@example.com").Return(nil, errors.New("record not found"))

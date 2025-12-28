@@ -36,10 +36,13 @@ func main() {
 	userHandler := handler.NewUserHandler(userSvc)
 
 	repo := repository.NewTransactionRepository(config.DB)
-	svc := service.NewTransactionService(repo)
-	h := handler.NewTransactionHandler(svc)
-
+	// TransactionService now needs WalletRepo and DB for transaction management
+	// We need to initialize WalletRepo first or reuse it. 
+	// To keep it clean, let's initialize WalletRepo before TransactionService
 	walletRepo := repository.NewWalletRepository(config.DB)
+	svc := service.NewTransactionService(repo, walletRepo, config.DB)
+	h := handler.NewTransactionHandler(svc)
+	
 	walletSvc := service.NewWalletService(walletRepo)
 	walletHandler := handler.NewWalletHandler(walletSvc)
 
@@ -53,7 +56,6 @@ func main() {
 
 	// Routes
 	api := app.Group("/api")
-	api.Get("/transactions", h.GetTransactions)
 	api.Post("/webhook", h.WebhookReceiver)
 
 	// Protected Routes
@@ -68,7 +70,13 @@ func main() {
 	protected.Get("/categories", categoryHandler.GetCategories)
 	protected.Get("/categories/:id", categoryHandler.GetCategory)
 	protected.Put("/categories/:id", categoryHandler.UpdateCategory)
+	protected.Put("/categories/:id", categoryHandler.UpdateCategory)
 	protected.Delete("/categories/:id", categoryHandler.DeleteCategory)
+
+	protected.Get("/transactions", h.GetTransactions)
+	protected.Post("/transactions", h.CreateTransaction)
+	protected.Post("/transactions/transfer", h.TransferTransaction) // New route
+	protected.Delete("/transactions/:id", h.DeleteTransaction)
 
 	// Auth Routes
 	auth := app.Group("/auth")

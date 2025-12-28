@@ -9,8 +9,8 @@ import (
 type WalletRepository interface {
 	Create(wallet *entity.Wallet) error
 	Update(wallet *entity.Wallet) error
-	Delete(id uint) error
-	FindByID(id uint) (*entity.Wallet, error)
+	Delete(id uint, userID uint) error
+	FindByID(id uint, userID uint) (*entity.Wallet, error)
 	FindByUserID(userID uint) ([]entity.Wallet, error)
 }
 
@@ -30,13 +30,13 @@ func (r *walletRepository) Update(wallet *entity.Wallet) error {
 	return r.db.Save(wallet).Error
 }
 
-func (r *walletRepository) Delete(id uint) error {
-	return r.db.Delete(&entity.Wallet{}, id).Error
+func (r *walletRepository) Delete(id uint, userID uint) error {
+	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&entity.Wallet{}).Error
 }
 
-func (r *walletRepository) FindByID(id uint) (*entity.Wallet, error) {
+func (r *walletRepository) FindByID(id uint, userID uint) (*entity.Wallet, error) {
 	var wallet entity.Wallet
-	err := r.db.First(&wallet, id).Error
+	err := r.db.Where("id = ? AND user_id = ?", id, userID).First(&wallet).Error
 	if err != nil {
 		return nil, err
 	}

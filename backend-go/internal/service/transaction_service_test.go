@@ -14,24 +14,27 @@ import (
 
 func TestGetTransactions(t *testing.T) {
 	mockRepo := new(mock.TransactionRepositoryMock)
-	svc := service.NewTransactionService(mockRepo)
+	mockWalletRepo := new(mock.WalletRepositoryMock)
+	// Passing nil for DB as it's not used in GetTransactions, but providing WalletRepo mock
+	svc := service.NewTransactionService(mockRepo, mockWalletRepo, nil)
+	userID := uint(1)
 
 	mockData := []entity.Transaction{
-		{Item: "Test Item", Amount: 10000, Date: time.Now()},
+		{Description: "Test Item", Amount: 10000, Date: time.Now()},
 	}
 
 	// Case 1: Success
-	mockRepo.On("GetAll").Return(mockData, nil).Once()
-	result, err := svc.GetTransactions()
+	mockRepo.On("FindAll", userID).Return(mockData, nil).Once()
+	result, err := svc.GetTransactions(userID)
 	
 	assert.NoError(t, err)
 	assert.Equal(t, len(result), 1)
-	assert.Equal(t, result[0].Item, "Test Item")
+	assert.Equal(t, result[0].Description, "Test Item")
 	mockRepo.AssertExpectations(t)
 
 	// Case 2: Error
-	mockRepo.On("GetAll").Return([]entity.Transaction{}, errors.New("db error")).Once()
-	result, err = svc.GetTransactions()
+	mockRepo.On("FindAll", userID).Return([]entity.Transaction{}, errors.New("db error")).Once()
+	result, err = svc.GetTransactions(userID)
 
 	assert.Error(t, err)
 	assert.Empty(t, result)

@@ -1,6 +1,108 @@
 basePath: /
 definitions:
-  cuan-backend_internal_service.CreateWalletInput:
+  entity.Category:
+    properties:
+      budget_limit:
+        type: number
+      created_at:
+        type: string
+      icon:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  entity.Transaction:
+    properties:
+      amount:
+        type: number
+      category:
+        $ref: '#/definitions/entity.Category'
+      category_id:
+        type: integer
+      created_at:
+        type: string
+      date:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      type:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      wallet:
+        $ref: '#/definitions/entity.Wallet'
+      wallet_id:
+        type: integer
+    type: object
+  entity.Wallet:
+    properties:
+      balance:
+        type: number
+      created_at:
+        type: string
+      icon:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        description: Bank, E-Wallet, Cash
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  service.CreateCategoryInput:
+    properties:
+      budget_limit:
+        type: number
+      icon:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+    required:
+    - name
+    - type
+    type: object
+  service.CreateTransactionInput:
+    properties:
+      amount:
+        type: number
+      category_id:
+        type: integer
+      date:
+        type: string
+      description:
+        type: string
+      type:
+        description: income, expense
+        type: string
+      wallet_id:
+        type: integer
+    required:
+    - amount
+    - category_id
+    - date
+    - type
+    - wallet_id
+    type: object
+  service.CreateWalletInput:
     properties:
       balance:
         type: number
@@ -13,14 +115,14 @@ definitions:
       user_id:
         type: integer
     type: object
-  cuan-backend_internal_service.LoginInput:
+  service.LoginInput:
     properties:
       email:
         type: string
       password:
         type: string
     type: object
-  cuan-backend_internal_service.RegisterInput:
+  service.RegisterInput:
     properties:
       email:
         type: string
@@ -29,7 +131,36 @@ definitions:
       password:
         type: string
     type: object
-  cuan-backend_internal_service.UpdateWalletInput:
+  service.TransferTransactionInput:
+    properties:
+      amount:
+        type: number
+      date:
+        type: string
+      description:
+        type: string
+      from_wallet_id:
+        type: integer
+      to_wallet_id:
+        type: integer
+    required:
+    - amount
+    - date
+    - from_wallet_id
+    - to_wallet_id
+    type: object
+  service.UpdateCategoryInput:
+    properties:
+      budget_limit:
+        type: number
+      icon:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  service.UpdateWalletInput:
     properties:
       balance:
         type: number
@@ -47,11 +178,70 @@ info:
   title: Petualangan Cuan API
   version: "1.0"
 paths:
-  /api/transactions:
+  /api/categories:
     get:
       consumes:
       - application/json
-      description: Get a list of all transactions ordered by creation date
+      description: Get all categories for the logged in user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.Category'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all categories
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      description: Create a new category for transactions
+      parameters:
+      - description: Category Input
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateCategoryInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entity.Category'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new category
+      tags:
+      - categories
+  /api/categories/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a category by ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -60,7 +250,185 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a category
+      tags:
+      - categories
+    get:
+      consumes:
+      - application/json
+      description: Get a specific category
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Category'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a category by ID
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      description: Update category details
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update Category Input
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateCategoryInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Category'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a category
+      tags:
+      - categories
+  /api/transactions:
+    get:
+      consumes:
+      - application/json
+      description: Get all transactions for the logged in user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
       summary: Get all transactions
+      tags:
+      - transactions
+    post:
+      consumes:
+      - application/json
+      description: Create a new income or expense transaction
+      parameters:
+      - description: Transaction Input
+        in: body
+        name: transaction
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateTransactionInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entity.Transaction'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new transaction
+      tags:
+      - transactions
+  /api/transactions/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a transaction by ID and revert balance
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a transaction
+      tags:
+      - transactions
+  /api/transactions/transfer:
+    post:
+      consumes:
+      - application/json
+      description: Create a transfer comprising an expense and an income
+      parameters:
+      - description: Transfer Input
+        in: body
+        name: transfer
+        required: true
+        schema:
+          $ref: '#/definitions/service.TransferTransactionInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Transfer money between wallets
       tags:
       - transactions
   /api/wallets:
@@ -97,7 +465,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/cuan-backend_internal_service.CreateWalletInput'
+          $ref: '#/definitions/service.CreateWalletInput'
       produces:
       - application/json
       responses:
@@ -204,7 +572,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/cuan-backend_internal_service.UpdateWalletInput'
+          $ref: '#/definitions/service.UpdateWalletInput'
       produces:
       - application/json
       responses:
@@ -230,22 +598,6 @@ paths:
       summary: Update a wallet
       tags:
       - wallets
-  /api/webhook:
-    post:
-      consumes:
-      - application/json
-      description: Receive incoming webhooks
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Webhook Receiver
-      tags:
-      - webhook
   /auth/login:
     post:
       consumes:
@@ -257,7 +609,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/cuan-backend_internal_service.LoginInput'
+          $ref: '#/definitions/service.LoginInput'
       produces:
       - application/json
       responses:
@@ -305,7 +657,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/cuan-backend_internal_service.RegisterInput'
+          $ref: '#/definitions/service.RegisterInput'
       produces:
       - application/json
       responses:
