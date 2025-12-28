@@ -35,6 +35,7 @@ interface CategoryItem {
   icon: string;
   isEmoji: boolean;
   type: "income" | "expense";
+  budgetLimit?: number;
 }
 
 interface Transaction {
@@ -110,8 +111,13 @@ const loadData = () => {
     if (savedCategories) categories.value = JSON.parse(savedCategories);
     else {
         categories.value = [
-            { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense" },
+            { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense", budgetLimit: 2000000 },
             { id: 2, name: "Gaji", icon: "💰", isEmoji: true, type: "income" },
+            { id: 3, name: "Transport", icon: "Car", isEmoji: false, type: "expense", budgetLimit: 1000000 },
+            { id: 4, name: "Bonus", icon: "Gift", isEmoji: false, type: "income" },
+            { id: 5, name: "Belanja", icon: "ShoppingBag", isEmoji: false, type: "expense", budgetLimit: 1500000 },
+            { id: 6, name: "Hiburan", icon: "Gamepad2", isEmoji: false, type: "expense", budgetLimit: 500000 },
+            { id: 7, name: "Tagihan", icon: "Zap", isEmoji: false, type: "expense", budgetLimit: 750000 },
         ];
     }
 
@@ -149,10 +155,16 @@ const categoryBreakdown = computed(() => {
     return Object.keys(groups).map(catId => {
         const id = Number(catId);
         const cat = categories.value.find(c => c.id === id);
+        const budget = cat?.budgetLimit || 0;
+        const spendingPercentage = budget > 0 ? ((groups[id] || 0) / budget) * 100 : 0;
+        
         return {
             name: cat?.name || 'Unknown',
             amount: groups[id] || 0,
-            percentage: totalAmount.value ? ((groups[id] || 0) / totalAmount.value) * 100 : 0
+            percentage: totalAmount.value ? ((groups[id] || 0) / totalAmount.value) * 100 : 0,
+            budget,
+            spendingPercentage,
+            isOverbudget: budget > 0 && (groups[id] || 0) > budget
         };
     }).sort((a,b) => (b.amount || 0) - (a.amount || 0));
 });
@@ -307,14 +319,20 @@ const formatCurrency = (value: number, short = false) => {
                          </div>
                          <div>
                              <p class="font-bold text-sm">{{ cat.name }}</p>
-                             <div class="w-24 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
-                                 <div class="h-full bg-primary rounded-full" :style="{ width: cat.percentage + '%' }"></div>
+                             <div class="w-24 h-1.5 bg-muted rounded-full mt-1 overflow-hidden" v-if="cat.budget > 0">
+                                 <div :class="['h-full rounded-full', cat.isOverbudget ? 'bg-red-500' : 'bg-primary']" :style="{ width: Math.min(cat.spendingPercentage, 100) + '%' }"></div>
+                             </div>
+                             <div v-else class="w-24 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
+                                  <div class="h-full bg-primary rounded-full" :style="{ width: cat.percentage + '%' }"></div>
                              </div>
                          </div>
                      </div>
                      <div class="text-right">
                          <p class="font-bold text-sm">{{ formatCurrency(cat.amount) }}</p>
-                         <p class="text-[10px] text-muted-foreground">{{ cat.percentage.toFixed(1) }}%</p>
+                         <p v-if="cat.budget > 0" :class="['text-[10px]', cat.isOverbudget ? 'text-red-500 font-bold' : 'text-muted-foreground']">
+                            {{ cat.isOverbudget ? 'Overbudget' : 'Budget' }}: {{ formatCurrency(cat.budget, true) }}
+                         </p>
+                         <p v-else class="text-[10px] text-muted-foreground">{{ cat.percentage.toFixed(1) }}%</p>
                      </div>
                 </div>
             </CardContent>

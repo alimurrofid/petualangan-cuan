@@ -17,6 +17,7 @@ interface CategoryItem {
   icon: string;
   isEmoji: boolean;
   type: "income" | "expense";
+  budgetLimit?: number;
 }
 
 const categories = ref<CategoryItem[]>([]);
@@ -31,6 +32,7 @@ const form = ref<CategoryItem>({
   icon: "",
   isEmoji: false,
   type: "expense",
+  budgetLimit: 0,
 });
 
 const iconOptions = [
@@ -60,10 +62,13 @@ const loadCategories = () => {
     categories.value = JSON.parse(saved);
   } else {
     const initial: CategoryItem[] = [
-      { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense" },
+      { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense", budgetLimit: 2000000 },
       { id: 2, name: "Gaji", icon: "💰", isEmoji: true, type: "income" },
-      { id: 3, name: "Transport", icon: "Car", isEmoji: false, type: "expense" },
+      { id: 3, name: "Transport", icon: "Car", isEmoji: false, type: "expense", budgetLimit: 1000000 },
       { id: 4, name: "Bonus", icon: "Gift", isEmoji: false, type: "income" },
+      { id: 5, name: "Belanja", icon: "ShoppingBag", isEmoji: false, type: "expense", budgetLimit: 1500000 },
+      { id: 6, name: "Hiburan", icon: "Gamepad2", isEmoji: false, type: "expense", budgetLimit: 500000 },
+      { id: 7, name: "Tagihan", icon: "Zap", isEmoji: false, type: "expense", budgetLimit: 750000 },
     ];
     categories.value = initial;
     localStorage.setItem("mock_categories", JSON.stringify(initial));
@@ -78,7 +83,7 @@ const filteredCategories = computed(() => {
 
 const openAdd = () => {
   isEditMode.value = false;
-  form.value = { id: Date.now(), name: "", icon: "", isEmoji: false, type: currentTab.value };
+  form.value = { id: Date.now(), name: "", icon: "", isEmoji: false, type: currentTab.value, budgetLimit: 0 };
   isDialogOpen.value = true;
 };
 
@@ -174,6 +179,9 @@ const getGradientIcon = (type: string) => {
                          <div :class="['h-1.5 w-1.5 rounded-full', item.type === 'expense' ? 'bg-red-500' : 'bg-emerald-500']"></div>
                          <p class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">{{ item.type === 'expense' ? 'Pengeluaran' : 'Pemasukan' }}</p>
                     </div>
+                     <p v-if="item.type === 'expense' && item.budgetLimit" class="text-xs text-muted-foreground mt-1">
+                        Target: {{ new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.budgetLimit) }}
+                    </p>
                 </div>
             </div>
 
@@ -203,7 +211,7 @@ const getGradientIcon = (type: string) => {
           <div class="grid gap-2">
             <Label class="text-sm font-semibold opacity-70">Tipe Kategori</Label>
             <Select v-model="form.type">
-              <SelectTrigger class="h-11 bg-background border-border">
+              <SelectTrigger class="w-full h-11 bg-background border-border">
                 <SelectValue placeholder="Pilih Tipe" />
               </SelectTrigger>
               <SelectContent>
@@ -211,6 +219,12 @@ const getGradientIcon = (type: string) => {
                 <SelectItem value="income">📈 Pemasukan (Income)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div v-if="form.type === 'expense'" class="grid gap-2">
+            <Label class="text-sm font-semibold opacity-70">Target Pengeluaran (Rp)</Label>
+            <Input v-model="form.budgetLimit" type="number" placeholder="0" class="h-11 bg-background shadow-sm" />
+            <p class="text-[10px] text-muted-foreground">Isi 0 jika tidak ingin membatasi pengeluaran.</p>
           </div>
 
           <div class="grid gap-2 text-foreground">

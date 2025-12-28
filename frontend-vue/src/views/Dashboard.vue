@@ -43,6 +43,7 @@ interface CategoryItem {
   icon: string;
   isEmoji: boolean;
   type: "income" | "expense";
+  budgetLimit?: number;
 }
 
 const transactions = ref<Transaction[]>([]);
@@ -63,10 +64,15 @@ onMounted(() => {
 
     const savedCategories = localStorage.getItem("mock_categories");
     if (savedCategories) categories.value = JSON.parse(savedCategories);
-    else {
+     else {
          categories.value = [
-            { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense" },
+            { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense", budgetLimit: 2000000 },
             { id: 2, name: "Gaji", icon: "💰", isEmoji: true, type: "income" },
+            { id: 3, name: "Transport", icon: "Car", isEmoji: false, type: "expense", budgetLimit: 1000000 },
+            { id: 4, name: "Bonus", icon: "Gift", isEmoji: false, type: "income" },
+            { id: 5, name: "Belanja", icon: "ShoppingBag", isEmoji: false, type: "expense", budgetLimit: 1500000 },
+            { id: 6, name: "Hiburan", icon: "Gamepad2", isEmoji: false, type: "expense", budgetLimit: 500000 },
+            { id: 7, name: "Tagihan", icon: "Zap", isEmoji: false, type: "expense", budgetLimit: 750000 },
         ];
     }
 });
@@ -126,6 +132,27 @@ const expenseBreakdown = computed(() => {
         groups[name] += t.amount;
     });
     return groups;
+});
+
+
+const budgetStatus = computed(() => {
+    const status: { name: string; spent: number; limit: number; percentage: number; isOver: boolean }[] = [];
+    
+    categories.value.filter(c => c.type === 'expense' && c.budgetLimit && c.budgetLimit > 0).forEach(c => {
+        const spent = thisMonthTransactions.value
+            .filter(t => t.categoryId === c.id && t.type === 'expense')
+            .reduce((acc, t) => acc + t.amount, 0);
+        
+        status.push({
+            name: c.name,
+            spent,
+            limit: c.budgetLimit || 0,
+            percentage: (spent / (c.budgetLimit || 1)) * 100,
+            isOver: spent > (c.budgetLimit || 0)
+        });
+    });
+
+    return status.sort((a,b) => b.percentage - a.percentage);
 });
 
 const chartSeriesDonut = computed(() => Object.values(expenseBreakdown.value));
@@ -284,6 +311,21 @@ const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideI
         <CardContent class="flex items-center justify-center">
              <div v-if="chartSeriesDonut.length === 0" class="text-center py-10 text-muted-foreground text-sm">Belum ada data pengeluaran.</div>
              <apexchart v-else type="donut" width="100%" :options="chartOptionsDonut" :series="chartSeriesDonut" />
+
+             <div v-if="budgetStatus.length > 0" class="w-full mt-6 space-y-3">
+                 <p class="text-xs font-bold uppercase text-muted-foreground tracking-widest">Status Anggaran</p>
+                 <div v-for="item in budgetStatus" :key="item.name" class="flex items-center justify-between text-sm">
+                     <span class="font-medium truncate max-w-[100px]">{{ item.name }}</span>
+                     <div class="flex items-center gap-2 flex-1 mx-3">
+                         <div class="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
+                             <div :class="['h-full rounded-full', item.isOver ? 'bg-red-500' : item.percentage > 80 ? 'bg-amber-500' : 'bg-emerald-500']" :style="{ width: Math.min(item.percentage, 100) + '%' }"></div>
+                         </div>
+                     </div>
+                     <span :class="['text-xs font-bold', item.isOver ? 'text-red-500' : 'text-muted-foreground']">
+                         {{ item.percentage.toFixed(0) }}%
+                     </span>
+                 </div>
+             </div>
         </CardContent>
       </Card>
 

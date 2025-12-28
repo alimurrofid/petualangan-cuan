@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Mail, Lock, User } from "lucide-vue-next";
+import { Loader2, Mail, Lock, User, Eye, EyeOff } from "lucide-vue-next";
 
 const router = useRouter();
 const isLoading = ref(false);
@@ -12,6 +12,8 @@ const name = ref("");
 const email = ref("");
 const password = ref("");
 const confirmPassword = ref("");
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
 
 const handleRegister = async () => {
   isLoading.value = true;
@@ -106,14 +108,22 @@ const handleRegister = async () => {
                             <Label for="password">Password</Label>
                             <div class="relative">
                                 <Lock class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input id="password" type="password" placeholder="••••••••" class="pl-10 h-10" v-model="password" required />
+                                <Input id="password" :type="showPassword ? 'text' : 'password'" placeholder="••••••••" class="pl-10 pr-10 h-10" v-model="password" required />
+                                <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-3 text-muted-foreground hover:text-emerald-600 focus:outline-none">
+                                    <Eye v-if="!showPassword" class="h-4 w-4" />
+                                    <EyeOff v-else class="h-4 w-4" />
+                                </button>
                             </div>
                         </div>
                          <div class="space-y-2">
                             <Label for="confirmPassword">Konfirmasi Password</Label>
                             <div class="relative">
                                 <Lock class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input id="confirmPassword" type="password" placeholder="••••••••" class="pl-10 h-10" v-model="confirmPassword" required />
+                                <Input id="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" placeholder="••••••••" class="pl-10 pr-10 h-10" v-model="confirmPassword" required />
+                                <button type="button" @click="showConfirmPassword = !showConfirmPassword" class="absolute right-3 top-3 text-muted-foreground hover:text-emerald-600 focus:outline-none">
+                                    <Eye v-if="!showConfirmPassword" class="h-4 w-4" />
+                                    <EyeOff v-else class="h-4 w-4" />
+                                </button>
                             </div>
                         </div>
                     </div>

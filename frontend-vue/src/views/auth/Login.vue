@@ -4,12 +4,13 @@ import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Mail, Lock } from "lucide-vue-next";
+import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-vue-next";
 
 const router = useRouter();
 const isLoading = ref(false);
 const email = ref("");
 const password = ref("");
+const showPassword = ref(false);
 
 const handleLogin = async () => {
   isLoading.value = true;
@@ -97,7 +98,11 @@ const handleLogin = async () => {
                             <Label for="password">Password</Label>
                             <div class="relative">
                                 <Lock class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input id="password" type="password" placeholder="••••••••" class="pl-10 h-10" v-model="password" required />
+                                <Input id="password" :type="showPassword ? 'text' : 'password'" placeholder="••••••••" class="pl-10 pr-10 h-10" v-model="password" required />
+                                <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-3 text-muted-foreground hover:text-emerald-600 focus:outline-none">
+                                    <Eye v-if="!showPassword" class="h-4 w-4" />
+                                    <EyeOff v-else class="h-4 w-4" />
+                                </button>
                             </div>
                              <div class="flex justify-end pt-1">
                                 <a href="#" class="text-xs font-medium text-muted-foreground hover:text-emerald-600">

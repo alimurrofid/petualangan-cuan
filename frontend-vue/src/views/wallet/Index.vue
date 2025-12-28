@@ -211,15 +211,12 @@ const getCardGradient = (type: string) => {
             <Input v-model="form.name" placeholder="Misal: BCA Utama, Cash" class="h-11 bg-background shadow-sm" />
           </div>
           
-           <div class="grid gap-2">
-            <Label class="text-sm font-semibold opacity-70">Saldo Saat Ini</Label>
-            <Input v-model="form.balance" type="number" class="h-11 bg-background shadow-sm" />
-          </div>
+
 
           <div class="grid gap-2">
             <Label class="text-sm font-semibold opacity-70">Tipe Dompet</Label>
             <Select v-model="form.type">
-              <SelectTrigger class="h-11 bg-background border-border">
+              <SelectTrigger class="w-full h-11 bg-background border-border">
                 <SelectValue placeholder="Pilih Tipe" />
               </SelectTrigger>
               <SelectContent>

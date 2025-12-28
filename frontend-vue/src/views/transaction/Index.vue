@@ -120,8 +120,13 @@ const loadData = () => {
     categories.value = savedCategories 
         ? JSON.parse(savedCategories) 
         : [
-            { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense" },
+            { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense", budgetLimit: 2000000 },
             { id: 2, name: "Gaji", icon: "💰", isEmoji: true, type: "income" },
+            { id: 3, name: "Transport", icon: "Car", isEmoji: false, type: "expense", budgetLimit: 1000000 },
+            { id: 4, name: "Bonus", icon: "Gift", isEmoji: false, type: "income" },
+            { id: 5, name: "Belanja", icon: "ShoppingBag", isEmoji: false, type: "expense", budgetLimit: 1500000 },
+            { id: 6, name: "Hiburan", icon: "Gamepad2", isEmoji: false, type: "expense", budgetLimit: 500000 },
+            { id: 7, name: "Tagihan", icon: "Zap", isEmoji: false, type: "expense", budgetLimit: 750000 },
         ];
 
     const savedTransactions = localStorage.getItem("mock_transactions");
@@ -130,9 +135,24 @@ const loadData = () => {
     } else {
         const dummy: Transaction[] = [];
         const today = new Date();
-        for (let i = 0; i < 50; i++) {
+        // Generate specific scenarios for this month to test budget
+        // 1. Makanan (Budget 2jt) -> Overbudget (e.g., 2.5jt)
+        dummy.push({ id: 101, title: "Makan Siang", amount: 50000, date: new Date().toISOString(), walletId: 1, categoryId: 1, type: 'expense' });
+        dummy.push({ id: 102, title: "Traktir Teman", amount: 1500000, date: subDays(today, 2).toISOString(), walletId: 1, categoryId: 1, type: 'expense' });
+        dummy.push({ id: 103, title: "Groceries Bulanan", amount: 1000000, date: subDays(today, 5).toISOString(), walletId: 1, categoryId: 1, type: 'expense' });
+
+        // 2. Belanja (Budget 1.5jt) -> Warning (e.g., 1.4jt)
+        dummy.push({ id: 201, title: "Baju Baru", amount: 500000, date: subDays(today, 10).toISOString(), walletId: 1, categoryId: 5, type: 'expense' });
+        dummy.push({ id: 202, title: "Skincare", amount: 900000, date: subDays(today, 3).toISOString(), walletId: 1, categoryId: 5, type: 'expense' });
+
+        // 3. Transport (Budget 1jt) -> Safe (e.g., 200k)
+        dummy.push({ id: 301, title: "Bensin", amount: 100000, date: subDays(today, 1).toISOString(), walletId: 1, categoryId: 3, type: 'expense' });
+        dummy.push({ id: 302, title: "Grab", amount: 100000, date: subDays(today, 4).toISOString(), walletId: 1, categoryId: 3, type: 'expense' });
+
+        // Fill remaining with random data
+        for (let i = 0; i < 40; i++) {
             const isExpense = Math.random() > 0.4;
-            const cat = categories.value.find(c => c.type === (isExpense ? 'expense' : 'income')) || categories.value[0];
+            const cat = categories.value.find(c => c.type === (isExpense ? 'expense' : 'income') && c.id !== 1 && c.id !== 5 && c.id !== 3) || categories.value[1];
             const wal = wallets.value[0];
             
             if (!cat || !wal) continue;
