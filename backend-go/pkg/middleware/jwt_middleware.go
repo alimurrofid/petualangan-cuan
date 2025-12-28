@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"os"
 	"strings"
 	"time"
 
@@ -8,7 +9,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var SecretKey = []byte("SECRET_KEY_CUAN") // In real app, load from env
+func getSecretKey() []byte {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "SECRET_KEY_CUAN"
+	}
+	return []byte(secret)
+}
 
 func GenerateToken(userID uint) (string, error) {
 	claims := jwt.MapClaims{
@@ -17,7 +24,7 @@ func GenerateToken(userID uint) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(SecretKey)
+	return token.SignedString(getSecretKey())
 }
 
 func Protected() fiber.Handler {
@@ -41,7 +48,7 @@ func Protected() fiber.Handler {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fiber.ErrUnauthorized
 			}
-			return SecretKey, nil
+			return getSecretKey(), nil
 		})
 
 		if err != nil || !token.Valid {
