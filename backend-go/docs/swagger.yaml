@@ -1,19 +1,43 @@
 basePath: /
 definitions:
-  service.LoginInput:
+  cuan-backend_internal_service.CreateWalletInput:
+    properties:
+      balance:
+        type: number
+      icon:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  cuan-backend_internal_service.LoginInput:
     properties:
       email:
         type: string
       password:
         type: string
     type: object
-  service.RegisterInput:
+  cuan-backend_internal_service.RegisterInput:
     properties:
       email:
         type: string
       name:
         type: string
       password:
+        type: string
+    type: object
+  cuan-backend_internal_service.UpdateWalletInput:
+    properties:
+      balance:
+        type: number
+      icon:
+        type: string
+      name:
+        type: string
+      type:
         type: string
     type: object
 host: localhost:8080
@@ -39,6 +63,173 @@ paths:
       summary: Get all transactions
       tags:
       - transactions
+  /api/wallets:
+    get:
+      description: Get all wallets for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all wallets
+      tags:
+      - wallets
+    post:
+      consumes:
+      - application/json
+      description: Create a new wallet for the authenticated user
+      parameters:
+      - description: Create Wallet Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/cuan-backend_internal_service.CreateWalletInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new wallet
+      tags:
+      - wallets
+  /api/wallets/{id}:
+    delete:
+      description: Delete a specific wallet
+      parameters:
+      - description: Wallet ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a wallet
+      tags:
+      - wallets
+    get:
+      description: Get a specific wallet by ID (must belong to user)
+      parameters:
+      - description: Wallet ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a wallet by ID
+      tags:
+      - wallets
+    put:
+      consumes:
+      - application/json
+      description: Update a specific wallet details
+      parameters:
+      - description: Wallet ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update Wallet Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/cuan-backend_internal_service.UpdateWalletInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a wallet
+      tags:
+      - wallets
   /api/webhook:
     post:
       consumes:
@@ -66,15 +257,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/service.LoginInput'
+          $ref: '#/definitions/cuan-backend_internal_service.LoginInput'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "401":
           description: Unauthorized
@@ -115,15 +305,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/service.RegisterInput'
+          $ref: '#/definitions/cuan-backend_internal_service.RegisterInput'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
           description: Bad Request

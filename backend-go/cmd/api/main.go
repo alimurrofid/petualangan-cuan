@@ -7,8 +7,9 @@ import (
 	"cuan-backend/internal/handler"
 	"cuan-backend/internal/repository"
 	"cuan-backend/internal/service"
+	"cuan-backend/pkg/middleware"
 
-	_ "cuan-backend/docs" // UNCOMMENT THIS AFTER RUNNING swag init
+	_ "cuan-backend/docs"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -26,10 +27,10 @@ func main() {
 		log.Println("Info: No .env file found, relying on system env")
 	}
 
-	// 1. Init Config (DB)
+	// Init Config (DB)
 	config.Connect()
 
-	// 2. Init Layers
+	// Init Layers
 	userRepo := repository.NewUserRepository(config.DB)
 	userSvc := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userSvc)
@@ -38,14 +39,26 @@ func main() {
 	svc := service.NewTransactionService(repo)
 	h := handler.NewTransactionHandler(svc)
 
-	// 3. Init Fiber
+	walletRepo := repository.NewWalletRepository(config.DB)
+	walletSvc := service.NewWalletService(walletRepo)
+	walletHandler := handler.NewWalletHandler(walletSvc)
+
+	// Init Fiber
 	app := fiber.New()
 	app.Use(cors.New())
 
-	// 4. Routes
+	// Routes
 	api := app.Group("/api")
 	api.Get("/transactions", h.GetTransactions)
 	api.Post("/webhook", h.WebhookReceiver)
+
+	// Protected Routes
+	protected := app.Group("/api", middleware.Protected())
+	protected.Post("/wallets", walletHandler.CreateWallet)
+	protected.Get("/wallets", walletHandler.GetWallets)
+	protected.Get("/wallets/:id", walletHandler.GetWallet)
+	protected.Put("/wallets/:id", walletHandler.UpdateWallet)
+	protected.Delete("/wallets/:id", walletHandler.DeleteWallet)
 
 	// Auth Routes
 	auth := app.Group("/auth")

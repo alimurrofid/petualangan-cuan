@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-
+import { useWalletStore } from "@/stores/wallet";
+import { useAuthStore } from "@/stores/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,34 +12,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import * as LucideIcons from "lucide-vue-next";
 import { Plus, Pencil, Trash2, Save, Wallet, Nfc } from "lucide-vue-next";
 
-interface WalletItem {
-  id: number;
-  name: string;
-  type: "Cash" | "Bank" | "E-Wallet";
-  icon: string;
-  isEmoji: boolean;
-  balance: number;
-  holderName?: string;
-  number?: string;
-}
-
-const wallets = ref<WalletItem[]>([]);
+const walletStore = useWalletStore();
+const authStore = useAuthStore();
+const wallets = computed(() => walletStore.wallets);
 
 const isDialogOpen = ref(false);
 const isIconPickerOpen = ref(false);
 const isEditMode = ref(false);
 
-const form = ref<WalletItem>({
+const form = ref({
   id: 0,
   name: "",
   type: "Cash",
   icon: "",
-  isEmoji: false,
   balance: 0,
 });
 
 const totalBalance = computed(() => {
-    return wallets.value.reduce((sum, w) => sum + w.balance, 0);
+    return wallets.value.reduce((sum: any, w: any) => sum + w.balance, 0);
 });
 
 const iconOptions = [
@@ -52,64 +43,101 @@ const iconOptions = [
   { name: "ShoppingBag", icon: LucideIcons.ShoppingBag, label: "Belanja" },
 ];
 
-const emojiList = ["💰", "💵", "💳", "🏦", "💸", "🪙", "💹", "💎", "🏠", "🚗"];
-
-const loadWallets = () => {
-  const saved = localStorage.getItem("mock_wallets");
-  if (saved) {
-    wallets.value = JSON.parse(saved);
-  } else {
-    const initial: WalletItem[] = [
-        { id: 1, name: "BCA Utama", type: "Bank", icon: "Landmark", isEmoji: false, balance: 15600000, holderName: "ALIMURROFID", number: "**** 4521" },
-        { id: 2, name: "Dompet Saku", type: "Cash", icon: "Wallet", isEmoji: false, balance: 450000 },
-        { id: 3, name: "GoPay", type: "E-Wallet", icon: "Smartphone", isEmoji: false, balance: 125000, number: "0812****9988" }
-    ];
-    wallets.value = initial;
-    localStorage.setItem("mock_wallets", JSON.stringify(initial));
-  }
+const emojiCategories = {
+  Keuangan: [
+    { name: "Em_MoneyBag", emoji: "💰" },
+    { name: "Em_DollarBill", emoji: "💵" },
+    { name: "Em_Card", emoji: "💳" },
+    { name: "Em_Bank", emoji: "🏦" },
+    { name: "Em_MoneyWing", emoji: "💸" },
+    { name: "Em_Coin", emoji: "🪙" },
+  ],
+  Lifestyle: [
+    { name: "Em_Pizza", emoji: "🍕" },
+    { name: "Em_Cart", emoji: "🛒" },
+    { name: "Em_Coffee", emoji: "☕" },
+    { name: "Em_Game", emoji: "🎮" },
+    { name: "Em_Airplane", emoji: "✈️" },
+    { name: "Em_Gift", emoji: "🎁" },
+  ],
+  Simbol: [
+    { name: "Em_Star", emoji: "⭐" },
+    { name: "Em_Fire", emoji: "🔥" },
+    { name: "Em_Lock", emoji: "🔒" },
+    { name: "Em_Check", emoji: "✅" },
+    { name: "Em_Idea", emoji: "💡" },
+  ],
 };
 
-onMounted(loadWallets);
+onMounted(() => {
+  walletStore.fetchWallets();
+});
 
 const openAdd = () => {
   isEditMode.value = false;
-  form.value = { id: Date.now(), name: "", type: "Cash", icon: "", isEmoji: false, balance: 0 };
+  form.value = { id: 0, name: "", type: "Cash", icon: "", balance: 0 };
   isDialogOpen.value = true;
 };
 
-const openEdit = (wallet: WalletItem) => {
+const openEdit = (wallet: any) => {
   isEditMode.value = true;
   form.value = { ...wallet };
   isDialogOpen.value = true;
 };
 
-const selectIcon = (name: string, isEmoji: boolean) => {
+const selectIcon = (name: string) => {
   form.value.icon = name;
-  form.value.isEmoji = isEmoji;
   isIconPickerOpen.value = false;
 };
 
-const handleSave = () => {
+const handleSave = async () => {
   if (!form.value.name || !form.value.icon) return alert("Lengkapi data dompet");
-  if (isEditMode.value) {
-    wallets.value = wallets.value.map((w) => (w.id === form.value.id ? { ...form.value, holderName: w.holderName || "USER", number: w.number || "**** ****" } : w));
-  } else {
-    wallets.value.push({ ...form.value, holderName: "USER", number: "**** ****" });
-  }
-  localStorage.setItem("mock_wallets", JSON.stringify(wallets.value));
-  isDialogOpen.value = false;
-};
+  
+  
+  const payload = {
+    name: form.value.name,
+    type: form.value.type,
+    balance: Number(form.value.balance),
+    icon: form.value.icon,
+  };
 
-const handleDelete = () => {
-  if (confirm("Hapus dompet ini?")) {
-    wallets.value = wallets.value.filter((w) => w.id !== form.value.id);
-    localStorage.setItem("mock_wallets", JSON.stringify(wallets.value));
+  try {
+    if (isEditMode.value) {
+      await walletStore.updateWallet(form.value.id, payload);
+    } else {
+      await walletStore.createWallet(payload);
+    }
     isDialogOpen.value = false;
+  } catch (error) {
+    alert("Gagal menyimpan data");
   }
 };
 
-const getIconComponent = (name: string) => {
-  return (LucideIcons as any)[name] || Wallet;
+const handleDelete = async () => {
+  if (confirm("Hapus dompet ini?")) {
+    try {
+      await walletStore.deleteWallet(form.value.id);
+      isDialogOpen.value = false;
+    } catch (error) {
+      alert("Gagal menghapus data");
+    }
+  }
+};
+
+const getIconComponent = (name: string | undefined) => {
+  if (!name) return Wallet;
+  return (LucideIcons as any)[name] || null;
+};
+
+const getEmoji = (name: string | undefined) => {
+  if (!name) return null;
+  for (const category of Object.values(emojiCategories)) {
+    const found = category.find((e) => e.name === name);
+    if (found) return found.emoji;
+  }
+  // Fallback if name itself is an emoji (legacy support)
+  if (/\p{Emoji}/u.test(name)) return name;
+  return null;
 };
 
 const formatCurrency = (value: number) => {
@@ -162,8 +190,9 @@ const getCardGradient = (type: string) => {
         <div class="relative z-10 flex justify-between items-start">
             <div class="flex items-center gap-3">
                 <div class="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10 shadow-inner">
-                     <span v-if="item.isEmoji" class="text-xl">{{ item.icon }}</span>
-                     <component v-else :is="getIconComponent(item.icon)" class="h-5 w-5 text-white" />
+                     <component v-if="getIconComponent(item.icon)" :is="getIconComponent(item.icon)" class="h-5 w-5 text-white" />
+                     <span v-else-if="getEmoji(item.icon)" class="text-xl leading-none filter drop-shadow-sm">{{ getEmoji(item.icon) }}</span>
+                     <span v-else class="text-xl leading-none filter drop-shadow-sm">{{ item.icon }}</span>
                 </div>
                 <div>
                      <p class="font-bold text-lg tracking-wide">{{ item.name }}</p>
@@ -185,8 +214,8 @@ const getCardGradient = (type: string) => {
         </div>
 
         <div class="relative z-10 flex justify-between items-center opacity-70 font-mono text-xs tracking-widest">
-            <span>{{ item.holderName || 'USER' }}</span>
-            <span>{{ item.number || '**** ****' }}</span>
+            <span>{{ authStore.user?.name || 'USER' }}</span>
+            <span>**** ****</span>
         </div>
 
         <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
@@ -242,8 +271,9 @@ const getCardGradient = (type: string) => {
               </template>
               <template v-else>
                 <div :class="['h-14 w-14 rounded-2xl flex items-center justify-center text-white shadow-md transform group-hover:scale-105 transition-transform', getCardGradient(form.type)]">
-                  <span v-if="form.isEmoji" class="text-3xl leading-none">{{ form.icon }}</span>
-                  <component v-else :is="getIconComponent(form.icon)" class="h-7 w-7" />
+                  <component v-if="getIconComponent(form.icon)" :is="getIconComponent(form.icon)" class="h-7 w-7" />
+                  <span v-else-if="getEmoji(form.icon)" class="text-3xl leading-none">{{ getEmoji(form.icon) }}</span>
+                  <span v-else class="text-3xl leading-none">{{ form.icon }}</span>
                 </div>
                 <div class="text-left">
                     <p class="text-xs font-bold uppercase opacity-50">Icon Terpilih</p>
@@ -276,15 +306,18 @@ const getCardGradient = (type: string) => {
           </div>
           <TabsContent value="icons" class="flex-1 overflow-y-auto p-6 mt-0">
             <div class="grid grid-cols-4 gap-4">
-              <Button v-for="item in iconOptions" :key="item.name" variant="ghost" type="button" class="h-20 flex flex-col gap-2 hover:bg-primary/10" @click="selectIcon(item.name, false)">
+              <Button v-for="item in iconOptions" :key="item.name" variant="ghost" type="button" class="h-20 flex flex-col gap-2 hover:bg-primary/10" @click="selectIcon(item.name)">
                 <component :is="item.icon" class="h-6 w-6" />
                 <span class="text-[10px] font-medium opacity-60 truncate w-full uppercase tracking-tighter">{{ item.label }}</span>
               </Button>
             </div>
           </TabsContent>
-          <TabsContent value="emojis" class="flex-1 overflow-y-auto p-6 mt-0 text-center">
-            <div class="grid grid-cols-4 gap-6">
-              <button v-for="e in emojiList" :key="e" type="button" class="text-4xl p-2 hover:bg-accent rounded-2xl transition-transform active:scale-90" @click="selectIcon(e, true)">{{ e }}</button>
+          <TabsContent value="emojis" class="flex-1 overflow-y-auto p-6 mt-0">
+            <div v-for="(list, cat) in emojiCategories" :key="cat" class="mb-6">
+              <p class="text-[10px] font-bold text-muted-foreground uppercase mb-3 text-left tracking-widest">{{ cat }}</p>
+              <div class="grid grid-cols-4 gap-4">
+                <button v-for="e in list" :key="e.name" type="button" class="text-4xl p-2 hover:bg-accent rounded-2xl transition-transform active:scale-90" @click="selectIcon(e.name)">{{ e.emoji }}</button>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

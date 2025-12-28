@@ -33,5 +33,5 @@ func Connect() {
 	fmt.Println("✅ Terhubung ke Database!")
 
 	fmt.Println("Running Auto Migration...")
-	DB.AutoMigrate(&entity.Transaction{}, &entity.User{})
+	DB.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{})
 }

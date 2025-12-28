@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockUserService is a mock of UserService
 type MockUserService struct {
 	mock.Mock
 }
@@ -57,7 +56,6 @@ func TestRegisterHandler(t *testing.T) {
 	}
 	body, _ := json.Marshal(input)
 
-	// Mock return: User, Token, Error
 	mockUser := &entity.User{Name: "Test User", Email: "test@example.com"}
 	mockService.On("Register", input).Return(mockUser, "mock_token", nil)
 
