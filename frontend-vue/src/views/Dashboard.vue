@@ -217,7 +217,7 @@ const getEmoji = (name: string | undefined) => {
     <div class="flex items-center justify-between">
       <div>
           <h2 class="text-3xl font-bold tracking-tight">Dashboard</h2>
-          <p class="text-sm text-muted-foreground mt-1">Selamat datang kembali, {{ authStore.user?.name || 'User' }} 👋</p>
+          <p class="text-sm text-muted-foreground mt-1">Selamat datang kembali, <span class="capitalize">{{ authStore.user?.name || 'Bro' }}</span> 👋</p>
       </div>
     </div>
 

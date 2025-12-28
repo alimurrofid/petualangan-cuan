@@ -213,8 +213,8 @@ const getCardGradient = (type: string) => {
              </div>
         </div>
 
-        <div class="relative z-10 flex justify-between items-center opacity-70 font-mono text-xs tracking-widest">
-            <span>{{ authStore.user?.name || 'USER' }}</span>
+        <div class="relative z-10 flex justify-between items-center opacity-70 font-mono text-xs tracking-widest pl-1">
+            <span class="uppercase">{{ authStore.user?.name || 'USER' }}</span>
             <span>**** ****</span>
         </div>
 
