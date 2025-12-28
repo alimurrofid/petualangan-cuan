@@ -18,5 +18,10 @@ type Transaction struct {
 	Date        time.Time      `gorm:"not null" json:"date"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
+}
 
+type TransactionSummary struct {
+	Date    string  `json:"date"`
+	Income  float64 `json:"income"`
+	Expense float64 `json:"expense"`
 }

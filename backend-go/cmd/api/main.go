@@ -75,6 +75,7 @@ func main() {
 
 	protected.Get("/transactions", h.GetTransactions)
 	protected.Post("/transactions", h.CreateTransaction)
+	protected.Get("/transactions/calendar", h.GetCalendarData)
 	protected.Post("/transactions/transfer", h.TransferTransaction) // New route
 	protected.Delete("/transactions/:id", h.DeleteTransaction)
 

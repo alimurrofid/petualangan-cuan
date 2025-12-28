@@ -1,247 +1,232 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { 
-  format, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  eachDayOfInterval, 
-  addMonths, 
-  subMonths, 
-  isSameMonth, 
-  isSameDay, 
-  parseISO,
-  isToday
-} from "date-fns";
-import { id as localeId } from "date-fns/locale";
-
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, isSameMonth, isSameDay, startOfWeek, endOfWeek, parseISO, isToday } from "date-fns";
+import { id } from "date-fns/locale";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-vue-next";
+import { useTransactionStore } from "@/stores/transaction";
+import { useCategoryStore } from "@/stores/category";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-vue-next";
-
-// Interfaces
-interface Transaction {
-  id: number;
-  title: string;
-  amount: number;
-  date: string;
-  type: "income" | "expense";
-  categoryId: number;
-}
-
-interface CategoryItem {
-  id: number;
-  name: string;
-  icon: string;
-  isEmoji: boolean;
-  type: "income" | "expense";
-}
-
-// State
-const currentDate = ref(new Date());
-const transactions = ref<Transaction[]>([]);
-const categories = ref<CategoryItem[]>([]);
-
-// Detail Dialog
-const selectedDayTransactions = ref<Transaction[]>([]);
-const selectedDayDate = ref<Date | null>(null);
+const transactionStore = useTransactionStore();
+const categoryStore = useCategoryStore();
+const currentMonth = ref(new Date());
+const selectedDate = ref<Date | null>(null);
 const isDialogOpen = ref(false);
 
-// Load Data
-const loadData = () => {
-    const savedCategories = localStorage.getItem("mock_categories");
-    if (savedCategories) categories.value = JSON.parse(savedCategories);
-    else {
-         // Fallback default
-         categories.value = [
-            { id: 1, name: "Makanan", icon: "Utensils", isEmoji: false, type: "expense" },
-            { id: 2, name: "Gaji", icon: "💰", isEmoji: true, type: "income" },
-        ];
-    }
-
-    const savedTransactions = localStorage.getItem("mock_transactions");
-    if (savedTransactions) {
-        transactions.value = JSON.parse(savedTransactions);
-    }
-};
-
-onMounted(loadData);
-
-// Calendar Logic
-const daysOfWeek = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-
-const calendarDays = computed(() => {
-    const startMonth = startOfMonth(currentDate.value);
-    const endMonth = endOfMonth(currentDate.value);
-    
-    const startGrid = startOfWeek(startMonth); // Default starts on Sunday
-    const endGrid = endOfWeek(endMonth);
-
-    return eachDayOfInterval({ start: startGrid, end: endGrid });
+const days = computed(() => {
+  const start = startOfWeek(startOfMonth(currentMonth.value), { weekStartsOn: 1 });
+  const end = endOfWeek(endOfMonth(currentMonth.value), { weekStartsOn: 1 });
+  return eachDayOfInterval({ start, end });
 });
 
-const currentMonthName = computed(() => {
-    return format(currentDate.value, "MMMM yyyy", { locale: localeId });
-});
+const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
-const nextMonth = () => {
-    currentDate.value = addMonths(currentDate.value, 1);
+const getTransactionsForDay = (date: Date) => {
+    return transactionStore.transactions.filter(t => isSameDay(parseISO(t.date), date));
 };
 
-const prevMonth = () => {
-    currentDate.value = subMonths(currentDate.value, 1);
+const navigateMonth = (amount: number) => {
+    currentMonth.value = addMonths(currentMonth.value, amount);
 };
 
 const goToToday = () => {
-    currentDate.value = new Date();
+    currentMonth.value = new Date();
 };
 
-const getTransactionsForDay = (date: Date) => {
-    return transactions.value.filter(t => isSameDay(parseISO(t.date), date));
+const onDayClick = (date: Date) => {
+    selectedDate.value = date;
+    isDialogOpen.value = true;
 };
 
-// Formatting
+// Fetch data when month changes
+// watch(currentMonth, fetchData); // No longer needed if we rely on global transactions
+
+onMounted(async () => {
+    // Ensure we have transactions loaded
+    if (transactionStore.transactions.length === 0) {
+        await transactionStore.fetchTransactions();
+    }
+    // and categories
+    if (categoryStore.categories.length === 0) {
+        await categoryStore.fetchCategories();
+    }
+});
+
+const selectedDayTransactions = computed(() => {
+    if (!selectedDate.value) return [];
+    return transactionStore.transactions.filter(t => isSameDay(parseISO(t.date), selectedDate.value!));
+});
+
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
 };
 
-const getCategory = (id: number) => categories.value.find((c) => c.id === id);
-
-const onDayClick = (day: Date, txs: Transaction[]) => {
-    if (txs.length > 0) {
-        selectedDayDate.value = day;
-        selectedDayTransactions.value = txs;
-        isDialogOpen.value = true;
-    }
+// Helper for icons
+const emojiCategories: Record<string, string> = {
+  Em_MoneyBag: "💰", Em_DollarBill: "💵", Em_Card: "💳", Em_Bank: "🏦", Em_MoneyWing: "💸", Em_Coin: "🪙",
+  Em_Pizza: "🍕", Em_Cart: "🛒", Em_Coffee: "☕", Em_Game: "🎮", Em_Airplane: "✈️", Em_Gift: "🎁",
+  Em_Star: "⭐", Em_Fire: "🔥", Em_Lock: "🔒", Em_Check: "✅", Em_Idea: "💡"
 };
 
+const getEmoji = (name: string | undefined) => {
+  if (!name) return null;
+  if (emojiCategories[name]) return emojiCategories[name];
+  if (/\p{Emoji}/u.test(name)) return name;
+  return null;
+};
 </script>
 
 <template>
   <div class="p-6 space-y-6 text-foreground min-h-screen bg-background">
-    
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-        <div>
-            <h2 class="text-3xl font-bold tracking-tight">Kalender</h2>
-            <p class="text-muted-foreground mt-1">Lihat riwayat transaksi Anda dalam tampilan bulanan.</p>
-        </div>
-        
-        <div class="flex items-center gap-2 bg-card border border-border p-1.5 rounded-2xl shadow-sm w-full md:w-auto justify-between md:justify-start">
-            <Button variant="ghost" size="icon" @click="prevMonth" class="rounded-xl hover:bg-muted">
-                <ChevronLeft class="h-5 w-5" />
-            </Button>
-            <div class="flex-1 text-center md:px-4 font-bold text-lg select-none min-w-[140px]">
-                {{ currentMonthName }}
-            </div>
-             <Button variant="ghost" size="icon" @click="nextMonth" class="rounded-xl hover:bg-muted">
-                <ChevronRight class="h-5 w-5" />
-            </Button>
-            <div class="w-[1px] h-6 bg-border mx-2 hidden md:block"></div>
-            <Button variant="outline" size="sm" @click="goToToday" class="rounded-xl font-semibold hidden md:flex">Today</Button>
-        </div>
+      <div class="flex flex-col gap-2">
+       <h2 class="text-3xl font-bold tracking-tight">Kalender Transaksi</h2>
+       <p class="text-sm text-muted-foreground">Ringkasan aktivitas keuangan bulanan Anda.</p>
     </div>
 
-    <!-- Calendar Grid -->
-    <div class="bg-card border border-border rounded-3xl shadow-sm overflow-hidden flex flex-col">
-        <!-- Week Header -->
-        <div class="grid grid-cols-7 bg-muted/40 border-b border-border">
-            <div v-for="day in daysOfWeek" :key="day" class="py-4 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                {{ day }}
+    <!-- Calendar Section -->
+    <Card class="bg-card border-border shadow-sm rounded-3xl overflow-hidden flex flex-col">
+        <CardHeader class="pb-4 border-b border-border/50">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-2 bg-muted/30 p-1 rounded-xl w-full md:w-auto">
+                        <Button variant="ghost" size="icon" @click="navigateMonth(-1)" class="h-8 w-8 rounded-lg">
+                            <ChevronLeft class="h-5 w-5" />
+                        </Button>
+                        <h3 class="font-bold text-lg capitalize px-4 min-w-[150px] text-center">
+                            {{ format(currentMonth, 'MMMM yyyy', { locale: id }) }}
+                        </h3>
+                        <Button variant="ghost" size="icon" @click="navigateMonth(1)" class="h-8 w-8 rounded-lg">
+                            <ChevronRight class="h-5 w-5" />
+                        </Button>
+                    </div>
+                    <Button variant="outline" size="sm" @click="goToToday" class="hidden md:flex rounded-xl">Hari Ini</Button>
             </div>
-        </div>
-
-        <!-- Days -->
-        <div class="grid grid-cols-7 auto-rows-[1fr]">
-            <div 
-                v-for="day in calendarDays" 
-                :key="day.toString()"
-                @click="onDayClick(day, getTransactionsForDay(day))"
-                :class="[
-                    'min-h-[140px] p-2 border-b border-r border-border/50 relative transition-colors',
-                    !isSameMonth(day, currentDate) ? 'bg-muted/10 text-muted-foreground/40' : 'bg-background hover:bg-muted/20 cursor-pointer',
-                    isToday(day) ? 'bg-primary/5' : ''
-                ]"
-            >
-                <!-- Day Number -->
-                <div class="flex justify-between items-start mb-2">
-                    <span 
-                        :class="[
-                            'text-sm font-semibold h-7 w-7 flex items-center justify-center rounded-full',
-                            isToday(day) ? 'bg-primary text-primary-foreground shadow-md' : 'text-foreground/70'
-                        ]"
-                    >
-                        {{ format(day, 'd') }}
-                    </span>
-                    
-                     <!-- Daily Summary (Optional) -->
-                     <span v-if="getTransactionsForDay(day).length > 0" class="text-[10px] font-bold text-muted-foreground opacity-70">
-                        {{ getTransactionsForDay(day).length }} Trx
-                     </span>
+        </CardHeader>
+        <CardContent class="p-0">
+            <!-- Week Header -->
+            <div class="grid grid-cols-7 bg-muted/40 border-b border-border">
+                    <div v-for="day in weekDays" :key="day" class="py-3 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    {{ day }}
                 </div>
-
-                <!-- Transaction List (Preview) -->
-                <div class="space-y-1.5">
-                    <template v-for="(t, index) in getTransactionsForDay(day)" :key="t.id">
-                        <div 
-                            v-if="index < 3"
+            </div>
+            
+            <!-- Days Grid -->
+            <div class="grid grid-cols-7 auto-rows-[1fr]">
+                    <div 
+                    v-for="date in days" 
+                    :key="date.toString()"
+                    class="relative border-b border-r border-border/50 p-2 transition-all flex flex-col justify-start gap-1 min-h-[120px] group"
+                    :class="[
+                        !isSameMonth(date, currentMonth) ? 'bg-muted/10 text-muted-foreground/40' : 'bg-background hover:bg-muted/10 cursor-pointer',
+                        isToday(date) ? 'bg-primary/5' : ''
+                    ]"
+                    @click="onDayClick(date)"
+                    >
+                    <div class="flex justify-between items-start mb-1">
+                        <span 
                             :class="[
-                                'px-2 py-1 rounded-md text-[10px] font-medium truncate flex items-center justify-between gap-1 shadow-sm border border-transparent',
-                                t.type === 'expense' 
-                                    ? 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300' 
-                                    : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
+                                'text-sm font-semibold h-6 w-6 flex items-center justify-center rounded-full transition-shadow',
+                                isToday(date) ? 'bg-primary text-primary-foreground shadow-md' : 'text-foreground/70'
                             ]"
                         >
-                            <span class="truncate">{{ t.title }}</span>
-                            <span v-if="t.amount > 999999" class="font-bold shrink-0 text-[9px] opacity-80">{{ (t.amount/1000000).toFixed(1) }}M</span>
-                            <span v-else class="font-bold shrink-0 text-[9px] opacity-80">{{ (t.amount/1000).toFixed(0) }}k</span>
-                        </div>
-                    </template>
-                    
-                    <div v-if="getTransactionsForDay(day).length > 3" class="text-[10px] text-center font-bold text-muted-foreground mt-1 bg-muted/50 rounded-md py-0.5">
-                        + {{ getTransactionsForDay(day).length - 3 }} Lainnya
+                            {{ format(date, 'd') }}
+                        </span>
+                        
+                        <!-- Transaction Count -->
+                         <span v-if="getTransactionsForDay(date).length > 0" class="text-[10px] font-bold text-muted-foreground opacity-70">
+                            {{ getTransactionsForDay(date).length }} Trx
+                         </span>
+                    </div>
+
+                    <!-- Transaction Pills (Desktop & Mobile) -->
+                    <div class="space-y-1 w-full">
+                         <template v-for="(t, index) in getTransactionsForDay(date)" :key="t.id">
+                            <div 
+                                v-if="index < 3"
+                                :class="[
+                                    'px-1.5 py-0.5 rounded-md text-[9px] font-medium flex items-center justify-between shadow-sm border border-transparent w-full',
+                                    (t.type === 'expense' || t.type === 'transfer_out')
+                                        ? 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300' 
+                                        : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
+                                ]"
+                            >
+                                <span class="truncate max-w-[60%]">{{ t.category?.name }}</span>
+                                <span class="font-bold shrink-0">
+                                    {{ t.amount >= 1000000 ? (t.amount/1000000).toFixed(1) + 'm' : (t.amount/1000).toFixed(0) + 'k' }}
+                                </span>
+                            </div>
+                         </template>
+                         
+                         <div v-if="getTransactionsForDay(date).length > 3" class="text-[9px] text-center font-bold text-muted-foreground bg-muted/30 rounded-full py-0.5">
+                            +{{ getTransactionsForDay(date).length - 3 }} 
+                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
+        </CardContent>
+    </Card>
 
     <!-- Details Dialog -->
     <Dialog v-model:open="isDialogOpen">
-        <DialogContent class="max-w-md bg-card border-border">
-            <DialogHeader class="border-b border-border pb-4 mb-4">
-                <DialogTitle class="flex items-center gap-2">
-                    <CalendarIcon class="h-5 w-5 text-primary" />
-                    <span>{{ selectedDayDate ? format(selectedDayDate, 'd MMMM yyyy', { locale: localeId }) : '' }}</span>
+        <DialogContent class="max-w-md bg-card border-border sm:rounded-3xl">
+            <DialogHeader class="border-b border-border pb-4 mb-2">
+                <DialogTitle class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <CalendarIcon class="h-5 w-5" />
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-muted-foreground uppercase tracking-widest">Transaksi Tanggal</p>
+                        <p class="text-xl font-bold">{{ selectedDate ? format(selectedDate, 'd MMMM yyyy', { locale: id }) : '' }}</p>
+                    </div>
                 </DialogTitle>
             </DialogHeader>
 
-            <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-                 <div v-for="t in selectedDayTransactions" :key="t.id" class="flex items-center justify-between p-3 rounded-2xl border border-border hover:bg-muted/30">
-                     <div class="flex items-center gap-3">
-                         <div class="h-10 w-10 text-xl flex items-center justify-center bg-muted rounded-xl">
-                            {{ getCategory(t.categoryId)?.isEmoji ? getCategory(t.categoryId)?.icon : '💳' }}
+            <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                 <div v-if="selectedDayTransactions.length === 0" class="text-center py-8 text-muted-foreground">
+                    <div class="h-12 w-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3 opacity-50">
+                        <CalendarIcon class="h-6 w-6" />
+                    </div>
+                    <p class="text-sm">Tidak ada transaksi tercatat.</p>
+                 </div>
+
+                 <div v-else class="space-y-3">
+                     <div v-for="t in selectedDayTransactions" :key="t.id" class="flex items-center justify-between p-3 rounded-2xl bg-muted/20 hover:bg-muted/50 border border-transparent hover:border-border transition-all">
+                         <div class="flex items-center gap-3">
+                             <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm', 
+                                  t.type === 'expense' ? 'bg-red-50 text-red-500' : 
+                                  t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600']">
+                                 <span v-if="getEmoji(t.category.icon)">{{ getEmoji(t.category.icon) }}</span>
+                                 <!-- Fallback if no emoji/icon logic, use first letter -->
+                                 <span v-else class="font-bold">{{ t.category.name[0] }}</span>
+                             </div>
+                             <div class="overflow-hidden">
+                                 <p class="font-bold text-sm truncate max-w-[150px]">{{ t.description || 'No Description' }}</p>
+                                 <p class="text-[10px] text-muted-foreground font-medium">{{ t.category.name }} • {{ t.wallet.name }}</p>
+                             </div>
                          </div>
-                         <div>
-                             <p class="font-bold text-sm">{{ t.title }}</p>
-                             <p class="text-xs text-muted-foreground">{{ getCategory(t.categoryId)?.name }}</p>
+                         <div class="flex flex-col items-end">
+                             <span :class="['font-bold text-sm whitespace-nowrap', 
+                                  t.type === 'expense' ? 'text-red-500' : 
+                                  t.type === 'income' ? 'text-emerald-600' : 'text-blue-600']">
+                                 {{ t.type === 'income' || t.type === 'transfer_in' ? '+' : '-' }} {{ formatCurrency(t.amount) }}
+                             </span>
+                             <span class="text-xs text-muted-foreground">{{ format(parseISO(t.date), 'HH:mm') }}</span>
                          </div>
                      </div>
-                     <span :class="['font-bold text-sm', t.type === 'expense' ? 'text-red-500' : 'text-emerald-500']">
-                         {{ t.type === 'income' ? '+' : '-' }} {{ formatCurrency(t.amount) }}
-                     </span>
                  </div>
             </div>
              
-             <div class="pt-4 border-t border-border mt-2 bg-muted/30 p-4 rounded-xl flex justify-between items-center">
-                 <div class="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Total Hari Ini</div>
-                  <div class="text-lg font-bold">
+            <div v-if="selectedDayTransactions.length > 0" class="pt-4 border-t border-border mt-2 bg-muted/40 -mx-6 -mb-6 p-6 flex justify-between items-center">
+                 <div class="text-xs font-bold text-muted-foreground uppercase tracking-widest">Saldo Harian</div>
+                  <div class="text-lg font-bold text-foreground">
                     {{ 
                         formatCurrency(
-                            selectedDayTransactions.reduce((acc, curr) => acc + (curr.type === 'income' ? curr.amount : -curr.amount), 0)
+                            selectedDayTransactions.reduce((acc, curr) => {
+                                if (curr.type === 'income' || curr.type === 'transfer_in') return acc + curr.amount;
+                                if (curr.type === 'expense' || curr.type === 'transfer_out') return acc - curr.amount;
+                                return acc;
+                            }, 0)
                         ) 
                     }}
                   </div>
@@ -251,3 +236,19 @@ const onDayClick = (day: Date, txs: Transaction[]) => {
 
   </div>
 </template>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--border)); 
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground)); 
+}
+</style>

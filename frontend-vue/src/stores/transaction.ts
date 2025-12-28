@@ -41,6 +41,12 @@ export interface TransferInput {
   date: string;
 }
 
+export interface TransactionSummary {
+  date: string;
+  income: number;
+  expense: number;
+}
+
 export const useTransactionStore = defineStore('transaction', () => {
   const transactions = ref<Transaction[]>([]);
   const isLoading = ref(false);
@@ -114,6 +120,22 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   };
 
+  const fetchCalendarData = async (startDate: string, endDate: string) => {
+    isLoading.value = true;
+    try {
+      const response = await api.get(`/api/transactions/calendar?start_date=${startDate}&end_date=${endDate}`);
+      if (response.data.status === 'success') {
+          return response.data.data as TransactionSummary[];
+      }
+      return [];
+    } catch (err: any) {
+      console.error(err);
+      return [];
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   return {
     transactions,
     isLoading,
@@ -121,6 +143,7 @@ export const useTransactionStore = defineStore('transaction', () => {
     fetchTransactions,
     createTransaction,
     deleteTransaction,
-    transfer
+    transfer,
+    fetchCalendarData
   };
 });

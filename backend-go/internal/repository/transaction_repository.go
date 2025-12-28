@@ -11,6 +11,7 @@ type TransactionRepository interface {
 	FindAll(userID uint) ([]entity.Transaction, error)
 	FindByID(id uint, userID uint) (*entity.Transaction, error)
 	Delete(id uint, userID uint) error
+	FindSummaryByDateRange(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error)
 	// Used for transactions, we need access to DB transaction object
 	WithTx(tx *gorm.DB) TransactionRepository
 }
@@ -53,4 +54,17 @@ func (r *transactionRepository) FindByID(id uint, userID uint) (*entity.Transact
 
 func (r *transactionRepository) Delete(id uint, userID uint) error {
 	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&entity.Transaction{}).Error
+}
+
+func (r *transactionRepository) FindSummaryByDateRange(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error) {
+	var results []entity.TransactionSummary
+	
+	// Postgres specific: DATE(date)
+	err := r.db.Model(&entity.Transaction{}).
+		Select("TO_CHAR(date, 'YYYY-MM-DD') as date, SUM(CASE WHEN type = 'income' OR type = 'transfer_in' THEN amount ELSE 0 END) as income, SUM(CASE WHEN type = 'expense' OR type = 'transfer_out' THEN amount ELSE 0 END) as expense").
+		Where("user_id = ? AND date >= ? AND date <= ?", userID, startDate, endDate).
+		Group("TO_CHAR(date, 'YYYY-MM-DD')").
+		Scan(&results).Error
+
+	return results, err
 }
