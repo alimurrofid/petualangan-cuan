@@ -20,18 +20,34 @@ const activeTab = ref("expense");
 const date = ref(new Date().toISOString().slice(0, 10));
 const amount = ref("");
 const selectedWallet = ref("");
+const fromWallet = ref("");
+const toWallet = ref("");
+const feeTransfer = ref("");
 const selectedCategory = ref("");
 const description = ref("");
 
 const handleSave = () => {
-  emit("save", {
+  const transactionData = {
     type: activeTab.value,
     date: date.value,
     amount: amount.value,
-    wallet: selectedWallet.value,
     category: selectedCategory.value,
     description: description.value
-  });
+  };
+
+  if (activeTab.value === 'transfer') {
+    Object.assign(transactionData, {
+      from_wallet: fromWallet.value,
+      to_wallet: toWallet.value,
+      fee_transfer: feeTransfer.value
+    });
+  } else {
+    Object.assign(transactionData, {
+        wallet: selectedWallet.value
+    });
+  }
+  
+  emit("save", transactionData);
   emit("update:open", false);
 };
 </script>
@@ -64,7 +80,36 @@ const handleSave = () => {
                 <Input type="number" placeholder="Example: 5000" v-model="amount" />
             </div>
 
-            <div class="space-y-2">
+            <div v-if="activeTab === 'transfer'" class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <Label>From Wallet</Label>
+                    <Select v-model="fromWallet">
+                        <SelectTrigger class="w-full">
+                            <SelectValue placeholder="From wallet" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="cash">💵 Uang Tunai</SelectItem>
+                            <SelectItem value="bca">🏦 BCA</SelectItem>
+                            <SelectItem value="gopay">📱 GoPay</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div class="space-y-2">
+                    <Label>To Wallet</Label>
+                    <Select v-model="toWallet">
+                        <SelectTrigger class="w-full">
+                            <SelectValue placeholder="To wallet" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="cash">💵 Uang Tunai</SelectItem>
+                            <SelectItem value="bca">🏦 BCA</SelectItem>
+                            <SelectItem value="gopay">📱 GoPay</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <div v-else class="space-y-2">
                 <Label>Select Wallet</Label>
                 <Select v-model="selectedWallet">
                     <SelectTrigger class="w-full">
@@ -78,7 +123,12 @@ const handleSave = () => {
                 </Select>
             </div>
 
-             <div class="space-y-2">
+            <div v-if="activeTab === 'transfer'" class="space-y-2">
+                <Label>Fee Transfer</Label>
+                <Input type="number" placeholder="Example: 2500" v-model="feeTransfer" />
+            </div>
+
+             <div v-if="activeTab !== 'transfer'" class="space-y-2">
                 <Label>Select category</Label>
                  <Select v-model="selectedCategory">
                     <SelectTrigger class="w-full">
