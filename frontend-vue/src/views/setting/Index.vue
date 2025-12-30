@@ -183,7 +183,7 @@ const handleUpdatePassword = async () => {
                 :class="[
                     'px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
                     activeTab === tab.id 
-                        ? 'bg-foreground text-background shadow-sm' 
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-sm' 
                         : 'text-muted-foreground hover:bg-muted start-hover'
                 ]"
             >
@@ -255,7 +255,7 @@ const handleUpdatePassword = async () => {
                 </div>
 
                 <div class="pt-4">
-                    <Button class="w-full">Save Changes</Button>
+                    <Button class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white">Save Changes</Button>
                 </div>
             </div>
 
@@ -273,7 +273,7 @@ const handleUpdatePassword = async () => {
                         <span v-if="errors.profile.email" class="text-xs text-red-500 font-medium">Email wajib diisi</span>
                      </div>
                  </div>
-                 <Button class="w-full" @click="handleUpdateProfile" :disabled="isLoading">
+                 <Button class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400" @click="handleUpdateProfile" :disabled="isLoading">
                     <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
                     Save Profile
                  </Button>
@@ -321,7 +321,7 @@ const handleUpdatePassword = async () => {
                         <span v-else-if="errors.password.match" class="text-xs text-red-500 font-medium">Password tidak cocok</span>
                      </div>
                  </div>
-                 <Button class="w-full" @click="handleUpdatePassword" :disabled="isLoading">
+                 <Button class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400" @click="handleUpdatePassword" :disabled="isLoading">
                     <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
                     Update Password
                  </Button>

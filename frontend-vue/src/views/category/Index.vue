@@ -219,7 +219,7 @@ const formattedBudgetLimit = computed({
         <h2 class="text-3xl font-bold tracking-tight">Kategori</h2>
         <p class="text-muted-foreground mt-1">Klasifikasikan transaksi Anda agar lebih terorganisir.</p>
       </div>
-      <Button @click="openAdd" class="bg-foreground text-background hover:bg-foreground/90 shadow-lg px-6 h-12 rounded-full transition-all hover:scale-105 active:scale-95"> 
+      <Button @click="openAdd" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-lg px-6 h-12 rounded-full transition-all hover:scale-105 active:scale-95"> 
         <Plus class="w-5 h-5 mr-2" /> 
         Tambah Kategori 
       </Button>
@@ -346,7 +346,7 @@ const formattedBudgetLimit = computed({
           <Button v-if="isEditMode" variant="ghost" type="button" class="text-red-500 hover:text-red-600 hover:bg-red-50 gap-2 px-4" @click="handleDelete" :disabled="isSubmitting"> <Trash2 class="w-4 h-4" /> Hapus </Button>
           <div class="flex gap-2 ml-auto">
             <Button variant="outline" type="button" @click="isDialogOpen = false" :disabled="isSubmitting">Batal</Button>
-            <Button @click="handleSave" type="button" class="bg-foreground text-background px-6 shadow-md hover:bg-foreground/90" :disabled="isSubmitting">
+            <Button @click="handleSave" type="button" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 px-6 shadow-md hover:bg-foreground/90" :disabled="isSubmitting">
               <template v-if="isEditMode"> <Pencil class="w-4 h-4 mr-2" /> Simpan </template>
               <template v-else> <Save class="w-4 h-4 mr-2" /> Buat </template>
             </Button>
