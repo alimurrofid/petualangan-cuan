@@ -4,6 +4,8 @@ import (
 	"cuan-backend/internal/entity"
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -63,14 +65,37 @@ func SeedAll(db *gorm.DB) {
 		for i, tx := range Transactions {
 			tx.UserID = mainUser.ID
 			
+			// Fix Timezone to Asia/Jakarta
+			loc, _ := time.LoadLocation("Asia/Jakarta")
+			tx.Date = tx.Date.In(loc)
+
 			// Distribute transactions across wallets and categories (simple round-robin or random)
 			tx.WalletID = plantedWallets[i%len(plantedWallets)].ID
 			
 			// Matches type (income/expense)
+			var validCategories []entity.Category
 			for _, cat := range plantedCategories {
 				if cat.Type == tx.Type {
-					tx.CategoryID = cat.ID
-					break
+					validCategories = append(validCategories, cat)
+				}
+			}
+
+			if len(validCategories) > 0 {
+				// Try to match category by name in description
+				matched := false
+				for _, cat := range validCategories {
+					// Simple keyword check: if category name (first word) is in description
+					// or description contains common keywords mapping
+					if strings.Contains(strings.ToLower(tx.Description), strings.ToLower(strings.Split(cat.Name, " ")[0])) {
+						tx.CategoryID = cat.ID
+						matched = true
+						break
+					}
+				}
+				
+				// Fallback to round-robin if no keyword match
+				if !matched {
+					tx.CategoryID = validCategories[i%len(validCategories)].ID
 				}
 			}
 			

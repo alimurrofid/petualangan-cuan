@@ -25,3 +25,14 @@ type TransactionSummary struct {
 	Income  float64 `json:"income"`
 	Expense float64 `json:"expense"`
 }
+
+type TransactionFilterParams struct {
+	Page       int
+	Limit      int
+	StartDate  string
+	EndDate    string
+	WalletID   uint
+	CategoryID uint
+	Search     string
+	Type       string
+}

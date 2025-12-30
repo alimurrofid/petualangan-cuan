@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
+import { format } from "date-fns";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
 import { useTransactionStore } from "@/stores/transaction";
@@ -28,7 +29,7 @@ const transactionStore = useTransactionStore();
 const swal = useSwal();
 
 const activeTab = ref<"expense" | "income" | "transfer">("expense");
-const date = ref(new Date().toISOString().slice(0, 10));
+const date = ref(format(new Date(), "yyyy-MM-dd"));
 const amount = ref("");
 const selectedWallet = ref("");
 const toWallet = ref(""); // New field for transfer
@@ -135,7 +136,7 @@ const handleSave = async () => {
 
         if (activeTab.value === 'transfer') {
              await transactionStore.transfer({
-                date: finalDate.toISOString(),
+                date: format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"),
                 amount: Number(amount.value),
                 from_wallet_id: Number(selectedWallet.value),
                 to_wallet_id: Number(toWallet.value),
@@ -145,7 +146,7 @@ const handleSave = async () => {
         } else {
             await transactionStore.createTransaction({
                 type: activeTab.value,
-                date: finalDate.toISOString(),
+                date: format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"),
                 amount: Number(amount.value),
                 category_id: Number(selectedCategory.value),
                 wallet_id: Number(selectedWallet.value),
@@ -291,7 +292,7 @@ const formattedAmount = computed({
 
       <DialogFooter class="flex gap-2 justify-end mt-4">
         <Button variant="outline" @click="emit('update:open', false)" :disabled="isSubmitting">Batal</Button>
-        <Button @click="handleSave" class="bg-foreground text-background hover:bg-foreground/90" :disabled="isSubmitting">Simpan</Button>
+        <Button @click="handleSave" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400" :disabled="isSubmitting">Simpan</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

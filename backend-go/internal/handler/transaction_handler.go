@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"cuan-backend/internal/entity"
 	"cuan-backend/internal/service"
 	"net/http"
 	"strconv"
@@ -55,17 +56,47 @@ func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
 
 // GetTransactions godoc
 // @Summary Get all transactions
-// @Description Get all transactions for the logged in user
+// @Description Get all transactions for the logged in user with pagination and filtering
 // @Tags transactions
 // @Accept json
 // @Produce json
+// @Param page query int false "Page Number" default(1)
+// @Param limit query int false "Items per Page" default(10)
+// @Param start_date query string false "Start Date"
+// @Param end_date query string false "End Date"
+// @Param wallet_id query int false "Wallet ID"
+// @Param category_id query int false "Category ID"
+// @Param search query string false "Search Term"
+// @Param type query string false "Transaction Type"
 // @Success 200 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions [get]
 func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 
-	transactions, err := h.service.GetTransactions(userID)
+	// Parse Query Params
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "10"))
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
+	search := c.Query("search")
+	transType := c.Query("type")
+	
+	walletID, _ := strconv.Atoi(c.Query("wallet_id", "0"))
+	categoryID, _ := strconv.Atoi(c.Query("category_id", "0"))
+
+	params := entity.TransactionFilterParams{
+		Page:       page,
+		Limit:      limit,
+		StartDate:  startDate,
+		EndDate:    endDate,
+		Search:     search,
+		Type:       transType,
+		WalletID:   uint(walletID),
+		CategoryID: uint(categoryID),
+	}
+
+	transactions, total, err := h.service.GetTransactions(userID, params)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "error",
@@ -76,6 +107,11 @@ func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"data":   transactions,
+		"meta": fiber.Map{
+			"total": total,
+			"page":  page,
+			"limit": limit,
+		},
 	})
 }
 
@@ -129,12 +165,15 @@ func (h *transactionHandler) TransferTransaction(c *fiber.Ctx) error {
 
 // GetCalendarData godoc
 // @Summary Get aggregated calendar data
-// @Description Get total income and expense per day for a specific date range
+// @Description Get total income and expense per day for a specific date range with filters
 // @Tags transactions
 // @Accept json
 // @Produce json
 // @Param start_date query string true "Start Date (YYYY-MM-DD)"
 // @Param end_date query string true "End Date (YYYY-MM-DD)"
+// @Param wallet_id query int false "Wallet ID"
+// @Param category_id query int false "Category ID"
+// @Param search query string false "Search Term"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
@@ -143,12 +182,32 @@ func (h *transactionHandler) GetCalendarData(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
+	walletIDStr := c.Query("wallet_id")
+	categoryIDStr := c.Query("category_id")
 
 	if startDate == "" || endDate == "" {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "start_date and end_date are required"})
 	}
 
-	summary, err := h.service.GetCalendarData(userID, startDate, endDate)
+	var walletID *uint
+	if walletIDStr != "" && walletIDStr != "all" && walletIDStr != "0" {
+		if id, err := strconv.ParseUint(walletIDStr, 10, 32); err == nil {
+			uid := uint(id)
+			walletID = &uid
+		}
+	}
+
+	var categoryID *uint
+	if categoryIDStr != "" && categoryIDStr != "all" && categoryIDStr != "0" {
+		if id, err := strconv.ParseUint(categoryIDStr, 10, 32); err == nil {
+			cid := uint(id)
+			categoryID = &cid
+		}
+	}
+
+	search := c.Query("search")
+
+	summary, err := h.service.GetCalendarData(userID, startDate, endDate, walletID, categoryID, search)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

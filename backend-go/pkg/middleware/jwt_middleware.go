@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -12,7 +13,7 @@ import (
 func getSecretKey() []byte {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "SECRET_KEY_CUAN"
+		log.Fatal("❌ FATAL: JWT_SECRET environment variable is not set!")
 	}
 	return []byte(secret)
 }

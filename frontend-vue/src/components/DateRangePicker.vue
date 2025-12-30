@@ -26,20 +26,15 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "update:startDate", value: Date): void;
   (e: "update:endDate", value: Date): void;
+  (e: "update:range", value: { start: Date, end: Date }): void;
   (e: "apply"): void;
 }>();
-
-// Internal state for selection before applying? 
-// Or direct update? User asked for "apply" button in screenshot implicitly, but "sekali tampil bisa langsung dipilih" might mean direct.
-// However, range selection usually requires two clicks. Immediate update might cause "start date" filter to run while waiting for "end date".
-// Let's use internal state and emit only when a complete range is selected or have an apply button.
-// The user screenshot shows "Apply". So let's use internal state.
 
 const localStartDate = ref<Date | undefined>(props.startDate);
 const localEndDate = ref<Date | undefined>(props.endDate);
 const currentMonth = ref(props.startDate || new Date());
 
-// Sync props to local if they change externally (and simple watcher to init)
+// Sync props to local if they change externally
 watch(() => props.startDate, (val) => { if(val) localStartDate.value = val; currentMonth.value = val || new Date(); });
 watch(() => props.endDate, (val) => { if(val) localEndDate.value = val; });
 
@@ -62,7 +57,6 @@ const isSelected = (date: Date) => {
 
 const isInRange = (date: Date) => {
   if (localStartDate.value && localEndDate.value) {
-    // Sort to handle reverse selection temporarily if needed, though we force order
     const start = isBefore(localStartDate.value, localEndDate.value) ? localStartDate.value : localEndDate.value;
     const end = isAfter(localEndDate.value, localStartDate.value) ? localEndDate.value : localStartDate.value;
     return isWithinInterval(date, { start, end });
@@ -106,8 +100,8 @@ const nextMonth = () => {
 
 const apply = () => {
     if (localStartDate.value && localEndDate.value) {
-        emit("update:startDate", localStartDate.value);
-        emit("update:endDate", localEndDate.value);
+        // Emit atomic update
+        emit("update:range", { start: localStartDate.value, end: localEndDate.value });
         emit("apply");
     }
 };

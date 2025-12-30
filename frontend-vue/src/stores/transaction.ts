@@ -56,19 +56,70 @@ export interface CategoryBreakdown {
   is_over_budget: boolean;
 }
 
+export interface TransactionFilterParams {
+  page?: number;
+  limit?: number;
+  start_date?: string;
+  end_date?: string;
+  wallet_id?: number | string;
+  category_id?: number | string;
+  search?: string;
+  type?: string;
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export const useTransactionStore = defineStore('transaction', () => {
   const transactions = ref<Transaction[]>([]);
+  const paginationMeta = ref<PaginationMeta>({ total: 0, page: 1, limit: 10 });
   const reportData = ref<CategoryBreakdown[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  const fetchTransactions = async () => {
+  // Filter State
+  const filters = ref<TransactionFilterParams>({
+    page: 1,
+    limit: 10,
+    start_date: '',
+    end_date: '',
+    wallet_id: 'all',
+    category_id: 'all',
+    search: '',
+    type: ''
+  });
+
+  const setFilters = (newFilters: Partial<TransactionFilterParams>) => {
+    filters.value = { ...filters.value, ...newFilters };
+  };
+
+  const fetchTransactions = async (params: TransactionFilterParams = {}) => {
     isLoading.value = true;
     error.value = null;
+    
+    // Merge provided params with current store filters
+    const finalParams = { ...filters.value, ...params };
+
     try {
-      const response = await api.get('/api/transactions');
+      const queryParams = new URLSearchParams();
+      if (finalParams.page) queryParams.append('page', finalParams.page.toString());
+      if (finalParams.limit) queryParams.append('limit', finalParams.limit.toString());
+      if (finalParams.start_date) queryParams.append('start_date', finalParams.start_date);
+      if (finalParams.end_date) queryParams.append('end_date', finalParams.end_date);
+      if (finalParams.wallet_id && finalParams.wallet_id !== 'all') queryParams.append('wallet_id', finalParams.wallet_id.toString());
+      if (finalParams.category_id && finalParams.category_id !== 'all') queryParams.append('category_id', finalParams.category_id.toString());
+      if (finalParams.search) queryParams.append('search', finalParams.search);
+      if (finalParams.type) queryParams.append('type', finalParams.type);
+
+      const response = await api.get(`/api/transactions?${queryParams.toString()}`);
       if (response.data.status === 'success') {
           transactions.value = response.data.data;
+          if (response.data.meta) {
+              paginationMeta.value = response.data.meta;
+          }
       }
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Failed to fetch transactions';
@@ -109,7 +160,7 @@ export const useTransactionStore = defineStore('transaction', () => {
     try {
       const response = await api.post('/api/transactions', input);
       // Refresh transactions and wallets (balance changed)
-      await fetchTransactions();
+      await refreshData();
       await walletStore.fetchWallets();
       return response.data;
     } catch (err: any) {
@@ -126,7 +177,7 @@ export const useTransactionStore = defineStore('transaction', () => {
     const walletStore = useWalletStore();
     try {
       const response = await api.post('/api/transactions/transfer', input);
-      await fetchTransactions();
+      await refreshData();
       await walletStore.fetchWallets();
       return response.data;
     } catch (err: any) {
@@ -144,7 +195,7 @@ export const useTransactionStore = defineStore('transaction', () => {
     try {
       await api.delete(`/api/transactions/${id}`);
       // Refresh transactions and wallets (balance reverted)
-      await fetchTransactions();
+      await refreshData();
       await walletStore.fetchWallets();
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to delete transaction';
@@ -154,32 +205,64 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   };
 
-  const fetchCalendarData = async (startDate: string, endDate: string) => {
+  const calendarData = ref<TransactionSummary[]>([]);
+
+  const fetchCalendarData = async (startDate?: string, endDate?: string, walletId?: number | string, categoryId?: number | string, search?: string) => {
     isLoading.value = true;
     try {
-      const response = await api.get(`/api/transactions/calendar?start_date=${startDate}&end_date=${endDate}`);
-      if (response.data.status === 'success') {
-          return response.data.data as TransactionSummary[];
+      // Use provided params or store filters
+      const start = startDate || filters.value.start_date;
+      const end = endDate || filters.value.end_date;
+      const wId = walletId || filters.value.wallet_id;
+      const cId = categoryId || filters.value.category_id;
+      const sTerm = search !== undefined ? search : filters.value.search;
+
+      if (!start || !end) return [];
+
+      let url = `/api/transactions/calendar?start_date=${start}&end_date=${end}`;
+      if (wId && wId !== 'all') url += `&wallet_id=${wId}`;
+      if (cId && cId !== 'all') url += `&category_id=${cId}`;
+      if (sTerm) url += `&search=${encodeURIComponent(sTerm)}`;
+
+      const response = await api.get(url);
+      if (response.data.status === 'success' && Array.isArray(response.data.data)) {
+          calendarData.value = response.data.data as TransactionSummary[];
+          return calendarData.value;
       }
+      calendarData.value = [];
       return [];
     } catch (err: any) {
       console.error(err);
+      calendarData.value = [];
       return [];
     } finally {
       isLoading.value = false;
     }
   };
 
+  const refreshData = async () => {
+      // Refresh with current filters
+      await Promise.all([
+          fetchTransactions(),
+          fetchCalendarData()
+      ]);
+  };
+
   return {
     transactions,
+    calendarData,
+    paginationMeta,
+    filters,
     isLoading,
     error,
+    setFilters,
     fetchTransactions,
     createTransaction,
     deleteTransaction,
     transfer,
     fetchCalendarData,
     fetchReport,
-    reportData
+    reportData,
+    refreshData
   };
 });

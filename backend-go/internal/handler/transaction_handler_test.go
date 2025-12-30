@@ -28,12 +28,12 @@ func (m *MockTransactionService) CreateTransaction(userID uint, input service.Cr
 	return args.Get(0).(*entity.Transaction), args.Error(1)
 }
 
-func (m *MockTransactionService) GetTransactions(userID uint) ([]entity.Transaction, error) {
-	args := m.Called(userID)
+func (m *MockTransactionService) GetTransactions(userID uint, params entity.TransactionFilterParams) ([]entity.Transaction, int64, error) {
+	args := m.Called(userID, params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, 0, args.Error(2)
 	}
-	return args.Get(0).([]entity.Transaction), args.Error(1)
+	return args.Get(0).([]entity.Transaction), args.Get(1).(int64), args.Error(2)
 }
 
 func (m *MockTransactionService) DeleteTransaction(id uint, userID uint) error {
@@ -46,8 +46,8 @@ func (m *MockTransactionService) TransferTransaction(userID uint, input service.
 	return args.Error(0)
 }
 
-func (m *MockTransactionService) GetCalendarData(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error) {
-	args := m.Called(userID, startDate, endDate)
+func (m *MockTransactionService) GetCalendarData(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error) {
+	args := m.Called(userID, startDate, endDate, walletID, categoryID, search)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -105,7 +105,10 @@ func TestGetTransactions(t *testing.T) {
 	mockTransactions := []entity.Transaction{
 		{ID: 1, UserID: 1, Amount: 10000, Type: "expense"},
 	}
-	mockService.On("GetTransactions", uint(1)).Return(mockTransactions, nil)
+	// Match any params
+	mockService.On("GetTransactions", uint(1), mock.MatchedBy(func(p entity.TransactionFilterParams) bool {
+		return true
+	})).Return(mockTransactions, int64(1), nil)
 
 	req := httptest.NewRequest("GET", "/api/transactions", nil)
 	resp, _ := app.Test(req)
@@ -168,7 +171,7 @@ func TestGetCalendarData(t *testing.T) {
 	endDate := "2023-01-31"
 	
 	mockData := []entity.TransactionSummary{}
-	mockService.On("GetCalendarData", uint(1), startDate, endDate).Return(mockData, nil)
+	mockService.On("GetCalendarData", uint(1), startDate, endDate, mock.Anything, mock.Anything, mock.Anything).Return(mockData, nil)
 
 	req := httptest.NewRequest("GET", "/api/transactions/calendar?start_date=2023-01-01&end_date=2023-01-31", nil)
 	resp, _ := app.Test(req)

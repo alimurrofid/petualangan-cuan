@@ -2,20 +2,17 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
+	"time"
 
 	"cuan-backend/internal/entity"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-var DB *gorm.DB
-
-func Connect() {
-	var err error
-
+func Connect() (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Jakarta",
 		os.Getenv("DB_HOST"),
@@ -25,26 +22,44 @@ func Connect() {
 		os.Getenv("DB_PORT"),
 	)
 
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// Set GORM Logger to Silent in production if needed, or default
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
-		log.Fatal("❌ Gagal connect ke Database:", err)
+		return nil, fmt.Errorf("❌ Gagal connect ke Database: %w", err)
 	}
 
-	fmt.Println("✅ Terhubung ke Database!")
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("❌ Gagal mendapatkan instance sql.DB: %w", err)
+	}
+
+	// Connection Pool Settings
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	fmt.Println("✅ Terhubung ke Database dengan Connection Pool!")
 
 	fmt.Println("Running Auto Migration...")
-	DB.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{})
+	err = db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{})
+	if err != nil {
+		return nil, fmt.Errorf("❌ Gagal migrasi database: %w", err)
+	}
+
+	return db, nil
 }
 
-func MigrateFresh() {
+func MigrateFresh(db *gorm.DB) {
 	fmt.Println("🚧 Dropping all tables...")
 	// Drop tables in reverse dependency order to avoid FK issues
-	DB.Migrator().DropTable(&entity.Transaction{})
-	DB.Migrator().DropTable(&entity.Category{})
-	DB.Migrator().DropTable(&entity.Wallet{})
-	DB.Migrator().DropTable(&entity.User{})
+	db.Migrator().DropTable(&entity.Transaction{})
+	db.Migrator().DropTable(&entity.Category{})
+	db.Migrator().DropTable(&entity.Wallet{})
+	db.Migrator().DropTable(&entity.User{})
 
 	fmt.Println("✅ All tables dropped!")
 	fmt.Println("🆕 Re-running Auto Migration...")
-	DB.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{})
+	db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{})
 }

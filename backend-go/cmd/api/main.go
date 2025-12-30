@@ -36,34 +36,37 @@ func main() {
 	}
 
 	// Init Config (DB)
-	config.Connect()
+	db, err := config.Connect()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Handle Database Workflow Flags
 	if *freshPtr {
-		config.MigrateFresh()
+		config.MigrateFresh(db)
 	}
 
 	if *seedPtr {
-		seeder.SeedAll(config.DB)
+		seeder.SeedAll(db)
 	}
 
 	// Init Layers
-	userRepo := repository.NewUserRepository(config.DB)
+	userRepo := repository.NewUserRepository(db)
 	userSvc := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userSvc)
 
-	repo := repository.NewTransactionRepository(config.DB)
+	repo := repository.NewTransactionRepository(db)
 	// TransactionService now needs WalletRepo and DB for transaction management
 	// We need to initialize WalletRepo first or reuse it. 
 	// To keep it clean, let's initialize WalletRepo before TransactionService
-	walletRepo := repository.NewWalletRepository(config.DB)
-	svc := service.NewTransactionService(repo, walletRepo, config.DB)
+	walletRepo := repository.NewWalletRepository(db)
+	svc := service.NewTransactionService(repo, walletRepo, db)
 	h := handler.NewTransactionHandler(svc)
 	
 	walletSvc := service.NewWalletService(walletRepo)
 	walletHandler := handler.NewWalletHandler(walletSvc)
 
-	categoryRepo := repository.NewCategoryRepository(config.DB)
+	categoryRepo := repository.NewCategoryRepository(db)
 	categorySvc := service.NewCategoryService(categoryRepo)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 

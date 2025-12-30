@@ -2,16 +2,17 @@ package repository
 
 import (
 	"cuan-backend/internal/entity"
+	"fmt"
 
 	"gorm.io/gorm"
 )
 
 type TransactionRepository interface {
 	Create(transaction *entity.Transaction) error
-	FindAll(userID uint) ([]entity.Transaction, error)
+	FindAll(userID uint, params entity.TransactionFilterParams) ([]entity.Transaction, int64, error)
 	FindByID(id uint, userID uint) (*entity.Transaction, error)
 	Delete(id uint, userID uint) error
-	FindSummaryByDateRange(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error)
+	FindSummaryByDateRange(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error)
 	GetCategoryBreakdown(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error)
 	GetMonthlyTrend(userID uint, startDate, endDate string) ([]entity.MonthlyTrend, error)
 	GetRecentTransactions(userID uint, limit int) ([]entity.Transaction, error)
@@ -35,15 +36,47 @@ func (r *transactionRepository) Create(transaction *entity.Transaction) error {
 	return r.db.Create(transaction).Error
 }
 
-func (r *transactionRepository) FindAll(userID uint) ([]entity.Transaction, error) {
+func (r *transactionRepository) FindAll(userID uint, params entity.TransactionFilterParams) ([]entity.Transaction, int64, error) {
 	var transactions []entity.Transaction
-	// Preload Wallet and Category to get names and icons
-	err := r.db.Where("user_id = ?", userID).
+	var total int64
+
+	query := r.db.Model(&entity.Transaction{}).Where("transactions.user_id = ?", userID)
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("transactions.date BETWEEN ? AND ?", params.StartDate, params.EndDate)
+	}
+	if params.WalletID != 0 {
+		query = query.Where("transactions.wallet_id = ?", params.WalletID)
+	}
+	if params.CategoryID != 0 {
+		query = query.Where("transactions.category_id = ?", params.CategoryID)
+	}
+	if params.Search != "" {
+		query = query.Joins("LEFT JOIN categories ON categories.id = transactions.category_id").
+			Where("transactions.description ILIKE ? OR categories.name ILIKE ?", "%"+params.Search+"%", "%"+params.Search+"%")
+	}
+	if params.Type != "" {
+		query = query.Where("transactions.type = ?", params.Type)
+	}
+
+	// Count total before pagination
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Pagination
+	offset := (params.Page - 1) * params.Limit
+	if params.Limit > 0 {
+		query = query.Offset(offset).Limit(params.Limit)
+	}
+
+	err := query.
 		Preload("Wallet").
 		Preload("Category").
 		Order("date desc, created_at desc").
 		Find(&transactions).Error
-	return transactions, err
+
+	return transactions, total, err
 }
 
 func (r *transactionRepository) FindByID(id uint, userID uint) (*entity.Transaction, error) {
@@ -59,14 +92,43 @@ func (r *transactionRepository) Delete(id uint, userID uint) error {
 	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&entity.Transaction{}).Error
 }
 
-func (r *transactionRepository) FindSummaryByDateRange(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error) {
+func (r *transactionRepository) FindSummaryByDateRange(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error) {
 	var results []entity.TransactionSummary
 	
-	// Postgres specific: DATE(date)
-	err := r.db.Model(&entity.Transaction{}).
-		Select("TO_CHAR(date, 'YYYY-MM-DD') as date, SUM(CASE WHEN type = 'income' OR type = 'transfer_in' THEN amount ELSE 0 END) as income, SUM(CASE WHEN type = 'expense' OR type = 'transfer_out' THEN amount ELSE 0 END) as expense").
-		Where("user_id = ? AND date >= ? AND date <= ?", userID, startDate, endDate).
-		Group("TO_CHAR(date, 'YYYY-MM-DD')").
+	// Check if single day (naive check: start == end) or small range
+    // Ideally user passes granularity, but for now we infer:
+    // If startDate == endDate, group by hour
+    
+	dateFormat := "YYYY-MM-DD"
+
+	// Check if single day (first 10 chars "YYYY-MM-DD" match)
+	if len(startDate) >= 10 && len(endDate) >= 10 && startDate[:10] == endDate[:10] {
+        // Hourly format: "2024-01-01 10:00"
+        dateFormat = "YYYY-MM-DD HH24:00" 
+	}
+    
+	// Use Sprintf for Group clause to ensure identical expression in Select, Group, and Order
+	// Postgres requires exact match for Group By to work with Select identifiers
+    dateExpr := fmt.Sprintf("TO_CHAR(transactions.date, '%s')", dateFormat)
+
+	query := r.db.Model(&entity.Transaction{}).
+		Select(fmt.Sprintf("%s as date, SUM(CASE WHEN transactions.type = 'income' OR transactions.type = 'transfer_in' THEN transactions.amount ELSE 0 END) as income, SUM(CASE WHEN transactions.type = 'expense' OR transactions.type = 'transfer_out' THEN transactions.amount ELSE 0 END) as expense", dateExpr)).
+		Where("transactions.user_id = ? AND transactions.date >= ? AND transactions.date <= ?", userID, startDate, endDate)
+
+	if search != "" {
+		query = query.Joins("LEFT JOIN categories ON categories.id = transactions.category_id").
+			Where("transactions.description ILIKE ? OR categories.name ILIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+
+	if walletID != nil && *walletID != 0 {
+		query = query.Where("transactions.wallet_id = ?", *walletID)
+	}
+	if categoryID != nil && *categoryID != 0 {
+		query = query.Where("transactions.category_id = ?", *categoryID)
+	}
+
+	err := query.Group(dateExpr).
+        Order("1 ASC"). // Order by the first column (date) to avoid ambiguity
 		Scan(&results).Error
 
 	return results, err

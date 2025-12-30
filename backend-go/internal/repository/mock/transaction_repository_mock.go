@@ -17,9 +17,9 @@ func (m *TransactionRepositoryMock) Create(transaction *entity.Transaction) erro
 	return args.Error(0)
 }
 
-func (m *TransactionRepositoryMock) FindAll(userID uint) ([]entity.Transaction, error) {
-	args := m.Called(userID)
-	return args.Get(0).([]entity.Transaction), args.Error(1)
+func (m *TransactionRepositoryMock) FindAll(userID uint, params entity.TransactionFilterParams) ([]entity.Transaction, int64, error) {
+	args := m.Called(userID, params)
+	return args.Get(0).([]entity.Transaction), args.Get(1).(int64), args.Error(2)
 }
 
 func (m *TransactionRepositoryMock) FindByID(id uint, userID uint) (*entity.Transaction, error) {
@@ -35,8 +35,8 @@ func (m *TransactionRepositoryMock) Delete(id uint, userID uint) error {
 	return args.Error(0)
 }
 
-func (m *TransactionRepositoryMock) FindSummaryByDateRange(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error) {
-	args := m.Called(userID, startDate, endDate)
+func (m *TransactionRepositoryMock) FindSummaryByDateRange(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error) {
+	args := m.Called(userID, startDate, endDate, walletID, categoryID, search)
 	return args.Get(0).([]entity.TransactionSummary), args.Error(1)
 }
 

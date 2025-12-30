@@ -11,10 +11,10 @@ import (
 
 type TransactionService interface {
 	CreateTransaction(userID uint, input CreateTransactionInput) (*entity.Transaction, error)
-	GetTransactions(userID uint) ([]entity.Transaction, error)
+	GetTransactions(userID uint, params entity.TransactionFilterParams) ([]entity.Transaction, int64, error)
 	DeleteTransaction(id uint, userID uint) error
 	TransferTransaction(userID uint, input TransferTransactionInput) error
-	GetCalendarData(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error)
+	GetCalendarData(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error)
 	GetReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error)
 }
 
@@ -117,8 +117,8 @@ func (s *transactionService) CreateTransaction(userID uint, input CreateTransact
 	return s.repo.FindByID(transaction.ID, userID)
 }
 
-func (s *transactionService) GetTransactions(userID uint) ([]entity.Transaction, error) {
-	return s.repo.FindAll(userID)
+func (s *transactionService) GetTransactions(userID uint, params entity.TransactionFilterParams) ([]entity.Transaction, int64, error) {
+	return s.repo.FindAll(userID, params)
 }
 
 func (s *transactionService) DeleteTransaction(id uint, userID uint) error {
@@ -253,34 +253,30 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 
 // Helper to find or create appropriate category for transfer
 func (s *transactionService) getCategoryForTransfer(userID uint) (uint, error) {
-	// 1. Try to find one named "Transfer" with type "transfer"
-	var categories []entity.Category
-	if err := s.db.Where("user_id = ? AND type = ?", userID, "transfer").Limit(1).Find(&categories).Error; err != nil {
+
+	// But let's use the proper struct
+	var cat entity.Category
+
+	// Use FirstOrCreate to handle race condition atomicity (requires unique constraint usually, but GORM handles basic check)
+	// Ideally we should have a unique index on (user_id, type) where type='transfer' or name='Transfer'
+	// Assuming application level unique check is insufficient, but FirstOrCreate does:
+	// SELECT * FROM ... LIMIT 1; if not found -> INSERT
+	// Inside a transaction, if we set isolation level, it might work, or we rely on DB constraint.
+	// For now, using FirstOrCreate is the requested solution.
+	
+	err := s.db.Where(entity.Category{UserID: userID, Type: "transfer"}).
+		Attrs(entity.Category{Name: "Transfer", Icon: "Em_Exchange", BudgetLimit: 0}).
+		FirstOrCreate(&cat).Error
+
+	if err != nil {
 		return 0, err
 	}
 	
-	if len(categories) > 0 {
-		return categories[0].ID, nil
-	}
-
-	// 2. If not found, create it
-	newCategory := entity.Category{
-		UserID:      userID,
-		Name:        "Transfer",
-		Type:        "transfer",
-		Icon:        "Em_Exchange", // Assuming this icon key exists or is handled
-		BudgetLimit: 0,
-	}
-	
-	if err := s.db.Create(&newCategory).Error; err != nil {
-		return 0, err
-	}
-
-	return newCategory.ID, nil
+	return cat.ID, nil
 }
 
-func (s *transactionService) GetCalendarData(userID uint, startDate, endDate string) ([]entity.TransactionSummary, error) {
-	return s.repo.FindSummaryByDateRange(userID, startDate, endDate)
+func (s *transactionService) GetCalendarData(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error) {
+	return s.repo.FindSummaryByDateRange(userID, startDate, endDate, walletID, categoryID, search)
 }
 
 func (s *transactionService) GetReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error) {
