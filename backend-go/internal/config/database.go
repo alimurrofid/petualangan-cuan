@@ -35,3 +35,16 @@ func Connect() {
 	fmt.Println("Running Auto Migration...")
 	DB.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{})
 }
+
+func MigrateFresh() {
+	fmt.Println("🚧 Dropping all tables...")
+	// Drop tables in reverse dependency order to avoid FK issues
+	DB.Migrator().DropTable(&entity.Transaction{})
+	DB.Migrator().DropTable(&entity.Category{})
+	DB.Migrator().DropTable(&entity.Wallet{})
+	DB.Migrator().DropTable(&entity.User{})
+
+	fmt.Println("✅ All tables dropped!")
+	fmt.Println("🆕 Re-running Auto Migration...")
+	DB.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{})
+}

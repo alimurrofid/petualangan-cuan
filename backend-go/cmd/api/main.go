@@ -1,12 +1,14 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 
 	"cuan-backend/internal/config"
 	"cuan-backend/internal/handler"
 	"cuan-backend/internal/repository"
+	"cuan-backend/internal/seeder"
 	"cuan-backend/internal/service"
 	"cuan-backend/pkg/middleware"
 
@@ -24,12 +26,26 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
+	// Define flags
+	freshPtr := flag.Bool("fresh", false, "Drop all tables and re-migrate")
+	seedPtr := flag.Bool("seed", false, "Seed database with dummy data")
+	flag.Parse()
+
 	if err := godotenv.Load(); err != nil {
 		log.Println("Info: No .env file found, relying on system env")
 	}
 
 	// Init Config (DB)
 	config.Connect()
+
+	// Handle Database Workflow Flags
+	if *freshPtr {
+		config.MigrateFresh()
+	}
+
+	if *seedPtr {
+		seeder.SeedAll(config.DB)
+	}
 
 	// Init Layers
 	userRepo := repository.NewUserRepository(config.DB)
