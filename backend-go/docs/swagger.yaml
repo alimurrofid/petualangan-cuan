@@ -66,6 +66,13 @@ definitions:
       user_id:
         type: integer
     type: object
+  service.ChangePasswordInput:
+    properties:
+      new_password:
+        type: string
+      old_password:
+        type: string
+    type: object
   service.CreateCategoryInput:
     properties:
       budget_limit:
@@ -158,6 +165,13 @@ definitions:
       name:
         type: string
       type:
+        type: string
+    type: object
+  service.UpdateProfileInput:
+    properties:
+      email:
+        type: string
+      name:
         type: string
     type: object
   service.UpdateWalletInput:
@@ -396,6 +410,43 @@ paths:
             additionalProperties: true
             type: object
       summary: Delete a transaction
+      tags:
+      - transactions
+  /api/transactions/calendar:
+    get:
+      consumes:
+      - application/json
+      description: Get total income and expense per day for a specific date range
+      parameters:
+      - description: Start Date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: End Date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get aggregated calendar data
       tags:
       - transactions
   /api/transactions/transfer:
@@ -646,6 +697,69 @@ paths:
       summary: Logout user
       tags:
       - auth
+  /auth/password:
+    put:
+      consumes:
+      - application/json
+      description: Change user password
+      parameters:
+      - description: Change Password Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.ChangePasswordInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Change user password
+      tags:
+      - auth
+  /auth/profile:
+    put:
+      consumes:
+      - application/json
+      description: Update user name and email
+      parameters:
+      - description: Update Profile Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateProfileInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - auth
   /auth/register:
     post:
       consumes:
@@ -675,4 +789,60 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /dashboard:
+    get:
+      consumes:
+      - application/json
+      description: Get total balance, monthly summary, recent transactions, trend,
+        and breakdown
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get dashboard data
+      tags:
+      - dashboard
+  /transactions/report:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive report of expenses/income by category
+      parameters:
+      - description: Start Date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: End Date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        required: true
+        type: string
+      - description: Wallet ID
+        in: query
+        name: wallet_id
+        type: integer
+      - description: Transaction Type (income, expense, all)
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get category breakdown for report
+      tags:
+      - transactions
 swagger: "2.0"
