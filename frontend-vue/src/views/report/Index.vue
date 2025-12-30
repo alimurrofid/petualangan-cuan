@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay, addMonths, addWeeks, addDays } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay, addMonths, addWeeks, addDays, parseISO, isWithinInterval, isSameDay } from "date-fns";
 import { id } from "date-fns/locale";
 
 import { useTransactionStore, type CategoryBreakdown } from "@/stores/transaction";
 import { useWalletStore } from "@/stores/wallet";
+import { useCategoryStore } from "@/stores/category";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, PieChart } from "l
 
 const transactionStore = useTransactionStore();
 const walletStore = useWalletStore();
+const categoryStore = useCategoryStore();
 
 type PeriodType = 'monthly' | 'weekly' | 'daily' | 'custom';
 
@@ -30,11 +32,17 @@ const customDateRange = ref({
 
 const showDatePicker = ref(false);
 
-const reportData = ref<CategoryBreakdown[]>([]);
+watch(periodType, (val) => {
+  showDatePicker.value = val === 'custom';
+});
 
 onMounted(async () => {
-    await walletStore.fetchWallets();
-    await fetchData();
+    // Fetch all raw data required for client-side processing
+    await Promise.all([
+        transactionStore.fetchTransactions(),
+        walletStore.fetchWallets(),
+        categoryStore.fetchCategories()
+    ]);
 });
 
 const dateRange = computed(() => {
@@ -48,11 +56,15 @@ const dateRange = computed(() => {
       return { start: startOfDay(date), end: endOfDay(date) };
     case 'custom':
       return customDateRange.value;
+    default:
+      return { start: startOfMonth(date), end: endOfMonth(date) };
   }
 });
 
 const formattedDateRange = computed(() => {
   const { start, end } = dateRange.value;
+  if (!start || !end) return '-';
+  
   if (periodType.value === 'daily') {
     return format(start, "d MMMM yyyy", { locale: id });
   }
@@ -74,33 +86,61 @@ const navigateDate = (amount: number) => {
   }
 };
 
-const fetchData = async () => {
+// Client-side filtering logic
+const filteredTransactions = computed(() => {
+  return transactionStore.transactions.filter((t) => {
+    const tDate = parseISO(t.date);
     const { start, end } = dateRange.value;
-    const startDate = format(start, 'yyyy-MM-dd');
-    const endDate = format(end, 'yyyy-MM-dd');
     
-    // Call store action
-    const data = await transactionStore.fetchReport(
-        startDate, 
-        endDate, 
-        filterWallet.value === 'all' ? undefined : Number(filterWallet.value), 
-        filterType.value === 'all' ? undefined : filterType.value
-    );
-    
-    if (data) {
-        reportData.value = data;
+    if (!start || !end) return false;
+
+    let matchesPeriod = false;
+    if (periodType.value === 'daily') {
+         matchesPeriod = isSameDay(tDate, selectedDate.value);
+    } else {
+         matchesPeriod = isWithinInterval(tDate, { start, end });
     }
-};
 
-watch([periodType, selectedDate, customDateRange, filterWallet, filterType], () => {
-    // Avoid double fetch if custom date logic causes duplicate updates or period change triggers date reset
-    fetchData();
-}, { deep: true });
+    const matchesWallet = filterWallet.value === "all" || t.wallet_id === Number(filterWallet.value);
+    
+    // For type filter, we map 'income'/'expense' exactly. 
+    // If 'all', we include everything.
+    const matchesType = filterType.value === "all" || t.type === filterType.value;
 
-watch(periodType, (val) => {
-  showDatePicker.value = val === 'custom';
+    return matchesPeriod && matchesWallet && matchesType;
+  });
 });
 
+// Aggregation for Report
+const reportData = computed<CategoryBreakdown[]>(() => {
+    const groups: Record<number, number> = {};
+    
+    // Group totals by category_id
+    filteredTransactions.value.forEach(t => {
+        // Only include income and expense for the breakdown, exclude transfers if necessary or keeping them if they have categories
+        if (t.type === 'transfer_in' || t.type === 'transfer_out') return; 
+
+        const currentTotal = groups[t.category_id] || 0;
+        groups[t.category_id] = currentTotal + t.amount;
+    });
+
+    // Map to CategoryBreakdown format
+    // Sort by total_amount descending
+    return Object.entries(groups)
+        .map(([catId, total]) => {
+            const category = categoryStore.categories.find(c => c.id === Number(catId));
+            const budget = category?.budget_limit || 0;
+            return {
+                category_name: category?.name || 'Unknown',
+                category_icon: category?.icon || 'Em_Star',
+                type: category?.type || 'expense',
+                total_amount: total,
+                budget_limit: budget,
+                is_over_budget: (category?.type === 'expense' && budget > 0 && total > budget)
+            };
+        })
+        .sort((a, b) => b.total_amount - a.total_amount);
+});
 
 // Charts & Visuals
 const formatCurrency = (value: number) => {
