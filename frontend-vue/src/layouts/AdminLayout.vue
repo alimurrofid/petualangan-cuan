@@ -47,7 +47,7 @@ const handleLogout = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <div class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-                    <span class="text-sm font-medium text-foreground capitalize">Heyho, {{ authStore.user?.name?.split(' ')[0] || 'Bro' }}</span>
+                    <span class="text-sm font-medium text-foreground capitalize">Heyho, {{ authStore.user?.name || 'Bro' }}</span>
                     <Avatar class="w-8 h-8 border border-border">
                         <AvatarImage src="https://github.com/shadcn.png" />
                         <AvatarFallback>CN</AvatarFallback>
