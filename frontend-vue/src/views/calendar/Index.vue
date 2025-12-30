@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, isSameMonth, isSameDay, startOfWeek, endOfWeek, parseISO, isToday } from "date-fns";
 import { id } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-vue-next";
+import * as LucideIcons from "lucide-vue-next";
 import { useTransactionStore } from "@/stores/transaction";
 import { useCategoryStore } from "@/stores/category";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -64,6 +65,11 @@ const formatCurrency = (value: number) => {
 };
 
 // Helper for icons
+const getIconComponent = (name: string | undefined) => {
+  if (!name) return null;
+  return (LucideIcons as any)[name] || null;
+};
+
 const emojiCategories: Record<string, string> = {
   Em_MoneyBag: "💰", Em_DollarBill: "💵", Em_Card: "💳", Em_Bank: "🏦", Em_MoneyWing: "💸", Em_Coin: "🪙",
   Em_Pizza: "🍕", Em_Cart: "🛒", Em_Coffee: "☕", Em_Game: "🎮", Em_Airplane: "✈️", Em_Gift: "🎁",
@@ -87,26 +93,26 @@ const getEmoji = (name: string | undefined) => {
 
     <!-- Calendar Section -->
     <Card class="bg-card border-border shadow-sm rounded-3xl overflow-hidden flex flex-col">
-        <CardHeader class="pb-4 border-b border-border/50">
+        <CardHeader class="p-6 border-b border-border/10 bg-gradient-to-r from-emerald-600 to-teal-500 text-primary-foreground">
                 <div class="flex items-center justify-between gap-4">
-                    <div class="flex items-center gap-2 bg-muted/30 p-1 rounded-xl w-full md:w-auto">
-                        <Button variant="ghost" size="icon" @click="navigateMonth(-1)" class="h-8 w-8 rounded-lg">
-                            <ChevronLeft class="h-5 w-5" />
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <Button variant="ghost" size="icon" @click="navigateMonth(-1)" class="h-9 w-9 rounded-xl hover:bg-white/20 text-white hover:text-white transition-colors bg-white/30">
+                            <ChevronLeft class="h-6 w-6" />
                         </Button>
-                        <h3 class="font-bold text-lg capitalize px-4 min-w-[150px] text-center">
+                        <h3 class="font-bold text-xl capitalize px-2 min-w-[150px] text-center tracking-tight text-white drop-shadow-sm select-none bg-white/30 rounded-xl py-1 px-3">
                             {{ format(currentMonth, 'MMMM yyyy', { locale: id }) }}
                         </h3>
-                        <Button variant="ghost" size="icon" @click="navigateMonth(1)" class="h-8 w-8 rounded-lg">
-                            <ChevronRight class="h-5 w-5" />
+                        <Button variant="ghost" size="icon" @click="navigateMonth(1)" class="h-9 w-9 rounded-xl hover:bg-white/20 text-white hover:text-white transition-colors bg-white/30">
+                            <ChevronRight class="h-6 w-6" />
                         </Button>
                     </div>
-                    <Button variant="outline" size="sm" @click="goToToday" class="hidden md:flex rounded-xl">Hari Ini</Button>
+                    <Button variant="outline" size="sm" @click="goToToday" class="hidden md:flex rounded-xl bg-white/30 border-white/40 dark:bg-white/30 dark:border-white/40 text-white hover:bg-white hover:text-teal-600 transition-colors font-semibold h-9 text-xs">Hari Ini</Button>
             </div>
         </CardHeader>
         <CardContent class="p-0">
             <!-- Week Header -->
-            <div class="grid grid-cols-7 bg-muted/40 border-b border-border">
-                    <div v-for="day in weekDays" :key="day" class="py-3 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            <div class="grid grid-cols-7 bg-emerald-600/5 border-b border-border">
+                    <div v-for="day in weekDays" :key="day" class="py-3 text-center text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
                     {{ day }}
                 </div>
             </div>
@@ -119,7 +125,7 @@ const getEmoji = (name: string | undefined) => {
                     class="relative border-b border-r border-border/50 p-2 transition-all flex flex-col justify-start gap-1 min-h-[120px] group"
                     :class="[
                         !isSameMonth(date, currentMonth) ? 'bg-muted/10 text-muted-foreground/40' : 'bg-background hover:bg-muted/10 cursor-pointer',
-                        isToday(date) ? 'bg-primary/5' : ''
+                        isToday(date) ? 'bg-teal-200/75 dark:bg-teal-200/75' : ''
                     ]"
                     @click="onDayClick(date)"
                     >
@@ -127,7 +133,9 @@ const getEmoji = (name: string | undefined) => {
                         <span 
                             :class="[
                                 'text-sm font-semibold h-6 w-6 flex items-center justify-center rounded-full transition-shadow',
-                                isToday(date) ? 'bg-primary text-primary-foreground shadow-md' : 'text-foreground/70'
+                                isToday(date) 
+                                    ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-md' 
+                                    : 'text-foreground/70 group-hover:text-emerald-600 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950/30'
                             ]"
                         >
                             {{ format(date, 'd') }}
@@ -151,7 +159,7 @@ const getEmoji = (name: string | undefined) => {
                                         : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
                                 ]"
                             >
-                                <span class="truncate max-w-[60%]">{{ t.category?.name }}</span>
+                                <span class="truncate max-w-[60%]">{{ t.description || t.category?.name }}</span>
                                 <span class="font-bold shrink-0">
                                     {{ t.amount >= 1000000 ? (t.amount/1000000).toFixed(1) + 'm' : (t.amount/1000).toFixed(0) + 'k' }}
                                 </span>
@@ -196,9 +204,10 @@ const getEmoji = (name: string | undefined) => {
                              <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm', 
                                   t.type === 'expense' ? 'bg-red-50 text-red-500' : 
                                   t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600']">
-                                 <span v-if="getEmoji(t.category.icon)">{{ getEmoji(t.category.icon) }}</span>
+                                 <component v-if="getIconComponent(t.category?.icon)" :is="getIconComponent(t.category?.icon)" class="h-5 w-5" />
+                                 <span v-else-if="getEmoji(t.category?.icon)">{{ getEmoji(t.category?.icon) }}</span>
                                  <!-- Fallback if no emoji/icon logic, use first letter -->
-                                 <span v-else class="font-bold">{{ t.category.name[0] }}</span>
+                                 <span v-else class="font-bold">{{ t.category?.name?.[0] || '?' }}</span>
                              </div>
                              <div class="overflow-hidden">
                                  <p class="font-bold text-sm truncate max-w-[150px]">{{ t.description || 'No Description' }}</p>
