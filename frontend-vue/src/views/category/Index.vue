@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useSwal } from "@/composables/useSwal";
 
-import * as LucideIcons from "lucide-vue-next";
+import { LucideIcons, emojiCategories, getEmoji, getIconComponent } from "@/lib/icons";
 import { Plus, Pencil, Trash2, LayoutGrid, Save, TrendingUp, TrendingDown } from "lucide-vue-next";
 
 // Define the form structure (frontend representation)
@@ -56,32 +56,6 @@ const iconOptions = [
   { name: "Stethoscope", icon: LucideIcons.Stethoscope, label: "Medis" },
   { name: "Home", icon: LucideIcons.Home, label: "Rumah" },
 ];
-
-const emojiCategories = {
-  Keuangan: [
-    { name: "Em_MoneyBag", emoji: "💰" },
-    { name: "Em_DollarBill", emoji: "💵" },
-    { name: "Em_Card", emoji: "💳" },
-    { name: "Em_Bank", emoji: "🏦" },
-    { name: "Em_MoneyWing", emoji: "💸" },
-    { name: "Em_Coin", emoji: "🪙" },
-  ],
-  Lifestyle: [
-    { name: "Em_Pizza", emoji: "🍕" },
-    { name: "Em_Cart", emoji: "🛒" },
-    { name: "Em_Coffee", emoji: "☕" },
-    { name: "Em_Game", emoji: "🎮" },
-    { name: "Em_Airplane", emoji: "✈️" },
-    { name: "Em_Gift", emoji: "🎁" },
-  ],
-  Simbol: [
-    { name: "Em_Star", emoji: "⭐" },
-    { name: "Em_Fire", emoji: "🔥" },
-    { name: "Em_Lock", emoji: "🔒" },
-    { name: "Em_Check", emoji: "✅" },
-    { name: "Em_Idea", emoji: "💡" },
-  ],
-};
 
 onMounted(() => {
   categoryStore.fetchCategories();
@@ -178,22 +152,6 @@ const handleDelete = async () => {
   }
 };
 
-const getIconComponent = (name: string | undefined) => {
-  if (!name) return LayoutGrid;
-  return (LucideIcons as any)[name] || null;
-};
-
-const getEmoji = (name: string | undefined) => {
-  if (!name) return null;
-  for (const category of Object.values(emojiCategories)) {
-    const found = category.find((e) => e.name === name);
-    if (found) return found.emoji;
-  }
-  // Fallback if name itself is an emoji (legacy support)
-  if (/\p{Emoji}/u.test(name)) return name;
-  return null;
-};
-
 const getGradientIcon = (type: string) => {
     return type === 'expense' 
         ? 'bg-gradient-to-br from-red-50 to-red-100 text-red-600 dark:from-red-900 dark:to-red-800 dark:text-red-100' 
@@ -247,7 +205,7 @@ const formattedBudgetLimit = computed({
                     <div :class="['h-14 w-14 rounded-2xl flex items-center justify-center border shadow-sm transition-transform group-hover:scale-110', getGradientIcon(item.type), item.type === 'expense' ? 'border-red-100 dark:border-red-800' : 'border-emerald-100 dark:border-emerald-800']">
                          <component v-if="getIconComponent(item.icon)" :is="getIconComponent(item.icon)" class="h-7 w-7" />
                          <span v-else-if="getEmoji(item.icon)" class="text-3xl leading-none filter drop-shadow-sm">{{ getEmoji(item.icon) }}</span>
-                         <span v-else class="text-xl leading-none filter drop-shadow-sm">{{ item.icon }}</span>
+                         <component v-else :is="getIconComponent(null, 'LayoutGrid')" class="h-7 w-7" />
                     </div>
                     <div class="opacity-0 group-hover:opacity-100 transition-opacity">
                          <div class="bg-muted p-2 rounded-full transform rotate-12 group-hover:rotate-0 transition-transform">
@@ -330,7 +288,7 @@ const formattedBudgetLimit = computed({
                 <div :class="['h-16 w-16 rounded-2xl flex items-center justify-center text-4xl shadow-md transform group-hover:scale-105 transition-transform', form.type === 'expense' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600']">
                   <component v-if="getIconComponent(form.icon)" :is="getIconComponent(form.icon)" class="h-8 w-8" />
                   <span v-else-if="getEmoji(form.icon)" class="leading-none">{{ getEmoji(form.icon) }}</span>
-                  <span v-else class="leading-none">{{ form.icon }}</span>
+                  <component v-else :is="getIconComponent(null, 'LayoutGrid')" class="h-8 w-8" />
                 </div>
                  <div class="text-left">
                     <p class="text-xs font-bold uppercase opacity-50">Icon Terpilih</p>

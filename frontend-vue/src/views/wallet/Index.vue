@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useSwal } from "@/composables/useSwal";
 
-import * as LucideIcons from "lucide-vue-next";
-import { Plus, Pencil, Trash2, Save, Wallet, Nfc } from "lucide-vue-next";
+
+import { LucideIcons, emojiCategories, getEmoji, getIconComponent } from "@/lib/icons";
+import { Plus, Pencil, Trash2, Save, Nfc } from "lucide-vue-next";
 
 const walletStore = useWalletStore();
 const authStore = useAuthStore();
@@ -50,32 +51,6 @@ const iconOptions = [
   { name: "Zap", icon: LucideIcons.Zap, label: "Tagihan" },
   { name: "ShoppingBag", icon: LucideIcons.ShoppingBag, label: "Belanja" },
 ];
-
-const emojiCategories = {
-  Keuangan: [
-    { name: "Em_MoneyBag", emoji: "💰" },
-    { name: "Em_DollarBill", emoji: "💵" },
-    { name: "Em_Card", emoji: "💳" },
-    { name: "Em_Bank", emoji: "🏦" },
-    { name: "Em_MoneyWing", emoji: "💸" },
-    { name: "Em_Coin", emoji: "🪙" },
-  ],
-  Lifestyle: [
-    { name: "Em_Pizza", emoji: "🍕" },
-    { name: "Em_Cart", emoji: "🛒" },
-    { name: "Em_Coffee", emoji: "☕" },
-    { name: "Em_Game", emoji: "🎮" },
-    { name: "Em_Airplane", emoji: "✈️" },
-    { name: "Em_Gift", emoji: "🎁" },
-  ],
-  Simbol: [
-    { name: "Em_Star", emoji: "⭐" },
-    { name: "Em_Fire", emoji: "🔥" },
-    { name: "Em_Lock", emoji: "🔒" },
-    { name: "Em_Check", emoji: "✅" },
-    { name: "Em_Idea", emoji: "💡" },
-  ],
-};
 
 onMounted(() => {
   walletStore.fetchWallets();
@@ -159,22 +134,6 @@ const handleDelete = async () => {
   }
 };
 
-const getIconComponent = (name: string | undefined) => {
-  if (!name) return Wallet;
-  return (LucideIcons as any)[name] || null;
-};
-
-const getEmoji = (name: string | undefined) => {
-  if (!name) return null;
-  for (const category of Object.values(emojiCategories)) {
-    const found = category.find((e) => e.name === name);
-    if (found) return found.emoji;
-  }
-  // Fallback if name itself is an emoji (legacy support)
-  if (/\p{Emoji}/u.test(name)) return name;
-  return null;
-};
-
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
 };
@@ -226,7 +185,7 @@ const getCardGradient = (type: string) => {
                 <div class="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10 shadow-inner">
                      <component v-if="getIconComponent(item.icon)" :is="getIconComponent(item.icon)" class="h-5 w-5 text-white" />
                      <span v-else-if="getEmoji(item.icon)" class="text-xl leading-none filter drop-shadow-sm">{{ getEmoji(item.icon) }}</span>
-                     <span v-else class="text-xl leading-none filter drop-shadow-sm">{{ item.icon }}</span>
+                     <component v-else :is="getIconComponent(null, 'Wallet')" class="h-5 w-5 text-white" />
                 </div>
                 <div>
                      <p class="font-bold text-lg tracking-wide">{{ item.name }}</p>
@@ -307,7 +266,7 @@ const getCardGradient = (type: string) => {
                 <div :class="['h-14 w-14 rounded-2xl flex items-center justify-center text-white shadow-md transform group-hover:scale-105 transition-transform', getCardGradient(form.type)]">
                   <component v-if="getIconComponent(form.icon)" :is="getIconComponent(form.icon)" class="h-7 w-7" />
                   <span v-else-if="getEmoji(form.icon)" class="text-3xl leading-none">{{ getEmoji(form.icon) }}</span>
-                  <span v-else class="text-3xl leading-none">{{ form.icon }}</span>
+                  <component v-else :is="getIconComponent(null, 'Wallet')" class="h-7 w-7" />
                 </div>
                 <div class="text-left">
                     <p class="text-xs font-bold uppercase opacity-50">Icon Terpilih</p>

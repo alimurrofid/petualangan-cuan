@@ -3,12 +3,12 @@ import { ref, computed, onMounted } from "vue";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, isSameMonth, isSameDay, startOfWeek, endOfWeek, parseISO, isToday } from "date-fns";
 import { id } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-vue-next";
-import * as LucideIcons from "lucide-vue-next";
 import { useTransactionStore } from "@/stores/transaction";
 import { useCategoryStore } from "@/stores/category";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getEmoji, getIconComponent } from "@/lib/icons";
 
 const transactionStore = useTransactionStore();
 const categoryStore = useCategoryStore();
@@ -62,25 +62,6 @@ const selectedDayTransactions = computed(() => {
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
-};
-
-// Helper for icons
-const getIconComponent = (name: string | undefined) => {
-  if (!name) return null;
-  return (LucideIcons as any)[name] || null;
-};
-
-const emojiCategories: Record<string, string> = {
-  Em_MoneyBag: "💰", Em_DollarBill: "💵", Em_Card: "💳", Em_Bank: "🏦", Em_MoneyWing: "💸", Em_Coin: "🪙",
-  Em_Pizza: "🍕", Em_Cart: "🛒", Em_Coffee: "☕", Em_Game: "🎮", Em_Airplane: "✈️", Em_Gift: "🎁",
-  Em_Star: "⭐", Em_Fire: "🔥", Em_Lock: "🔒", Em_Check: "✅", Em_Idea: "💡"
-};
-
-const getEmoji = (name: string | undefined) => {
-  if (!name) return null;
-  if (emojiCategories[name]) return emojiCategories[name];
-  if (/\p{Emoji}/u.test(name)) return name;
-  return null;
 };
 </script>
 

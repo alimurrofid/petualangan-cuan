@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DateRangePicker from "@/components/DateRangePicker.vue";
 
-import * as LucideIcons from "lucide-vue-next";
 import { Search, ChevronLeft, ChevronRight, Calendar as CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-vue-next";
+import { getEmoji, getIconComponent } from "@/lib/icons";
 
 const transactionStore = useTransactionStore();
 const walletStore = useWalletStore();
@@ -149,25 +149,6 @@ const totalExpense = computed(() => {
         .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0);
 });
-
-// Helper for icons (similarly used in other views)
-const getIconComponent = (name: string | undefined) => {
-    if (!name) return LucideIcons.Circle;
-    return (LucideIcons as any)[name] || LucideIcons.Circle;
-};
-
-const emojiCategories: Record<string, string> = {
-  Em_MoneyBag: "💰", Em_DollarBill: "💵", Em_Card: "💳", Em_Bank: "🏦", Em_MoneyWing: "💸", Em_Coin: "🪙",
-  Em_Pizza: "🍕", Em_Cart: "🛒", Em_Coffee: "☕", Em_Game: "🎮", Em_Airplane: "✈️", Em_Gift: "🎁",
-  Em_Star: "⭐", Em_Fire: "🔥", Em_Lock: "🔒", Em_Check: "✅", Em_Idea: "💡"
-};
-
-const getEmoji = (name: string | undefined) => {
-  if (!name) return null;
-  if (emojiCategories[name]) return emojiCategories[name];
-  if (/\p{Emoji}/u.test(name)) return name;
-  return null;
-};
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
@@ -416,7 +397,7 @@ const chartOptions = computed(() => {
                                      t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 
                                      'bg-blue-50 text-blue-600']">
                                      <span v-if="getEmoji(t.category.icon)" class="text-xl leading-none filter drop-shadow-sm">{{ getEmoji(t.category.icon) }}</span>
-                                     <component v-else :is="getIconComponent(t.category.icon)" class="h-5 w-5" />
+                                     <component v-else :is="getIconComponent(t.category.icon, 'Circle')" class="h-5 w-5" />
                                 </div>
                                 <div>
                                     <p class="font-bold text-sm truncate max-w-[120px]">{{ t.description || 'No Description' }}</p>

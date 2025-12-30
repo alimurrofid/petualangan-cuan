@@ -18,7 +18,7 @@ import {
   TrendingUp,
   Lightbulb
 } from 'lucide-vue-next';
-import * as LucideIcons from "lucide-vue-next";
+import { getEmoji, getIconComponent } from "@/lib/icons";
 import { format, parseISO, isSameDay, subDays } from 'date-fns';
 import { id as localeId } from "date-fns/locale";
 
@@ -187,24 +187,7 @@ const groupedRecentTransactions = computed(() => {
             items: groups[dateStr]
         };
     });
-});
-
-// Helpers
-const getIconComponent = (name: string) => (LucideIcons as any)[name] || LucideIcons.Circle;
-
-const emojiCategories: Record<string, string> = {
-  Em_MoneyBag: "💰", Em_DollarBill: "💵", Em_Card: "💳", Em_Bank: "🏦", Em_MoneyWing: "💸", Em_MoneyFly: "💸", Em_Coin: "🪙",
-  Em_Pizza: "🍕", Em_Cart: "🛒", Em_Coffee: "☕", Em_Game: "🎮", Em_Airplane: "✈️", Em_Gift: "🎁",
-  Em_Star: "⭐", Em_Fire: "🔥", Em_Lock: "🔒", Em_Check: "✅", Em_Idea: "💡"
-};
-
-const getEmoji = (name: string | undefined) => {
-  if (!name) return null;
-  if (emojiCategories[name]) return emojiCategories[name];
-  if (/\p{Emoji}/u.test(name)) return name;
-  return null;
-};
-</script>
+});</script>
 
 <template>
   <div class="flex-1 space-y-6 pt-2" v-if="dashboardStore.isLoading">
