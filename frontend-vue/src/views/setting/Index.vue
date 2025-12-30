@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, EyeOff, Loader2 } from "lucide-vue-next";
+import { useSwal } from "@/composables/useSwal";
 
 const route = useRoute();
 const authStore = useAuthStore();
 const activeTab = ref("profile");
 const isLoading = ref(false);
+const swal = useSwal();
 
 const tabs = [
   { id: "profile", label: "Profile" },
@@ -75,23 +77,82 @@ watch(() => authStore.user, () => {
     initProfile();
 }, { deep: true });
 
+// Validation Errors
+const errors = ref({
+    profile: {
+        name: false,
+        email: false
+    },
+    password: {
+        old: false,
+        new: false,
+        confirm: false,
+        match: false
+    }
+});
+
 const handleUpdateProfile = async () => {
-    if (!profileForm.value.name || !profileForm.value.email) return alert("Nama dan Email wajib diisi");
+    errors.value.profile.name = !profileForm.value.name;
+    errors.value.profile.email = !profileForm.value.email;
+
+    if (errors.value.profile.name || errors.value.profile.email) {
+        let msg = "Mohon lengkapi data berikut:";
+        if (errors.value.profile.name) msg += "<br>- Nama Lengkap";
+        if (errors.value.profile.email) msg += "<br>- Email";
+        await swal.fire({
+            icon: 'error',
+            title: 'Validasi Gagal',
+            html: msg,
+            confirmButtonColor: '#EF4444', 
+        });
+        return;
+    }
     
     isLoading.value = true;
     try {
         await authStore.updateProfile(profileForm.value);
-        alert("Profil berhasil diperbarui!");
+        swal.success("Berhasil Update", "Profil berhasil diperbarui!");
     } catch (error: any) {
-        alert(error.response?.data?.error || "Gagal memperbarui profil");
+        swal.error("Gagal", error.response?.data?.error || "Gagal memperbarui profil");
     } finally {
         isLoading.value = false;
     }
 };
 
 const handleUpdatePassword = async () => {
-    if (!passwordForm.value.old_password || !passwordForm.value.new_password) return alert("Mohon lengkapi data");
-    if (passwordForm.value.new_password !== passwordForm.value.confirm_password) return alert("Konfirmasi password tidak cocok");
+    // Reset errors
+    errors.value.password.old = !passwordForm.value.old_password;
+    errors.value.password.new = !passwordForm.value.new_password;
+    errors.value.password.confirm = !passwordForm.value.confirm_password;
+    errors.value.password.match = false;
+    
+    // Check required fields
+    if (errors.value.password.old || errors.value.password.new || errors.value.password.confirm) {
+        let msg = "Mohon lengkapi data berikut:";
+        if (errors.value.password.old) msg += "<br>- Password Lama";
+        if (errors.value.password.new) msg += "<br>- Password Baru";
+        if (errors.value.password.confirm) msg += "<br>- Konfirmasi Password";
+        
+        await swal.fire({
+            icon: 'error',
+            title: 'Validasi Gagal',
+            html: msg,
+            confirmButtonColor: '#EF4444', 
+        });
+        return;
+    }
+
+    // Check matching
+    if (passwordForm.value.new_password !== passwordForm.value.confirm_password) {
+        errors.value.password.match = true;
+         await swal.fire({
+            icon: 'error',
+            title: 'Validasi Gagal',
+            text: 'Konfirmasi password tidak cocok dengan password baru',
+            confirmButtonColor: '#EF4444', 
+        });
+        return;
+    }
     
     isLoading.value = true;
     try {
@@ -99,10 +160,11 @@ const handleUpdatePassword = async () => {
             old_password: passwordForm.value.old_password,
             new_password: passwordForm.value.new_password
         });
-        alert("Password berhasil diperbarui! Silakan login ulang.");
-        authStore.logout();
+        swal.success("Berhasil Update", "Password berhasil diperbarui! Silakan login ulang.").then(() => {
+            authStore.logout();
+        });
     } catch (error: any) {
-        alert(error.response?.data?.error || "Gagal memperbarui password");
+        swal.error("Gagal", error.response?.data?.error || "Gagal memperbarui password");
     } finally {
         isLoading.value = false;
         passwordForm.value = { old_password: "", new_password: "", confirm_password: "" };
@@ -202,11 +264,13 @@ const handleUpdatePassword = async () => {
                  <div class="space-y-4">
                      <div class="grid w-full items-center gap-1.5">
                         <Label for="name">Full Name</Label>
-                        <Input id="name" v-model="profileForm.name" placeholder="Nama Lengkap" />
+                        <Input id="name" v-model="profileForm.name" placeholder="Nama Lengkap" :class="errors.profile.name ? 'border-red-500 ring-1 ring-red-500' : ''" />
+                        <span v-if="errors.profile.name" class="text-xs text-red-500 font-medium">Nama lengkap wajib diisi</span>
                      </div>
                       <div class="grid w-full items-center gap-1.5">
                         <Label for="email">Email</Label>
-                        <Input id="email" type="email" v-model="profileForm.email" placeholder="email@example.com" />
+                        <Input id="email" type="email" v-model="profileForm.email" placeholder="email@example.com" :class="errors.profile.email ? 'border-red-500 ring-1 ring-red-500' : ''" />
+                        <span v-if="errors.profile.email" class="text-xs text-red-500 font-medium">Email wajib diisi</span>
                      </div>
                  </div>
                  <Button class="w-full" @click="handleUpdateProfile" :disabled="isLoading">
@@ -222,12 +286,13 @@ const handleUpdatePassword = async () => {
                       <div class="grid w-full items-center gap-1.5">
                         <Label for="old_pass">Old Password</Label>
                         <div class="relative">
-                            <Input id="old_pass" v-model="passwordForm.old_password" :type="showPassword.old ? 'text' : 'password'" placeholder="••••••••" />
+                            <Input id="old_pass" v-model="passwordForm.old_password" :type="showPassword.old ? 'text' : 'password'" placeholder="••••••••" :class="errors.password.old ? 'border-red-500 ring-1 ring-red-500' : ''" />
                             <button type="button" @click="showPassword.old = !showPassword.old" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                                 <Eye v-if="!showPassword.old" class="w-4 h-4" />
                                 <EyeOff v-else class="w-4 h-4" />
                             </button>
                         </div>
+                        <span v-if="errors.password.old" class="text-xs text-red-500 font-medium">Password lama wajib diisi</span>
                      </div>
 
                       <div class="grid w-full items-center gap-1.5 grayscale opacity-50"><div class="h-px bg-border my-2"></div></div>
@@ -235,22 +300,25 @@ const handleUpdatePassword = async () => {
                       <div class="grid w-full items-center gap-1.5">
                         <Label for="new_pass">New Password</Label>
                         <div class="relative">
-                            <Input id="new_pass" v-model="passwordForm.new_password" :type="showPassword.new ? 'text' : 'password'" placeholder="••••••••" />
+                            <Input id="new_pass" v-model="passwordForm.new_password" :type="showPassword.new ? 'text' : 'password'" placeholder="••••••••" :class="errors.password.new || errors.password.match ? 'border-red-500 ring-1 ring-red-500' : ''" />
                             <button type="button" @click="showPassword.new = !showPassword.new" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                                 <Eye v-if="!showPassword.new" class="w-4 h-4" />
                                 <EyeOff v-else class="w-4 h-4" />
                             </button>
                         </div>
+                        <span v-if="errors.password.new" class="text-xs text-red-500 font-medium">Password baru wajib diisi</span>
                      </div>
                       <div class="grid w-full items-center gap-1.5">
                         <Label for="confirm_pass">Confirm Password</Label>
                         <div class="relative">
-                            <Input id="confirm_pass" v-model="passwordForm.confirm_password" :type="showPassword.confirm ? 'text' : 'password'" placeholder="••••••••" />
+                            <Input id="confirm_pass" v-model="passwordForm.confirm_password" :type="showPassword.confirm ? 'text' : 'password'" placeholder="••••••••" :class="errors.password.confirm || errors.password.match ? 'border-red-500 ring-1 ring-red-500' : ''" />
                              <button type="button" @click="showPassword.confirm = !showPassword.confirm" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                                 <Eye v-if="!showPassword.confirm" class="w-4 h-4" />
                                 <EyeOff v-else class="w-4 h-4" />
                             </button>
                         </div>
+                        <span v-if="errors.password.confirm" class="text-xs text-red-500 font-medium">Konfirmasi password wajib diisi</span>
+                        <span v-else-if="errors.password.match" class="text-xs text-red-500 font-medium">Password tidak cocok</span>
                      </div>
                  </div>
                  <Button class="w-full" @click="handleUpdatePassword" :disabled="isLoading">

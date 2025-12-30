@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { useSwal } from "@/composables/useSwal";
 
 import * as LucideIcons from "lucide-vue-next";
 import { Plus, Pencil, Trash2, LayoutGrid, Save, TrendingUp, TrendingDown } from "lucide-vue-next";
@@ -22,6 +23,7 @@ interface CategoryForm {
 
 const categoryStore = useCategoryStore();
 const currentTab = ref<"expense" | "income">("income");
+const swal = useSwal();
 
 const isDialogOpen = ref(false);
 const isIconPickerOpen = ref(false);
@@ -33,6 +35,11 @@ const form = ref<CategoryForm>({
   icon: "",
   type: "expense",
   budgetLimit: 0,
+});
+
+const errors = ref({
+  name: false,
+  icon: false,
 });
 
 const iconOptions = [
@@ -84,9 +91,13 @@ const filteredCategories = computed(() => {
   return categoryStore.categories.filter((c) => c.type === currentTab.value);
 });
 
+const isSubmitting = ref(false);
+
 const openAdd = () => {
   isEditMode.value = false;
   form.value = { id: 0, name: "", icon: "", type: currentTab.value, budgetLimit: 0 };
+  errors.value = { name: false, icon: false };
+  isSubmitting.value = false;
   isDialogOpen.value = true;
 };
 
@@ -100,16 +111,36 @@ const openEdit = (category: Category) => {
     // Note: Backend JSON for budget_limit -> category.budget_limit
     budgetLimit: category.budget_limit || 0,
   };
+  errors.value = { name: false, icon: false };
+  isSubmitting.value = false;
   isDialogOpen.value = true;
 };
 
 const selectIcon = (name: string) => {
   form.value.icon = name;
+  errors.value.icon = false;
   isIconPickerOpen.value = false;
 };
 
 const handleSave = async () => {
-  if (!form.value.name || !form.value.icon) return alert("Lengkapi data kategori");
+  isSubmitting.value = true;
+  errors.value.name = !form.value.name;
+  errors.value.icon = !form.value.icon;
+
+  if (errors.value.name || errors.value.icon) {
+      let msg = "Mohon lengkapi data berikut:";
+      if (errors.value.name) msg += "<br>- Nama Kategori";
+      if (errors.value.icon) msg += "<br>- Icon Kategori";
+      await swal.fire({
+          icon: 'error',
+          title: 'Validasi Gagal',
+          html: msg,
+          confirmButtonColor: '#EF4444', 
+      });
+      // Small delay to prevent ghost clicks after modal closes
+      setTimeout(() => { isSubmitting.value = false; }, 300);
+      return;
+  }
   
   const payload = {
     name: form.value.name,
@@ -121,22 +152,28 @@ const handleSave = async () => {
   try {
     if (isEditMode.value) {
       await categoryStore.updateCategory(form.value.id, payload);
+      swal.success("Berhasil Update", "Kategori berhasil diperbarui");
     } else {
       await categoryStore.createCategory(payload);
+      swal.success("Berhasil Tambah", "Kategori baru berhasil dibuat");
     }
     isDialogOpen.value = false;
   } catch (error) {
-    alert("Gagal menyimpan data");
+    swal.error("Gagal Menyimpan", "Terjadi kesalahan saat menyimpan data");
+  } finally {
+    isSubmitting.value = false;
   }
 };
 
 const handleDelete = async () => {
-  if (confirm("Hapus kategori ini?")) {
+  const confirmed = await swal.confirmDelete('Kategori');
+  if (confirmed) {
     try {
       await categoryStore.deleteCategory(form.value.id);
       isDialogOpen.value = false;
+      swal.success("Terhapus", "Kategori berhasil dihapus");
     } catch (error) {
-       alert("Gagal menghapus data");
+       swal.error("Gagal", "Gagal menghapus kategori");
     }
   }
 };
@@ -243,7 +280,7 @@ const formattedBudgetLimit = computed({
     </Tabs>
 
     <Dialog v-model:open="isDialogOpen">
-      <DialogContent class="max-w-md bg-card p-0 overflow-hidden border-border shadow-2xl">
+       <DialogContent class="max-w-md bg-card p-0 overflow-hidden border-border shadow-2xl" @interact-outside="swal.handleSwalInteractOutside">
         <DialogHeader class="p-6 border-b">
           <DialogTitle>{{ isEditMode ? "Edit Kategori" : "Tambah Kategori" }}</DialogTitle>
           <DialogDescription>Sesuaikan nama dan visualisasi kategori.</DialogDescription>
@@ -252,12 +289,13 @@ const formattedBudgetLimit = computed({
         <div class="p-6 space-y-6">
           <div class="grid gap-2">
             <Label class="text-sm font-semibold opacity-70">Nama Kategori</Label>
-            <Input v-model="form.name" placeholder="Misal: Belanja, Gaji" class="h-11 bg-background shadow-sm" />
+            <Input v-model="form.name" placeholder="Misal: Belanja, Gaji" :class="['h-11 bg-background shadow-sm', errors.name ? 'border-red-500 ring-1 ring-red-500' : '']" :disabled="isSubmitting" />
+            <span v-if="errors.name" class="text-xs text-red-500 font-medium">Nama kategori wajib diisi</span>
           </div>
 
           <div class="grid gap-2">
             <Label class="text-sm font-semibold opacity-70">Tipe Kategori</Label>
-            <Select v-model="form.type">
+            <Select v-model="form.type" :disabled="isSubmitting">
               <SelectTrigger class="w-full h-11 bg-background border-border">
                 <SelectValue placeholder="Pilih Tipe" />
               </SelectTrigger>
@@ -270,7 +308,7 @@ const formattedBudgetLimit = computed({
 
           <div v-if="form.type === 'expense'" class="grid gap-2">
             <Label class="text-sm font-semibold opacity-70">Target Pengeluaran (Rp)</Label>
-            <Input v-model="formattedBudgetLimit" type="text" placeholder="Rp 0" class="h-11 bg-background shadow-sm" />
+            <Input v-model="formattedBudgetLimit" type="text" placeholder="Rp 0" class="h-11 bg-background shadow-sm" :disabled="isSubmitting" />
             <p class="text-[10px] text-muted-foreground">Isi 0 jika tidak ingin membatasi pengeluaran.</p>
           </div>
 
@@ -279,13 +317,14 @@ const formattedBudgetLimit = computed({
             <button
               @click="isIconPickerOpen = true"
               type="button"
-              class="w-full h-28 flex items-center justify-center border-dashed border-2 rounded-2xl hover:bg-accent/30 transition-all gap-4 bg-background border-border shadow-sm group"
+              :class="['w-full h-28 flex items-center justify-center border-dashed border-2 rounded-2xl hover:bg-accent/30 transition-all gap-4 bg-background border-border shadow-sm group', errors.icon ? 'border-red-500 bg-red-50/10' : '', isSubmitting ? 'opacity-50 cursor-not-allowed' : '']"
+              :disabled="isSubmitting"
             >
               <template v-if="!form.icon">
                 <div class="h-12 w-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:scale-110 transition-transform">
-                  <Plus class="h-6 w-6" />
+                  <Plus :class="['h-6 w-6', errors.icon ? 'text-red-500' : '']" />
                 </div>
-                <span class="text-sm text-muted-foreground font-medium italic">Pilih icon...</span>
+                <span :class="['text-sm font-medium italic', errors.icon ? 'text-red-500' : 'text-muted-foreground']">Pilih icon...</span>
               </template>
               <template v-else>
                 <div :class="['h-16 w-16 rounded-2xl flex items-center justify-center text-4xl shadow-md transform group-hover:scale-105 transition-transform', form.type === 'expense' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600']">
@@ -299,14 +338,15 @@ const formattedBudgetLimit = computed({
                 </div>
               </template>
             </button>
+             <span v-if="errors.icon" class="text-xs text-red-500 font-medium">Icon wajib dipilih</span>
           </div>
         </div>
 
         <DialogFooter class="p-6 border-t bg-muted/5 flex flex-row items-center justify-between gap-2">
-          <Button v-if="isEditMode" variant="ghost" type="button" class="text-red-500 hover:text-red-600 hover:bg-red-50 gap-2 px-4" @click="handleDelete"> <Trash2 class="w-4 h-4" /> Hapus </Button>
+          <Button v-if="isEditMode" variant="ghost" type="button" class="text-red-500 hover:text-red-600 hover:bg-red-50 gap-2 px-4" @click="handleDelete" :disabled="isSubmitting"> <Trash2 class="w-4 h-4" /> Hapus </Button>
           <div class="flex gap-2 ml-auto">
-            <Button variant="outline" type="button" @click="isDialogOpen = false">Batal</Button>
-            <Button @click="handleSave" type="button" class="bg-foreground text-background px-6 shadow-md hover:bg-foreground/90">
+            <Button variant="outline" type="button" @click="isDialogOpen = false" :disabled="isSubmitting">Batal</Button>
+            <Button @click="handleSave" type="button" class="bg-foreground text-background px-6 shadow-md hover:bg-foreground/90" :disabled="isSubmitting">
               <template v-if="isEditMode"> <Pencil class="w-4 h-4 mr-2" /> Simpan </template>
               <template v-else> <Save class="w-4 h-4 mr-2" /> Buat </template>
             </Button>

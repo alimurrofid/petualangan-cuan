@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as LucideIcons from "lucide-vue-next";
 import { Wallet } from "lucide-vue-next";
+import { useSwal } from "@/composables/useSwal";
 
 const props = defineProps<{
   open: boolean;
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 const walletStore = useWalletStore();
 const categoryStore = useCategoryStore();
 const transactionStore = useTransactionStore();
+const swal = useSwal();
 
 const activeTab = ref<"expense" | "income" | "transfer">("expense");
 const date = ref(new Date().toISOString().slice(0, 10));
@@ -70,26 +72,59 @@ const getEmoji = (name: string | undefined) => {
 };
 
 
+const isSubmitting = ref(false);
+
+const errors = ref({
+  date: false,
+  amount: false,
+  wallet: false,
+  toWallet: false,
+  category: false,
+});
+
 const handleSave = async () => {
-    if (!amount.value) {
-         alert("Mohon isi nominal");
+    isSubmitting.value = true;
+    
+    // Reset errors
+    Object.keys(errors.value).forEach(k => (errors.value as any)[k] = false);
+
+    // Validate fields
+    errors.value.date = !date.value;
+    errors.value.amount = !amount.value;
+
+    if (activeTab.value === 'transfer') {
+        errors.value.wallet = !selectedWallet.value;
+        errors.value.toWallet = !toWallet.value;
+    } else {
+        errors.value.wallet = !selectedWallet.value;
+        errors.value.category = !selectedCategory.value;
+    }
+
+    // Check for validation errors
+    const hasError = Object.values(errors.value).some(v => v);
+    if (hasError) {
+         let msg = "Mohon lengkapi data berikut:";
+         if (errors.value.date) msg += "<br>- Tanggal";
+         if (errors.value.amount) msg += "<br>- Nominal";
+         if (errors.value.wallet) msg += "<br>- " + (activeTab.value === 'transfer' ? 'Dompet Asal' : 'Dompet');
+         if (errors.value.toWallet) msg += "<br>- Dompet Tujuan";
+         if (errors.value.category) msg += "<br>- Kategori";
+
+         await swal.fire({
+            icon: 'error',
+            title: 'Validasi Gagal',
+            html: msg,
+            confirmButtonColor: '#EF4444', 
+         });
+         setTimeout(() => { isSubmitting.value = false; }, 300);
          return;
     }
 
-    if (activeTab.value === 'transfer') {
-        if (!selectedWallet.value || !toWallet.value) {
-            alert("Mohon pilih dompet asal dan tujuan");
-            return;
-        }
-        if (selectedWallet.value === toWallet.value) {
-            alert("Dompet asal dan tujuan tidak boleh sama");
-            return;
-        }
-    } else {
-        if (!selectedWallet.value || !selectedCategory.value) {
-            alert("Mohon lengkapi data");
-            return;
-        }
+    // Logical validation for transfer
+    if (activeTab.value === 'transfer' && selectedWallet.value === toWallet.value) {
+         await swal.error("Gagal", "Dompet asal dan tujuan tidak boleh sama");
+         setTimeout(() => { isSubmitting.value = false; }, 300);
+         return;
     }
 
     try {
@@ -106,6 +141,7 @@ const handleSave = async () => {
                 to_wallet_id: Number(toWallet.value),
                 description: description.value || "Transfer Antar Dompet"
             });
+            swal.success("Berhasil", "Transfer berhasil dilakukan");
         } else {
             await transactionStore.createTransaction({
                 type: activeTab.value,
@@ -115,6 +151,7 @@ const handleSave = async () => {
                 wallet_id: Number(selectedWallet.value),
                 description: description.value
             });
+            swal.success("Berhasil", "Transaksi berhasil disimpan");
         }
         
         // Reset form (keep date as today)
@@ -124,7 +161,9 @@ const handleSave = async () => {
         emit("save", {}); 
         emit("update:open", false);
     } catch (error) {
-        alert("Failed to create transaction");
+        swal.error("Gagal", "Gagal melakukan transaksi");
+    } finally {
+        isSubmitting.value = false;
     }
 };
 
@@ -143,7 +182,7 @@ const formattedAmount = computed({
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="max-w-md bg-card text-foreground">
+    <DialogContent class="max-w-md bg-card text-foreground" @interact-outside="swal.handleSwalInteractOutside">
       <DialogHeader>
         <DialogTitle>Tambah Transaksi</DialogTitle>
         <DialogDescription>Catat pengeluaran atau income baru.</DialogDescription>
@@ -160,19 +199,21 @@ const formattedAmount = computed({
             <div class="space-y-2">
                 <Label>Tanggal</Label>
                 <div class="relative">
-                    <Input type="date" v-model="date" class="block w-full bg-background" />
+                    <Input type="date" v-model="date" :class="['block w-full bg-background', errors.date ? 'border-red-500 ring-1 ring-red-500' : '']" :disabled="isSubmitting" />
                 </div>
+                <span v-if="errors.date" class="text-xs text-red-500 font-medium">Tanggal wajib diisi</span>
             </div>
 
             <div class="space-y-2">
                 <Label>Nominal (Rp)</Label>
-                <Input type="text" placeholder="Rp 0" v-model="formattedAmount" class="bg-background" />
+                <Input type="text" placeholder="Rp 0" v-model="formattedAmount" :class="['bg-background', errors.amount ? 'border-red-500 ring-1 ring-red-500' : '']" :disabled="isSubmitting" />
+                <span v-if="errors.amount" class="text-xs text-red-500 font-medium">Nominal wajib diisi</span>
             </div>
 
             <div class="space-y-2">
                 <Label>{{ activeTab === 'transfer' ? 'Dari Dompet' : 'Dompet' }}</Label>
-                <Select v-model="selectedWallet">
-                    <SelectTrigger class="w-full bg-background">
+                <Select v-model="selectedWallet" :disabled="isSubmitting">
+                    <SelectTrigger :class="['w-full bg-background', errors.wallet ? 'border-red-500 ring-1 ring-red-500' : '']">
                          <div v-if="selectedWalletObj" class="flex items-center gap-2">
                              <component v-if="getIconComponent(selectedWalletObj.icon)" :is="getIconComponent(selectedWalletObj.icon)" class="h-4 w-4" />
                              <span v-else class="text-xs">{{ getEmoji(selectedWalletObj.icon) || '💼' }}</span>
@@ -190,12 +231,13 @@ const formattedAmount = computed({
                         </SelectItem>
                     </SelectContent>
                 </Select>
+                <span v-if="errors.wallet" class="text-xs text-red-500 font-medium">{{ activeTab === 'transfer' ? 'Dompet asal' : 'Dompet' }} wajib dipilih</span>
             </div>
 
             <div v-if="activeTab === 'transfer'" class="space-y-2">
                 <Label>Ke Dompet</Label>
-                <Select v-model="toWallet">
-                    <SelectTrigger class="w-full bg-background">
+                <Select v-model="toWallet" :disabled="isSubmitting">
+                    <SelectTrigger :class="['w-full bg-background', errors.toWallet ? 'border-red-500 ring-1 ring-red-500' : '']">
                          <div v-if="toWalletObj" class="flex items-center gap-2">
                              <component v-if="getIconComponent(toWalletObj.icon)" :is="getIconComponent(toWalletObj.icon)" class="h-4 w-4" />
                              <span v-else class="text-xs">{{ getEmoji(toWalletObj.icon) || '💼' }}</span>
@@ -213,12 +255,13 @@ const formattedAmount = computed({
                         </SelectItem>
                     </SelectContent>
                 </Select>
+                <span v-if="errors.toWallet" class="text-xs text-red-500 font-medium">Dompet tujuan wajib dipilih</span>
             </div>
 
             <div v-if="activeTab !== 'transfer'" class="space-y-2">
                 <Label>Kategori</Label>
-                 <Select v-model="selectedCategory">
-                    <SelectTrigger class="w-full bg-background">
+                 <Select v-model="selectedCategory" :disabled="isSubmitting">
+                    <SelectTrigger :class="['w-full bg-background', errors.category ? 'border-red-500 ring-1 ring-red-500' : '']">
                         <div v-if="selectedCategoryObj" class="flex items-center gap-2">
                              <component v-if="getIconComponent(selectedCategoryObj.icon)" :is="getIconComponent(selectedCategoryObj.icon)" class="h-4 w-4" />
                              <span v-else>{{ getEmoji(selectedCategoryObj.icon) || selectedCategoryObj.icon }}</span>
@@ -236,18 +279,19 @@ const formattedAmount = computed({
                         </SelectItem>
                     </SelectContent>
                 </Select>
+                <span v-if="errors.category" class="text-xs text-red-500 font-medium">Kategori wajib dipilih</span>
             </div>
 
             <div class="space-y-2">
                 <Label>Deskripsi (Opsional)</Label>
-                <Input placeholder="Misal: Makan siang, Gaji bulanan" v-model="description" class="bg-background" />
+                <Input placeholder="Misal: Makan siang, Gaji bulanan" v-model="description" class="bg-background" :disabled="isSubmitting" />
             </div>
         </div>
       </Tabs>
 
       <DialogFooter class="flex gap-2 justify-end mt-4">
-        <Button variant="outline" @click="emit('update:open', false)">Batal</Button>
-        <Button @click="handleSave" class="bg-foreground text-background hover:bg-foreground/90">Simpan</Button>
+        <Button variant="outline" @click="emit('update:open', false)" :disabled="isSubmitting">Batal</Button>
+        <Button @click="handleSave" class="bg-foreground text-background hover:bg-foreground/90" :disabled="isSubmitting">Simpan</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
