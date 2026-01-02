@@ -1,0 +1,14 @@
+# Go Build Output
+cuan-backend
+cuan-backend.exe
+main
+main.exe
+*.exe
+*.test
+
+# Dependency
+vendor/
+
+# Cover Profile
+*.out
+coverage.txt

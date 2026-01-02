@@ -1,41 +1,12 @@
+# OS & Editor Files (Global)
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
+*.swp
 *.log
 
+# Environment Variables (Global Safety)
 .env
-.env.production
-.env.local
-*.env
-
+.env.*
 !.env.example
-
-/backend-go/tmp/
-/backend-go/bin/
-
-/backend-go/main
-/backend-go/main.exe
-/backend-go/cuan-backend
-/backend-go/cuan-backend.exe
-
-bin/
-tmp/
-
-vendor/
-
-node_modules/
-/frontend-nuxt/node_modules/
-
-dist/
-/frontend-vue/dist/
-
-.env
-.data/
-
-ollama-data/
-pgdata/
-postgres-data/
-mysql-data/
-
-coverage/
