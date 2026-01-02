@@ -61,9 +61,6 @@ func main() {
 	userHandler := handler.NewUserHandler(userSvc, frontendURL)
 
 	repo := repository.NewTransactionRepository(db)
-	// TransactionService now needs WalletRepo and DB for transaction management
-	// We need to initialize WalletRepo first or reuse it. 
-	// To keep it clean, let's initialize WalletRepo before TransactionService
 	walletRepo := repository.NewWalletRepository(db)
 	svc := service.NewTransactionService(repo, walletRepo, db)
 	h := handler.NewTransactionHandler(svc)
@@ -89,42 +86,47 @@ func main() {
 		AllowMethods:     "GET, POST, HEAD, PUT, DELETE, PATCH, OPTIONS",
 	}))
 
-	// Routes
 	api := app.Group("/api")
+
 	api.Post("/webhook", h.WebhookReceiver)
 
-	// Protected Routes
-	protected := app.Group("/api", middleware.Protected())
-	protected.Get("/dashboard", dashboardHandler.GetDashboard) // Dashboard
-	protected.Post("/wallets", walletHandler.CreateWallet)
-	protected.Get("/wallets", walletHandler.GetWallets)
-	protected.Get("/wallets/:id", walletHandler.GetWallet)
-	protected.Put("/wallets/:id", walletHandler.UpdateWallet)
-	protected.Delete("/wallets/:id", walletHandler.DeleteWallet)
-
-	protected.Post("/categories", categoryHandler.CreateCategory)
-	protected.Get("/categories", categoryHandler.GetCategories)
-	protected.Get("/categories/:id", categoryHandler.GetCategory)
-	protected.Put("/categories/:id", categoryHandler.UpdateCategory)
-	protected.Delete("/categories/:id", categoryHandler.DeleteCategory)
-
-	protected.Get("/transactions", h.GetTransactions)
-	protected.Post("/transactions", h.CreateTransaction)
-	protected.Get("/transactions/calendar", h.GetCalendarData)
-	protected.Get("/transactions/report", h.GetReport) // New route for reports
-	protected.Post("/transactions/transfer", h.TransferTransaction)
-	protected.Delete("/transactions/:id", h.DeleteTransaction)
-
-	// Auth Routes
-	auth := app.Group("/auth")
+	auth := api.Group("/auth")
 	auth.Post("/register", userHandler.Register)
 	auth.Post("/login", userHandler.Login)
 	auth.Post("/logout", userHandler.Logout)
 	auth.Get("/google", userHandler.GoogleLogin)
 	auth.Get("/google/callback", userHandler.GoogleCallback)
 
-	// User Settings Routes (Put under auth for now, or protected route)
-	userRoutes := app.Group("/api/user", middleware.Protected())
+	// Dashboard
+	api.Get("/dashboard", middleware.Protected(), dashboardHandler.GetDashboard)
+
+	// Wallets Group (/api/wallets)
+	wallets := api.Group("/wallets", middleware.Protected())
+	wallets.Post("/", walletHandler.CreateWallet)
+	wallets.Get("/", walletHandler.GetWallets)
+	wallets.Get("/:id", walletHandler.GetWallet)
+	wallets.Put("/:id", walletHandler.UpdateWallet)
+	wallets.Delete("/:id", walletHandler.DeleteWallet)
+
+	// Categories Group (/api/categories)
+	categories := api.Group("/categories", middleware.Protected())
+	categories.Post("/", categoryHandler.CreateCategory)
+	categories.Get("/", categoryHandler.GetCategories)
+	categories.Get("/:id", categoryHandler.GetCategory)
+	categories.Put("/:id", categoryHandler.UpdateCategory)
+	categories.Delete("/:id", categoryHandler.DeleteCategory)
+
+	// Transactions Group (/api/transactions)
+	transactions := api.Group("/transactions", middleware.Protected())
+	transactions.Get("/", h.GetTransactions)
+	transactions.Post("/", h.CreateTransaction)
+	transactions.Get("/calendar", h.GetCalendarData)
+	transactions.Get("/report", h.GetReport) 
+	transactions.Post("/transfer", h.TransferTransaction)
+	transactions.Delete("/:id", h.DeleteTransaction)
+
+	// User Settings Routes (/api/user)
+	userRoutes := api.Group("/user", middleware.Protected())
 	userRoutes.Get("/profile", userHandler.GetProfile)
 	userRoutes.Put("/profile", userHandler.UpdateProfile)
 	userRoutes.Put("/password", userHandler.ChangePassword)
