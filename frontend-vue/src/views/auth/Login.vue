@@ -117,7 +117,7 @@ const handleLogin = async () => {
                             <Label for="password">Password</Label>
                             <div class="relative">
                                 <Lock class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input id="password" :type="showPassword ? 'text' : 'password'" placeholder="••••••••" class="pl-10 pr-10 h-10" v-model="password" required />
+                                <Input id="password" :type="showPassword ? 'text' : 'password'" placeholder="Xyz•••••" class="pl-10 pr-10 h-10" v-model="password" required />
                                 <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-3 text-muted-foreground hover:text-emerald-600 focus:outline-none">
                                     <Eye v-if="!showPassword" class="h-4 w-4" />
                                     <EyeOff v-else class="h-4 w-4" />

@@ -39,13 +39,11 @@ const profileForm = ref({
 
 // Password Data
 const passwordForm = ref({
-    old_password: "",
     new_password: "",
     confirm_password: ""
 });
 
 const showPassword = ref({
-    old: false,
     new: false,
     confirm: false
 });
@@ -84,7 +82,6 @@ const errors = ref({
         email: false
     },
     password: {
-        old: false,
         new: false,
         confirm: false,
         match: false
@@ -121,15 +118,13 @@ const handleUpdateProfile = async () => {
 
 const handleUpdatePassword = async () => {
     // Reset errors
-    errors.value.password.old = !passwordForm.value.old_password;
     errors.value.password.new = !passwordForm.value.new_password;
     errors.value.password.confirm = !passwordForm.value.confirm_password;
     errors.value.password.match = false;
     
     // Check required fields
-    if (errors.value.password.old || errors.value.password.new || errors.value.password.confirm) {
+    if (errors.value.password.new || errors.value.password.confirm) {
         let msg = "Mohon lengkapi data berikut:";
-        if (errors.value.password.old) msg += "<br>- Password Lama";
         if (errors.value.password.new) msg += "<br>- Password Baru";
         if (errors.value.password.confirm) msg += "<br>- Konfirmasi Password";
         
@@ -157,7 +152,6 @@ const handleUpdatePassword = async () => {
     isLoading.value = true;
     try {
         await authStore.changePassword({
-            old_password: passwordForm.value.old_password,
             new_password: passwordForm.value.new_password
         });
         swal.success("Berhasil Update", "Password berhasil diperbarui! Silakan login ulang.").then(() => {
@@ -167,7 +161,7 @@ const handleUpdatePassword = async () => {
         swal.error("Gagal", error.response?.data?.error || "Gagal memperbarui password");
     } finally {
         isLoading.value = false;
-        passwordForm.value = { old_password: "", new_password: "", confirm_password: "" };
+        passwordForm.value = { new_password: "", confirm_password: "" };
     }
 };
 </script>
@@ -282,25 +276,10 @@ const handleUpdatePassword = async () => {
             <!-- Password Tab -->
              <div v-if="activeTab === 'password'" class="space-y-6">
                  <div class="space-y-4">
-                      
-                      <div class="grid w-full items-center gap-1.5">
-                        <Label for="old_pass">Old Password</Label>
-                        <div class="relative">
-                            <Input id="old_pass" v-model="passwordForm.old_password" :type="showPassword.old ? 'text' : 'password'" placeholder="••••••••" :class="errors.password.old ? 'border-red-500 ring-1 ring-red-500' : ''" />
-                            <button type="button" @click="showPassword.old = !showPassword.old" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                                <Eye v-if="!showPassword.old" class="w-4 h-4" />
-                                <EyeOff v-else class="w-4 h-4" />
-                            </button>
-                        </div>
-                        <span v-if="errors.password.old" class="text-xs text-red-500 font-medium">Password lama wajib diisi</span>
-                     </div>
-
-                      <div class="grid w-full items-center gap-1.5 grayscale opacity-50"><div class="h-px bg-border my-2"></div></div>
-
                       <div class="grid w-full items-center gap-1.5">
                         <Label for="new_pass">New Password</Label>
                         <div class="relative">
-                            <Input id="new_pass" v-model="passwordForm.new_password" :type="showPassword.new ? 'text' : 'password'" placeholder="••••••••" :class="errors.password.new || errors.password.match ? 'border-red-500 ring-1 ring-red-500' : ''" />
+                            <Input id="new_pass" v-model="passwordForm.new_password" :type="showPassword.new ? 'text' : 'password'" placeholder="Xyz•••••" :class="errors.password.new || errors.password.match ? 'border-red-500 ring-1 ring-red-500' : ''" />
                             <button type="button" @click="showPassword.new = !showPassword.new" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                                 <Eye v-if="!showPassword.new" class="w-4 h-4" />
                                 <EyeOff v-else class="w-4 h-4" />
@@ -311,7 +290,7 @@ const handleUpdatePassword = async () => {
                       <div class="grid w-full items-center gap-1.5">
                         <Label for="confirm_pass">Confirm Password</Label>
                         <div class="relative">
-                            <Input id="confirm_pass" v-model="passwordForm.confirm_password" :type="showPassword.confirm ? 'text' : 'password'" placeholder="••••••••" :class="errors.password.confirm || errors.password.match ? 'border-red-500 ring-1 ring-red-500' : ''" />
+                            <Input id="confirm_pass" v-model="passwordForm.confirm_password" :type="showPassword.confirm ? 'text' : 'password'" placeholder="Xyz•••••" :class="errors.password.confirm || errors.password.match ? 'border-red-500 ring-1 ring-red-500' : ''" />
                              <button type="button" @click="showPassword.confirm = !showPassword.confirm" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                                 <Eye v-if="!showPassword.confirm" class="w-4 h-4" />
                                 <EyeOff v-else class="w-4 h-4" />

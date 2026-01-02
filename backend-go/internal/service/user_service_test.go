@@ -114,3 +114,39 @@ func TestLogin_UserNotFound(t *testing.T) {
 	assert.Equal(t, "invalid email or password", err.Error())
 	mockRepo.AssertExpectations(t)
 }
+
+func TestChangePassword(t *testing.T) {
+	mockRepo := new(mock.UserRepositoryMock)
+	userService := service.NewUserService(mockRepo)
+
+	// Setup initial user with a password
+	initialPassword := "oldpassword"
+	hashedInitialPassword, _ := bcrypt.GenerateFromPassword([]byte(initialPassword), bcrypt.DefaultCost)
+	
+	user := &entity.User{
+		ID:       1,
+		Name:     "Test User",
+		Email:    "test@example.com",
+		Password: string(hashedInitialPassword),
+	}
+
+	// Mocking FindByID
+	mockRepo.On("FindByID", uint(1)).Return(user, nil)
+
+	// Mocking Update
+	mockRepo.On("Update", testifyMock.AnythingOfType("*entity.User")).Return(nil).Run(func(args testifyMock.Arguments) {
+		updatedUser := args.Get(0).(*entity.User)
+		// Verify password has changed and is hashed
+		err := bcrypt.CompareHashAndPassword([]byte(updatedUser.Password), []byte("newpassword"))
+		assert.NoError(t, err)
+	})
+
+	input := service.ChangePasswordInput{
+		NewPassword: "newpassword",
+	}
+
+	err := userService.ChangePassword(1, input)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}

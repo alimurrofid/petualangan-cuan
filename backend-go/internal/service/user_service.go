@@ -46,7 +46,6 @@ type UpdateProfileInput struct {
 }
 
 type ChangePasswordInput struct {
-	OldPassword string `json:"old_password"`
 	NewPassword string `json:"new_password"`
 }
 
@@ -130,11 +129,6 @@ func (s *userService) ChangePassword(id uint, input ChangePasswordInput) error {
 	user, err := s.userRepository.FindByID(id)
 	if err != nil {
 		return errors.New("user not found")
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.OldPassword))
-	if err != nil {
-		return errors.New("invalid old password")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
