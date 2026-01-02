@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { useSwal } from "@/composables/useSwal";
 
 
-import { LucideIcons, emojiCategories, getEmoji, getIconComponent } from "@/lib/icons";
+import { emojiCategories, getEmoji, getIconComponent, walletIcons } from "@/lib/icons";
 import { Plus, Pencil, Trash2, Save, Nfc } from "lucide-vue-next";
 
 const walletStore = useWalletStore();
@@ -41,16 +41,7 @@ const totalBalance = computed(() => {
     return wallets.value.reduce((sum: any, w: any) => sum + w.balance, 0);
 });
 
-const iconOptions = [
-  { name: "Wallet", icon: LucideIcons.Wallet, label: "Umum" },
-  { name: "Landmark", icon: LucideIcons.Landmark, label: "Bank" },
-  { name: "CreditCard", icon: LucideIcons.CreditCard, label: "Kartu" },
-  { name: "Banknote", icon: LucideIcons.Banknote, label: "Tunai" },
-  { name: "PiggyBank", icon: LucideIcons.PiggyBank, label: "Tabungan" },
-  { name: "Coins", icon: LucideIcons.Coins, label: "Investasi" },
-  { name: "Zap", icon: LucideIcons.Zap, label: "Tagihan" },
-  { name: "ShoppingBag", icon: LucideIcons.ShoppingBag, label: "Belanja" },
-];
+
 
 onMounted(() => {
   walletStore.fetchWallets();
@@ -300,7 +291,7 @@ const getCardGradient = (type: string) => {
           </div>
           <TabsContent value="icons" class="flex-1 overflow-y-auto p-6 mt-0">
             <div class="grid grid-cols-4 gap-4">
-              <Button v-for="item in iconOptions" :key="item.name" variant="ghost" type="button" class="h-20 flex flex-col gap-2 hover:bg-primary/10" @click="selectIcon(item.name)">
+              <Button v-for="item in walletIcons" :key="item.name" variant="ghost" type="button" class="h-20 flex flex-col gap-2 hover:bg-primary/10" @click="selectIcon(item.name)">
                 <component :is="item.icon" class="h-6 w-6" />
                 <span class="text-[10px] font-medium opacity-60 truncate w-full uppercase tracking-tighter">{{ item.label }}</span>
               </Button>

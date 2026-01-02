@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useSwal } from "@/composables/useSwal";
 
-import { LucideIcons, emojiCategories, getEmoji, getIconComponent } from "@/lib/icons";
+import { emojiCategories, getEmoji, getIconComponent, categoryIcons } from "@/lib/icons";
 import { Plus, Pencil, Trash2, LayoutGrid, Save, TrendingUp, TrendingDown } from "lucide-vue-next";
 
 // Define the form structure (frontend representation)
@@ -42,20 +42,7 @@ const errors = ref({
   icon: false,
 });
 
-const iconOptions = [
-  { name: "Utensils", icon: LucideIcons.Utensils, label: "Makan" },
-  { name: "ShoppingBag", icon: LucideIcons.ShoppingBag, label: "Belanja" },
-  { name: "Coffee", icon: LucideIcons.Coffee, label: "Kopi" },
-  { name: "Car", icon: LucideIcons.Car, label: "Transport" },
-  { name: "Zap", icon: LucideIcons.Zap, label: "Tagihan" },
-  { name: "Heart", icon: LucideIcons.Heart, label: "Amal" },
-  { name: "Gamepad2", icon: LucideIcons.Gamepad2, label: "Hiburan" },
-  { name: "Briefcase", icon: LucideIcons.Briefcase, label: "Gaji" },
-  { name: "TrendingUp", icon: LucideIcons.TrendingUp, label: "Investasi" },
-  { name: "Gift", icon: LucideIcons.Gift, label: "Hadiah" },
-  { name: "Stethoscope", icon: LucideIcons.Stethoscope, label: "Medis" },
-  { name: "Home", icon: LucideIcons.Home, label: "Rumah" },
-];
+
 
 onMounted(() => {
   categoryStore.fetchCategories();
@@ -322,7 +309,7 @@ const formattedBudgetLimit = computed({
           </div>
           <TabsContent value="icons" class="flex-1 overflow-y-auto p-6 mt-0">
             <div class="grid grid-cols-4 gap-4">
-              <Button v-for="item in iconOptions" :key="item.name" variant="ghost" type="button" class="h-20 flex flex-col gap-2 hover:bg-primary/10" @click="selectIcon(item.name)">
+              <Button v-for="item in categoryIcons" :key="item.name" variant="ghost" type="button" class="h-20 flex flex-col gap-2 hover:bg-primary/10" @click="selectIcon(item.name)">
                 <component :is="item.icon" class="h-6 w-6" />
                 <span class="text-[9px] font-medium opacity-60 truncate w-full">{{ item.label }}</span>
               </Button>
