@@ -103,4 +103,3 @@ Go to **Settings > Secrets and variables > Actions** in your GitHub repository a
   docker compose logs -f frontend
   ```
 - **Permission Errors**: Ensure the user running docker commands is in the `docker` group or use `sudo`.
-- **Database Connection**: Ensure `DB_HOST=postgres` in your `.env`.
