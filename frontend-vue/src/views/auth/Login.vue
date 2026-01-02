@@ -12,6 +12,7 @@ const isLoading = ref(false);
 const email = ref("");
 const password = ref("");
 const showPassword = ref(false);
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 const errorMessage = ref("");
 
 const handleLogin = async () => {
@@ -82,7 +83,7 @@ const handleLogin = async () => {
 
             <div class="space-y-6">
                 <div class="space-y-4">
-                     <a href="http://localhost:8080/auth/google" class="w-full">
+                    <a :href="`${apiBaseUrl}/auth/google`" class="w-full">
                          <Button variant="outline" type="button" class="w-full h-12 text-base font-normal flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-700 border-gray-200 shadow-sm" :disabled="isLoading">
                             <svg class="h-5 w-5" viewBox="0 0 24 24">
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
