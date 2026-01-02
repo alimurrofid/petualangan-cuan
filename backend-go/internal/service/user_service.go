@@ -26,6 +26,18 @@ type UserService interface {
 	Logout(token string) error
 	UpdateProfile(id uint, input UpdateProfileInput) (*entity.User, error)
 	ChangePassword(id uint, input ChangePasswordInput) error
+	LoginOrRegisterGoogle(email string, name string, googleID string) (*entity.User, string, error)
+	GetProfile(id uint) (*entity.User, error)
+}
+
+// ... (existing code) ...
+
+func (s *userService) GetProfile(id uint) (*entity.User, error) {
+	user, err := s.userRepository.FindByID(id)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+	return user, nil
 }
 
 type UpdateProfileInput struct {
@@ -132,4 +144,38 @@ func (s *userService) ChangePassword(id uint, input ChangePasswordInput) error {
 
 	user.Password = string(hashedPassword)
 	return s.userRepository.Update(user)
+}
+
+func (s *userService) LoginOrRegisterGoogle(email string, name string, googleID string) (*entity.User, string, error) {
+	// Check if user exists by email
+	user, err := s.userRepository.FindByEmail(email)
+	if err != nil {
+		// User not found, create new user
+		user = &entity.User{
+			Name:     name,
+			Email:    email,
+			GoogleID: googleID,
+		}
+		err = s.userRepository.Create(user)
+		if err != nil {
+			return nil, "", err
+		}
+	} else {
+		// User found, update GoogleID if not set
+		if user.GoogleID == "" {
+			user.GoogleID = googleID
+			err = s.userRepository.Update(user)
+			if err != nil {
+				return nil, "", err
+			}
+		}
+	}
+
+	// Generate Token
+	token, err := middleware.GenerateToken(user.ID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return user, token, nil
 }

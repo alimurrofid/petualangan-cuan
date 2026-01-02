@@ -10,12 +10,14 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/swaggo/swag v1.16.4
 	golang.org/x/crypto v0.31.0
+	golang.org/x/oauth2 v0.34.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect

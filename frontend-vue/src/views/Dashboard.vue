@@ -49,7 +49,7 @@ const filledMonthlyTrend = computed(() => {
         const dateObj = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const key = format(dateObj, 'yyyy-MM');
         
-        const existing = data.value.monthly_trend.find(item => item.date === key);
+        const existing = (data.value.monthly_trend || []).find(item => item.date === key);
         if (existing) {
             filled.push(existing);
         } else {
@@ -101,11 +101,11 @@ const chartOptionsArea = computed(() => ({
 
 // Donut Chart (Breakdown)
 const chartSeriesDonut = computed(() => {
-    return data.value?.expense_breakdown.map(item => item.total_amount) || [];
+    return data.value?.expense_breakdown?.map(item => item.total_amount) || [];
 });
 
 const chartLabelsDonut = computed(() => {
-    return data.value?.expense_breakdown.map(item => item.category_name) || [];
+    return data.value?.expense_breakdown?.map(item => item.category_name) || [];
 });
 
 const chartOptionsDonut = computed(() => ({
@@ -131,7 +131,7 @@ const chartOptionsDonut = computed(() => ({
 
 // Budget Status (Top 5 Expenses)
 const budgetStatus = computed(() => {
-    if (!data.value) return [];
+    if (!data.value || !data.value.expense_breakdown) return [];
     // Filter expense items that have budget logic or just use breakdown
     return data.value.expense_breakdown
         .filter(item => item.type === 'expense')
@@ -163,7 +163,7 @@ const getWalletColorClass = (type: string) => {
 
 // Recent Transactions Grouping
 const groupedRecentTransactions = computed(() => {
-    if (!data.value) return [];
+    if (!data.value || !data.value.recent_transactions) return [];
     const groups: Record<string, any[]> = {};
     
     data.value.recent_transactions.forEach(t => {

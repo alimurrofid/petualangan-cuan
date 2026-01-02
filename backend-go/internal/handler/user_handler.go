@@ -1,9 +1,15 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
+	"os"
+
 	"cuan-backend/internal/service"
 
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 type UserHandler interface {
@@ -12,6 +18,9 @@ type UserHandler interface {
 	Logout(c *fiber.Ctx) error
 	UpdateProfile(c *fiber.Ctx) error
 	ChangePassword(c *fiber.Ctx) error
+	GoogleLogin(c *fiber.Ctx) error
+	GoogleCallback(c *fiber.Ctx) error
+	GetProfile(c *fiber.Ctx) error
 }
 
 type userHandler struct {
@@ -150,10 +159,99 @@ func (h *userHandler) ChangePassword(c *fiber.Ctx) error {
 
 	err := h.userService.ChangePassword(uint(userID), input)
 	if err != nil {
+
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Password updated successfully",
+	})
+}
+
+
+
+func (h *userHandler) GoogleLogin(c *fiber.Ctx) error {
+	conf := &oauth2.Config{
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+		},
+		Endpoint: google.Endpoint,
+	}
+
+	url := conf.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	return c.Redirect(url)
+}
+
+func (h *userHandler) GoogleCallback(c *fiber.Ctx) error {
+	code := c.Query("code")
+	if code == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Code not found"})
+	}
+
+	conf := &oauth2.Config{
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+		},
+		Endpoint: google.Endpoint,
+	}
+
+	token, err := conf.Exchange(context.Background(), code)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Failed to exchange token"})
+	}
+
+	client := conf.Client(context.Background(), token)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to get user info"})
+	}
+	defer resp.Body.Close()
+
+	var googleUser struct {
+		Email string `json:"email"`
+		Name  string `json:"name"`
+		ID    string `json:"id"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to parse user info"})
+	}
+
+	user, jwtToken, err := h.userService.LoginOrRegisterGoogle(googleUser.Email, googleUser.Name, googleUser.ID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	
+	_ = user // user unused for now
+
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173"
+	}
+
+	return c.Redirect(frontendURL + "/auth/google/callback?token=" + jwtToken)
+}
+
+func (h *userHandler) GetProfile(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(uint)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	user, err := h.userService.GetProfile(userID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"user": user,
 	})
 }

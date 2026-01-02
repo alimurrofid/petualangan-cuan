@@ -13,6 +13,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/views/auth/Register.vue"),
   },
   {
+    path: "/auth/google/callback",
+    name: "GoogleCallback",
+    component: () => import("@/views/auth/GoogleCallback.vue"),
+  },
+  {
     path: "/",
     component: AdminLayout,
     redirect: "/dashboard",
@@ -68,7 +73,7 @@ const router = createRouter({
 
 router.beforeEach((to, _, next) => {
   const token = localStorage.getItem('token');
-  const publicPages = ['/login', '/register'];
+  const publicPages = ['/login', '/register', '/auth/google/callback'];
   const authRequired = !publicPages.includes(to.path);
 
   if (authRequired && !token) {

@@ -135,7 +135,7 @@ func (r *transactionRepository) FindSummaryByDateRange(userID uint, startDate, e
 }
 
 func (r *transactionRepository) GetCategoryBreakdown(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error) {
-	var results []entity.CategoryBreakdown
+	results := make([]entity.CategoryBreakdown, 0)
 
 	query := r.db.Table("transactions as t").
 		Select("c.name as category_name, c.icon as category_icon, t.type, SUM(t.amount) as total_amount, c.budget_limit").
@@ -172,7 +172,7 @@ func (r *transactionRepository) GetCategoryBreakdown(userID uint, startDate, end
 }
 
 func (r *transactionRepository) GetMonthlyTrend(userID uint, startDate, endDate string) ([]entity.MonthlyTrend, error) {
-	var results []entity.MonthlyTrend
+	results := make([]entity.MonthlyTrend, 0)
 
 	// PostgreSQL: TO_CHAR(date, 'YYYY-MM')
 	err := r.db.Model(&entity.Transaction{}).

@@ -55,6 +55,22 @@ func (m *MockUserService) ChangePassword(id uint, input service.ChangePasswordIn
 	return args.Error(0)
 }
 
+func (m *MockUserService) LoginOrRegisterGoogle(email string, name string, googleID string) (*entity.User, string, error) {
+	args := m.Called(email, name, googleID)
+	if args.Get(0) == nil {
+		return nil, args.String(1), args.Error(2)
+	}
+	return args.Get(0).(*entity.User), args.String(1), args.Error(2)
+}
+
+func (m *MockUserService) GetProfile(id uint) (*entity.User, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.User), args.Error(1)
+}
+
 func TestRegisterHandler(t *testing.T) {
 	mockService := new(MockUserService)
 	userHandler := handler.NewUserHandler(mockService)

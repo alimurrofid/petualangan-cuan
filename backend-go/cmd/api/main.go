@@ -109,9 +109,12 @@ func main() {
 	auth.Post("/register", userHandler.Register)
 	auth.Post("/login", userHandler.Login)
 	auth.Post("/logout", userHandler.Logout)
+	auth.Get("/google", userHandler.GoogleLogin)
+	auth.Get("/google/callback", userHandler.GoogleCallback)
 
 	// User Settings Routes (Put under auth for now, or protected route)
 	userRoutes := app.Group("/api/user", middleware.Protected())
+	userRoutes.Get("/profile", userHandler.GetProfile)
 	userRoutes.Put("/profile", userHandler.UpdateProfile)
 	userRoutes.Put("/password", userHandler.ChangePassword)
 

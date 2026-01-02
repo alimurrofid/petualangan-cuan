@@ -62,5 +62,18 @@ export const useAuthStore = defineStore('auth', () => {
         }
     };
 
-    return { token, user, login, register, logout, updateProfile, changePassword };
+    const fetchUser = async () => {
+        try {
+            const response = await api.get('/api/user/profile');
+            user.value = response.data.user;
+            localStorage.setItem('user', JSON.stringify(user.value));
+            return user.value;
+        } catch (error) {
+            console.error("Failed to fetch user:", error);
+            // Optional: logout if token is invalid
+            // logout(); 
+        }
+    };
+
+    return { token, user, login, register, logout, updateProfile, changePassword, fetchUser };
 });
