@@ -316,9 +316,12 @@ const groupedRecentTransactions = computed(() => {
 
                         <div v-for="t in group.items" :key="t.id" class="group relative flex items-center justify-between p-3 rounded-2xl hover:bg-muted/50 transition-all cursor-default border border-transparent hover:border-border">
                              <div class="flex items-center gap-3">
-                                 <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm transition-transform group-hover:scale-105', t.type === 'expense' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600']">
+                                 <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm transition-transform group-hover:scale-105', 
+                                     t.type === 'expense' ? 'bg-red-50 text-red-500' : 
+                                     t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 
+                                     'bg-blue-50 text-blue-600']">
                                      <span v-if="getEmoji(t.category?.icon)" class="text-lg leading-none">{{ getEmoji(t.category?.icon) }}</span>
-                                     <component v-else :is="getIconComponent(t.category?.icon || 'Circle')" class="h-5 w-5" />
+                                     <component v-else :is="getIconComponent(t.category?.icon, 'Circle')" class="h-5 w-5" />
                                 </div>
                                 <div>
                                     <p class="font-bold text-sm truncate max-w-[180px] pb-0.5">{{ t.description || 'Tanpa Keterangan' }}</p>
@@ -328,8 +331,11 @@ const groupedRecentTransactions = computed(() => {
                                 </div>
                             </div>
                              <div class="text-right">
-                                 <span :class="['block font-bold text-sm', t.type === 'income' ? 'text-emerald-600' : 'text-red-500']">
-                                    {{ t.type === 'income' ? '+' : '-' }} {{ formatCurrency(t.amount) }}
+                                 <span :class="['block font-bold text-sm', 
+                                    t.type === 'income' ? 'text-emerald-600' : 
+                                    t.type === 'expense' ? 'text-red-500' : 
+                                    'text-blue-600']">
+                                    {{ (t.type === 'income' || t.type === 'transfer_in') ? '+' : '-' }} {{ formatCurrency(t.amount) }}
                                  </span>
                                  <span class="text-[10px] text-muted-foreground">{{ format(parseISO(t.date), 'HH:mm') }}</span>
                             </div>

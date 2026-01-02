@@ -139,8 +139,10 @@ const formatCurrency = (value: number) => {
                                 :class="[
                                     'px-1.5 py-0.5 rounded-md text-[9px] font-medium flex items-center justify-between shadow-sm border border-transparent w-full',
                                     (t.type === 'expense' || t.type === 'transfer_out')
-                                        ? 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300' 
-                                        : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
+                                        ? 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300' :
+                                    (t.type === 'income')
+                                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' :
+                                        'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300'
                                 ]"
                             >
                                 <span class="truncate max-w-[60%]">{{ t.description || t.category?.name }}</span>
@@ -188,10 +190,8 @@ const formatCurrency = (value: number) => {
                              <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm', 
                                   t.type === 'expense' ? 'bg-red-50 text-red-500' : 
                                   t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600']">
-                                 <component v-if="getIconComponent(t.category?.icon)" :is="getIconComponent(t.category?.icon)" class="h-5 w-5" />
-                                 <span v-else-if="getEmoji(t.category?.icon)">{{ getEmoji(t.category?.icon) }}</span>
-                                 <!-- Fallback if no emoji/icon logic, use first letter -->
-                                 <span v-else class="font-bold">{{ t.category?.name?.[0] || '?' }}</span>
+                                 <span v-if="getEmoji(t.category?.icon)">{{ getEmoji(t.category?.icon) }}</span>
+                                 <component v-else :is="getIconComponent(t.category?.icon, 'Circle')" class="h-5 w-5" />
                              </div>
                              <div class="overflow-hidden">
                                  <p class="font-bold text-sm truncate max-w-[150px]">{{ t.description || 'No Description' }}</p>
