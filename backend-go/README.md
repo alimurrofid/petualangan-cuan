@@ -26,6 +26,10 @@ Backend service for Petualangan Cuan application, built with Go.
    cp .env.example .env
    ```
 2. Open `.env` and configure your database credentials and server port.
+3. Generate a secure `JWT_SECRET` and add it to `.env`. You can generate one using:
+   ```bash
+   openssl rand -base64 32
+   ```
 
 ## Running the Application
 
