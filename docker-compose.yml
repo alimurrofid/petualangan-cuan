@@ -1,41 +1,4 @@
-version: '3.8'
-
 services:
-  backend:
-    image: ghcr.io/alimurrofid/petualangan-cuan/backend:latest
-    container_name: petualangan_cuan_backend
-    environment:
-      - PORT=${PORT}
-      - DB_HOST=${DB_HOST}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - DB_PORT=${DB_PORT}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRY_HOURS=${JWT_EXPIRY_HOURS}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL}
-      - FRONTEND_URL=${FRONTEND_URL}
-    depends_on:
-      postgres:
-        condition: service_started
-    networks:
-      - app-network
-    restart: always
-    user: appuser
-
-  frontend:
-    image: ghcr.io/alimurrofid/petualangan-cuan/frontend:latest
-    container_name: petualangan_cuan_frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    networks:
-      - app-network
-    restart: always
-
   postgres:
     image: postgres:15-alpine
     container_name: petualangan_cuan_db
@@ -45,6 +8,49 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ghcr.io/alimurrofid/petualangan-cuan/backend:latest
+    container_name: petualangan_cuan_backend
+    environment:
+      PORT: ${PORT}
+
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
+
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL}
+
+      FRONTEND_URL: ${FRONTEND_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: always
+
+  frontend:
+    image: ghcr.io/alimurrofid/petualangan-cuan/frontend:latest
+    container_name: petualangan_cuan_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
     networks:
       - app-network
     restart: always
