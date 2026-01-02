@@ -301,8 +301,7 @@ const getProgressColor = (item: CategoryBreakdown) => {
             <DateRangePicker 
                 :startDate="customDateRange.start"
                 :endDate="customDateRange.end"
-                @update:startDate="(val) => customDateRange.start = val"
-                @update:endDate="(val) => customDateRange.end = val"
+                @update:range="(val) => { customDateRange.start = val.start; customDateRange.end = val.end }"
                 @apply="showDatePicker = false"
             />
         </div>
