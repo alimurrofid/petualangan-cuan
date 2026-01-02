@@ -85,7 +85,6 @@ Go to **Settings > Secrets and variables > Actions** in your GitHub repository a
 - `SERVER_IP`: IP address of your VPS.
 - `SERVER_USER`: Username (e.g., `ubuntu`).
 - `SSH_PRIVATE_KEY`: Private SSH key to access the server.
-- `ENV_FILE` (Optional): Only if you want to overwrite `.env` automatically (not recommended for highest security).
 
 ### How Deployment Works
 1.  **Build & Push**: Commits to `main` trigger a build. Images are tagged and pushed to `ghcr.io/<user>/petualangan-cuan/backend:latest` and `frontend:latest`.
