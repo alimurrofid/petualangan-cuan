@@ -50,10 +50,15 @@ func main() {
 		seeder.SeedAll(db)
 	}
 
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173"
+	}
+
 	// Init Layers
 	userRepo := repository.NewUserRepository(db)
 	userSvc := service.NewUserService(userRepo)
-	userHandler := handler.NewUserHandler(userSvc)
+	userHandler := handler.NewUserHandler(userSvc, frontendURL)
 
 	repo := repository.NewTransactionRepository(db)
 	// TransactionService now needs WalletRepo and DB for transaction management
@@ -76,7 +81,13 @@ func main() {
 
 	// Init Fiber
 	app := fiber.New()
-	app.Use(cors.New())
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     frontendURL,
+		AllowCredentials: true,
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST, HEAD, PUT, DELETE, PATCH, OPTIONS",
+	}))
 
 	// Routes
 	api := app.Group("/api")

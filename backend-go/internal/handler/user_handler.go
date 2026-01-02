@@ -25,10 +25,14 @@ type UserHandler interface {
 
 type userHandler struct {
 	userService service.UserService
+	frontendURL string
 }
 
-func NewUserHandler(userService service.UserService) UserHandler {
-	return &userHandler{userService}
+func NewUserHandler(userService service.UserService, frontendURL string) UserHandler {
+	return &userHandler{
+		userService: userService,
+		frontendURL: frontendURL,
+	}
 }
 
 // Register godoc
@@ -232,12 +236,7 @@ func (h *userHandler) GoogleCallback(c *fiber.Ctx) error {
 	
 	_ = user // user unused for now
 
-	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		frontendURL = "http://localhost:5173"
-	}
-
-	return c.Redirect(frontendURL + "/auth/google/callback?token=" + jwtToken)
+	return c.Redirect(h.frontendURL + "/auth/google/callback?token=" + jwtToken)
 }
 
 func (h *userHandler) GetProfile(c *fiber.Ctx) error {

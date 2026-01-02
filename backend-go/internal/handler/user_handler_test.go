@@ -73,7 +73,7 @@ func (m *MockUserService) GetProfile(id uint) (*entity.User, error) {
 
 func TestRegisterHandler(t *testing.T) {
 	mockService := new(MockUserService)
-	userHandler := handler.NewUserHandler(mockService)
+	userHandler := handler.NewUserHandler(mockService, "http://test-frontend")
 
 	app := fiber.New()
 	app.Post("/auth/register", userHandler.Register)
@@ -98,7 +98,7 @@ func TestRegisterHandler(t *testing.T) {
 
 func TestLoginHandler(t *testing.T) {
 	mockService := new(MockUserService)
-	userHandler := handler.NewUserHandler(mockService)
+	userHandler := handler.NewUserHandler(mockService, "http://test-frontend")
 
 	app := fiber.New()
 	app.Post("/auth/login", userHandler.Login)
@@ -122,7 +122,7 @@ func TestLoginHandler(t *testing.T) {
 
 func TestLoginHandler_InvalidCredentials(t *testing.T) {
 	mockService := new(MockUserService)
-	userHandler := handler.NewUserHandler(mockService)
+	userHandler := handler.NewUserHandler(mockService, "http://test-frontend")
 
 	app := fiber.New()
 	app.Post("/auth/login", userHandler.Login)
