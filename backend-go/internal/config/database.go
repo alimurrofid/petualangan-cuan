@@ -24,7 +24,7 @@ func Connect() (*gorm.DB, error) {
 
 	// Set GORM Logger to Silent in production if needed, or default
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Warn),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("❌ Gagal connect ke Database: %w", err)
