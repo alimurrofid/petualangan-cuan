@@ -9,7 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     const login = async (credentials: any) => {
         try {
-            const response = await api.post('/auth/login', credentials);
+            const response = await api.post('/api/auth/login', credentials);
             token.value = response.data.token;
             user.value = response.data.user;
             localStorage.setItem('token', token.value);
@@ -23,7 +23,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     const register = async (credentials: any) => {
         try {
-            const response = await api.post('/auth/register', credentials);
+            const response = await api.post('/api/auth/register', credentials);
             token.value = response.data.token;
             user.value = response.data.user;
             localStorage.setItem('token', token.value);
