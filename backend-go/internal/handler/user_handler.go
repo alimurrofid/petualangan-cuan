@@ -116,7 +116,7 @@ func (h *userHandler) Logout(c *fiber.Ctx) error {
 // @Param request body service.UpdateProfileInput true "Update Profile Request"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
-// @Router /auth/profile [put]
+// @Router /api/user/profile [put]
 func (h *userHandler) UpdateProfile(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(uint)
 	if !ok {
@@ -149,7 +149,7 @@ func (h *userHandler) UpdateProfile(c *fiber.Ctx) error {
 // @Param request body service.ChangePasswordInput true "Change Password Request"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
-// @Router /auth/password [put]
+// @Router /api/user/password [put]
 func (h *userHandler) ChangePassword(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(uint)
 	if !ok {

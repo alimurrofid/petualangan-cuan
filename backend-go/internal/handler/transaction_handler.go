@@ -230,7 +230,7 @@ func (h *transactionHandler) GetCalendarData(c *fiber.Ctx) error {
 // @Param type query string false "Transaction Type (income, expense, all)"
 // @Security ApiKeyAuth
 // @Success 200 {object} map[string]interface{}
-// @Router /transactions/report [get]
+// @Router /api/transactions/report [get]
 func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 	startDate := c.Query("start_date")

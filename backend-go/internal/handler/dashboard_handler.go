@@ -26,7 +26,7 @@ func NewDashboardHandler(service service.DashboardService) DashboardHandler {
 // @Produce json
 // @Security ApiKeyAuth
 // @Success 200 {object} map[string]interface{}
-// @Router /dashboard [get]
+// @Router /api/dashboard [get]
 func (h *dashboardHandler) GetDashboard(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 

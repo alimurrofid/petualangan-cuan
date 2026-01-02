@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"errors"
+	"os"
 	"testing"
 
 	"cuan-backend/internal/entity"
@@ -13,6 +14,10 @@ import (
 	testifyMock "github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/bcrypt"
 )
+
+func init() {
+	os.Setenv("JWT_SECRET", "test_secret_key")
+}
 
 func TestRegister(t *testing.T) {
 	mockRepo := new(mock.UserRepositoryMock)

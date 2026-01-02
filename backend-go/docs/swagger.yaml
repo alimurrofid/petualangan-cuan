@@ -70,8 +70,6 @@ definitions:
     properties:
       new_password:
         type: string
-      old_password:
-        type: string
     type: object
   service.CreateCategoryInput:
     properties:
@@ -333,11 +331,66 @@ paths:
       summary: Update a category
       tags:
       - categories
+  /api/dashboard:
+    get:
+      consumes:
+      - application/json
+      description: Get total balance, monthly summary, recent transactions, trend,
+        and breakdown
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get dashboard data
+      tags:
+      - dashboard
   /api/transactions:
     get:
       consumes:
       - application/json
-      description: Get all transactions for the logged in user
+      description: Get all transactions for the logged in user with pagination and
+        filtering
+      parameters:
+      - default: 1
+        description: Page Number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per Page
+        in: query
+        name: limit
+        type: integer
+      - description: Start Date
+        in: query
+        name: start_date
+        type: string
+      - description: End Date
+        in: query
+        name: end_date
+        type: string
+      - description: Wallet ID
+        in: query
+        name: wallet_id
+        type: integer
+      - description: Category ID
+        in: query
+        name: category_id
+        type: integer
+      - description: Search Term
+        in: query
+        name: search
+        type: string
+      - description: Transaction Type
+        in: query
+        name: type
+        type: string
       produces:
       - application/json
       responses:
@@ -417,6 +470,7 @@ paths:
       consumes:
       - application/json
       description: Get total income and expense per day for a specific date range
+        with filters
       parameters:
       - description: Start Date (YYYY-MM-DD)
         in: query
@@ -427,6 +481,18 @@ paths:
         in: query
         name: end_date
         required: true
+        type: string
+      - description: Wallet ID
+        in: query
+        name: wallet_id
+        type: integer
+      - description: Category ID
+        in: query
+        name: category_id
+        type: integer
+      - description: Search Term
+        in: query
+        name: search
         type: string
       produces:
       - application/json
@@ -447,6 +513,43 @@ paths:
             additionalProperties: true
             type: object
       summary: Get aggregated calendar data
+      tags:
+      - transactions
+  /api/transactions/report:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive report of expenses/income by category
+      parameters:
+      - description: Start Date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: End Date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        required: true
+        type: string
+      - description: Wallet ID
+        in: query
+        name: wallet_id
+        type: integer
+      - description: Transaction Type (income, expense, all)
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get category breakdown for report
       tags:
       - transactions
   /api/transactions/transfer:
@@ -482,6 +585,69 @@ paths:
       summary: Transfer money between wallets
       tags:
       - transactions
+  /api/user/password:
+    put:
+      consumes:
+      - application/json
+      description: Change user password
+      parameters:
+      - description: Change Password Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.ChangePasswordInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Change user password
+      tags:
+      - auth
+  /api/user/profile:
+    put:
+      consumes:
+      - application/json
+      description: Update user name and email
+      parameters:
+      - description: Update Profile Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateProfileInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - auth
   /api/wallets:
     get:
       description: Get all wallets for the authenticated user
@@ -697,69 +863,6 @@ paths:
       summary: Logout user
       tags:
       - auth
-  /auth/password:
-    put:
-      consumes:
-      - application/json
-      description: Change user password
-      parameters:
-      - description: Change Password Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/service.ChangePasswordInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Change user password
-      tags:
-      - auth
-  /auth/profile:
-    put:
-      consumes:
-      - application/json
-      description: Update user name and email
-      parameters:
-      - description: Update Profile Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/service.UpdateProfileInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Update user profile
-      tags:
-      - auth
   /auth/register:
     post:
       consumes:
@@ -789,60 +892,4 @@ paths:
       summary: Register a new user
       tags:
       - auth
-  /dashboard:
-    get:
-      consumes:
-      - application/json
-      description: Get total balance, monthly summary, recent transactions, trend,
-        and breakdown
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - ApiKeyAuth: []
-      summary: Get dashboard data
-      tags:
-      - dashboard
-  /transactions/report:
-    get:
-      consumes:
-      - application/json
-      description: Get comprehensive report of expenses/income by category
-      parameters:
-      - description: Start Date (YYYY-MM-DD)
-        in: query
-        name: start_date
-        required: true
-        type: string
-      - description: End Date (YYYY-MM-DD)
-        in: query
-        name: end_date
-        required: true
-        type: string
-      - description: Wallet ID
-        in: query
-        name: wallet_id
-        type: integer
-      - description: Transaction Type (income, expense, all)
-        in: query
-        name: type
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - ApiKeyAuth: []
-      summary: Get category breakdown for report
-      tags:
-      - transactions
 swagger: "2.0"
