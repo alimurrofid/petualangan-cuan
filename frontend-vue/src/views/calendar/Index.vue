@@ -105,8 +105,11 @@ const formatCurrency = (value: number) => {
                     :key="date.toString()"
                     class="relative border-b border-r border-border/50 p-2 transition-all flex flex-col justify-start gap-1 min-h-[120px] group"
                     :class="[
-                        !isSameMonth(date, currentMonth) ? 'bg-muted/10 text-muted-foreground/40' : 'bg-background hover:bg-muted/10 cursor-pointer',
-                        isToday(date) ? 'bg-teal-200/75 dark:bg-teal-200/75' : ''
+                        isToday(date) 
+                            ? 'bg-teal-200/75 dark:bg-teal-200/75 hover:bg-teal-300 dark:hover:bg-teal-300 cursor-pointer' 
+                            : !isSameMonth(date, currentMonth) 
+                                ? 'bg-muted/10 text-muted-foreground/40' 
+                                : 'bg-background hover:bg-emerald-50 dark:hover:bg-emerald-950/20 cursor-pointer'
                     ]"
                     @click="onDayClick(date)"
                     >
