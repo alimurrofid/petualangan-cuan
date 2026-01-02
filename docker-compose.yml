@@ -2,12 +2,8 @@ version: '3.8'
 
 services:
   backend:
-    build:
-      context: ./backend-go
-      dockerfile: Dockerfile
+    image: ghcr.io/alimurrofid/petualangan-cuan/backend:latest
     container_name: petualangan_cuan_backend
-    ports:
-      - "8080:8080"
     environment:
       - PORT=8080
       - DB_HOST=postgres
@@ -22,18 +18,18 @@ services:
       - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL}
       - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_started
     networks:
       - app-network
     restart: always
+    user: appuser
 
   frontend:
-    build:
-      context: ./frontend-vue
-      dockerfile: Dockerfile
+    image: ghcr.io/alimurrofid/petualangan-cuan/frontend:latest
     container_name: petualangan_cuan_frontend
     ports:
-      - "5173:80" 
+      - "80:80"
     depends_on:
       - backend
     networks:
@@ -49,8 +45,6 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
       - app-network
     restart: always

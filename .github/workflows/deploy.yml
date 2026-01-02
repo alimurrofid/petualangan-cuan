@@ -1,26 +1,53 @@
-name: Deploy to Production
+name: Build and Deploy
 
 on:
   push:
     branches: [ "main" ]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Copy files to server
-        uses: appleboy/scp-action@master
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
         with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "."
-          target: "/home/${{ secrets.SERVER_USER }}/petualangan-cuan"
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy via SSH
+      - name: Build and push Backend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend-go
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend-vue
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -28,6 +55,16 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/${{ secrets.SERVER_USER }}/petualangan-cuan
-            echo "${{ secrets.ENV_FILE }}" > .env
-            sudo docker compose down
-            sudo docker compose up -d --build
+            
+            # Login ke registry di server (jika private)
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull image terbaru
+            docker compose pull
+            
+            # Update container dengan image baru (Rolling update minimal downtime)
+            # Pastikan .env production sudah ada di server secara manual atau via mechanism lain (JANGAN commit .env)
+            docker compose up -d --remove-orphans
+            
+            # Bersihkan image lama untuk hemat space
+            docker image prune -f
