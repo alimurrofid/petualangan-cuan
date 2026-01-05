@@ -90,6 +90,9 @@ func main() {
 
 	api := app.Group("/api")
 
+	// Static Uploads
+	app.Static("/uploads", "./uploads")
+
 	api.Post("/webhook", h.WebhookReceiver)
 
 	auth := api.Group("/auth")
@@ -137,9 +140,6 @@ func main() {
 
 	// Swagger Route
 	app.Get("/swagger/*", swagger.HandlerDefault) 
-
-    // Static Uploads
-    app.Static("/uploads", "./uploads")
 
 	port := os.Getenv("PORT")
 	if port == "" {
