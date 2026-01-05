@@ -121,7 +121,9 @@ const groupedTransactions = computed(() => {
                                 <p class="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
                                     {{ t.wallet.name }} • {{ t.category.name }}
                                 </p>
-                                <a v-if="t.attachment" :href="`${baseUrl}${t.attachment}`" target="_blank" @click.stop
+                                <a v-if="t.attachment"
+                                    :href="`${baseUrl.replace(/\/$/, '')}/${t.attachment.replace(/^\//, '')}`"
+                                    target="_blank" @click.stop
                                     class="text-xs text-blue-500 hover:text-blue-700 flex items-center">
                                     <Paperclip class="w-3 h-3" />
                                 </a>
