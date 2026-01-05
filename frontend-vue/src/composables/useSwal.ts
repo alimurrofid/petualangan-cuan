@@ -66,6 +66,21 @@ export function useSwal() {
     })
   }
   
+  const toast = (options: any) => {
+    return Swal.fire({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+      didOpen: (toast) => {
+        toast.addEventListener('mouseenter', Swal.stopTimer)
+        toast.addEventListener('mouseleave', Swal.resumeTimer)
+      },
+      ...options
+    })
+  }
+
   const confirm = async (
     title: string, 
     text: string = 'Anda yakin ingin melakukan ini?', 
@@ -108,6 +123,7 @@ export function useSwal() {
     success,
     error,
     warning,
+    toast,
     confirm,
     confirmDelete,
     handleSwalInteractOutside

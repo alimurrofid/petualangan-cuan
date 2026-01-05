@@ -123,6 +123,8 @@ func main() {
 	transactions.Get("/calendar", h.GetCalendarData)
 	transactions.Get("/report", h.GetReport) 
 	transactions.Post("/transfer", h.TransferTransaction)
+	transactions.Get("/:id", h.GetTransaction)
+	transactions.Put("/:id", h.UpdateTransaction)
 	transactions.Delete("/:id", h.DeleteTransaction)
 
 	// User Settings Routes (/api/user)

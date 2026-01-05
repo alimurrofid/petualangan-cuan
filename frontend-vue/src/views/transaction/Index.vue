@@ -12,6 +12,7 @@ import TransactionStats from "@/components/transaction/TransactionStats.vue";
 import TransactionChart from "@/components/transaction/TransactionChart.vue";
 import TransactionFilter from "@/components/transaction/TransactionFilter.vue";
 import TransactionList from "@/components/transaction/TransactionList.vue";
+import ManualTransactionDialog from "@/components/ManualTransactionDialog.vue";
 
 const transactionStore = useTransactionStore();
 const walletStore = useWalletStore();
@@ -120,6 +121,22 @@ const onPageChange = (page: number) => {
     fetchData(page);
 };
 
+// Edit Logic
+const showDialog = ref(false);
+const transactionToEdit = ref<any>(null);
+
+const handleEdit = (t: any) => {
+    transactionToEdit.value = t;
+    showDialog.value = true;
+};
+
+const handleSave = () => {
+    // Store already refreshes data
+    showDialog.value = false;
+    transactionToEdit.value = null; // Reset
+};
+
+
 </script>
 
 <template>
@@ -168,11 +185,19 @@ const onPageChange = (page: number) => {
                     </div>
                 </CardHeader>
                 <CardContent class="overflow-y-auto p-0 flex-1 custom-scrollbar">
-                    <TransactionList @page-change="onPageChange" />
+                    <TransactionList @page-change="onPageChange" @edit="handleEdit" />
                 </CardContent>
             </Card>
         </div>
     </div>
+
+    <!-- Edit Dialog -->
+    <ManualTransactionDialog 
+        :open="showDialog" 
+        @update:open="(val) => { showDialog = val; if(!val) transactionToEdit = null; }" 
+        :transactionToEdit="transactionToEdit"
+        @save="handleSave"
+    />
   </div>
 </template>
 

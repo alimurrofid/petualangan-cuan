@@ -12,6 +12,7 @@ type WalletRepository interface {
 	Delete(id uint, userID uint) error
 	FindByID(id uint, userID uint) (*entity.Wallet, error)
 	FindByUserID(userID uint) ([]entity.Wallet, error)
+	WithTx(tx *gorm.DB) WalletRepository
 }
 
 type walletRepository struct {
@@ -20,6 +21,10 @@ type walletRepository struct {
 
 func NewWalletRepository(db *gorm.DB) WalletRepository {
 	return &walletRepository{db}
+}
+
+func (r *walletRepository) WithTx(tx *gorm.DB) WalletRepository {
+	return &walletRepository{db: tx}
 }
 
 func (r *walletRepository) Create(wallet *entity.Wallet) error {

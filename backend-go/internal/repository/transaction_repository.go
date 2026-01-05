@@ -11,6 +11,7 @@ type TransactionRepository interface {
 	Create(transaction *entity.Transaction) error
 	FindAll(userID uint, params entity.TransactionFilterParams) ([]entity.Transaction, int64, error)
 	FindByID(id uint, userID uint) (*entity.Transaction, error)
+	Update(transaction *entity.Transaction) error
 	Delete(id uint, userID uint) error
 	FindSummaryByDateRange(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error)
 	GetCategoryBreakdown(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error)
@@ -88,6 +89,10 @@ func (r *transactionRepository) FindByID(id uint, userID uint) (*entity.Transact
 	return &transaction, err
 }
 
+func (r *transactionRepository) Update(transaction *entity.Transaction) error {
+	return r.db.Save(transaction).Error
+}
+
 func (r *transactionRepository) Delete(id uint, userID uint) error {
 	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&entity.Transaction{}).Error
 }
@@ -112,7 +117,7 @@ func (r *transactionRepository) FindSummaryByDateRange(userID uint, startDate, e
     dateExpr := fmt.Sprintf("TO_CHAR(transactions.date, '%s')", dateFormat)
 
 	query := r.db.Model(&entity.Transaction{}).
-		Select(fmt.Sprintf("%s as date, SUM(CASE WHEN transactions.type = 'income' OR transactions.type = 'transfer_in' THEN transactions.amount ELSE 0 END) as income, SUM(CASE WHEN transactions.type = 'expense' OR transactions.type = 'transfer_out' THEN transactions.amount ELSE 0 END) as expense", dateExpr)).
+		Select(fmt.Sprintf("%s as date, SUM(CASE WHEN transactions.type = 'income' THEN transactions.amount ELSE 0 END) as income, SUM(CASE WHEN transactions.type = 'expense' THEN transactions.amount ELSE 0 END) as expense", dateExpr)).
 		Where("transactions.user_id = ? AND transactions.date >= ? AND transactions.date <= ?", userID, startDate, endDate)
 
 	if search != "" {
@@ -176,7 +181,7 @@ func (r *transactionRepository) GetMonthlyTrend(userID uint, startDate, endDate 
 
 	// PostgreSQL: TO_CHAR(date, 'YYYY-MM')
 	err := r.db.Model(&entity.Transaction{}).
-		Select("TO_CHAR(date, 'YYYY-MM') as date, SUM(CASE WHEN type = 'income' OR type = 'transfer_in' THEN amount ELSE 0 END) as income, SUM(CASE WHEN type = 'expense' OR type = 'transfer_out' THEN amount ELSE 0 END) as expense").
+		Select("TO_CHAR(date, 'YYYY-MM') as date, SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income, SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense").
 		Where("user_id = ? AND date BETWEEN ? AND ?", userID, startDate, endDate).
 		Group("TO_CHAR(date, 'YYYY-MM')").
 		Order("date ASC").

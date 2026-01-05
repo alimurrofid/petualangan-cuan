@@ -2,12 +2,18 @@ package mock
 
 import (
 	"cuan-backend/internal/entity"
+	"cuan-backend/internal/repository"
 
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
 type WalletRepositoryMock struct {
 	mock.Mock
+}
+
+func (m *WalletRepositoryMock) WithTx(tx *gorm.DB) repository.WalletRepository {
+	return m
 }
 
 func (m *WalletRepositoryMock) Create(wallet *entity.Wallet) error {

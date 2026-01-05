@@ -224,7 +224,7 @@ const groupedRecentTransactions = computed(() => {
           </div>
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-emerald-600">+{{ formatCurrency(data.total_income_month) }}</div>
+          <div class="text-2xl font-bold text-emerald-600">{{ formatCurrency(data.total_income_month) }}</div>
           <p class="text-xs text-muted-foreground mt-1">Bulan Ini</p>
         </CardContent>
       </Card>
@@ -237,7 +237,7 @@ const groupedRecentTransactions = computed(() => {
           </div>
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-rose-600">-{{ formatCurrency(data.total_expense_month) }}</div>
+          <div class="text-2xl font-bold text-rose-600">{{ formatCurrency(data.total_expense_month) }}</div>
           <p class="text-xs text-muted-foreground mt-1">Bulan Ini</p>
         </CardContent>
       </Card>

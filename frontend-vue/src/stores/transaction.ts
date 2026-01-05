@@ -129,6 +129,16 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   };
 
+  const fetchTransaction = async (id: number) => {
+      try {
+          const response = await api.get(`/api/transactions/${id}`);
+          return response.data;
+      } catch (err) {
+          console.error("Failed to fetch transaction", err);
+          return null;
+      }
+  };
+
 
   const fetchReport = async (startDate: string, endDate: string, walletId?: number, type?: string) => {
     isLoading.value = true;
@@ -165,6 +175,23 @@ export const useTransactionStore = defineStore('transaction', () => {
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to create transaction';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const updateTransaction = async (id: number, input: CreateTransactionInput) => {
+    isLoading.value = true;
+    error.value = null;
+    const walletStore = useWalletStore();
+    try {
+      const response = await api.put(`/api/transactions/${id}`, input);
+      await refreshData();
+      await walletStore.fetchWallets();
+      return response.data;
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to update transaction';
       throw err;
     } finally {
       isLoading.value = false;
@@ -257,7 +284,9 @@ export const useTransactionStore = defineStore('transaction', () => {
     error,
     setFilters,
     fetchTransactions,
+    fetchTransaction,
     createTransaction,
+    updateTransaction,
     deleteTransaction,
     transfer,
     fetchCalendarData,

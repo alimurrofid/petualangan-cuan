@@ -12,6 +12,8 @@ import (
 type TransactionHandler interface {
 	CreateTransaction(c *fiber.Ctx) error
 	GetTransactions(c *fiber.Ctx) error
+	GetTransaction(c *fiber.Ctx) error
+	UpdateTransaction(c *fiber.Ctx) error
 	DeleteTransaction(c *fiber.Ctx) error
 	TransferTransaction(c *fiber.Ctx) error
 	GetCalendarData(c *fiber.Ctx) error
@@ -113,6 +115,57 @@ func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 			"limit": limit,
 		},
 	})
+}
+
+// GetTransaction godoc
+// @Summary Get a transaction
+// @Description Get a single transaction by ID
+// @Tags transactions
+// @Accept json
+// @Produce json
+// @Param id path int true "Transaction ID"
+// @Success 200 {object} entity.Transaction
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/transactions/{id} [get]
+func (h *transactionHandler) GetTransaction(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+	id, _ := strconv.Atoi(c.Params("id"))
+
+	transaction, err := h.service.GetTransaction(uint(id), userID)
+	if err != nil {
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Transaction not found"})
+	}
+
+	return c.JSON(transaction)
+}
+
+// UpdateTransaction godoc
+// @Summary Update a transaction
+// @Description Update an existing transaction and adjust wallet balances
+// @Tags transactions
+// @Accept json
+// @Produce json
+// @Param id path int true "Transaction ID"
+// @Param transaction body service.CreateTransactionInput true "Transaction Input"
+// @Success 200 {object} entity.Transaction
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/transactions/{id} [put]
+func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+	id, _ := strconv.Atoi(c.Params("id"))
+
+	var input service.CreateTransactionInput
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+	}
+
+	transaction, err := h.service.UpdateTransaction(uint(id), userID, input)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(transaction)
 }
 
 // DeleteTransaction godoc

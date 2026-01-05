@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
-import { format } from "date-fns";
+import { ref, onMounted, computed, watch } from "vue";
+import { format, parseISO } from "date-fns";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
 import { useTransactionStore } from "@/stores/transaction";
@@ -16,6 +16,7 @@ import { useSwal } from "@/composables/useSwal";
 
 const props = defineProps<{
   open: boolean;
+  transactionToEdit?: any | null;
 }>();
 
 const emit = defineEmits<{
@@ -40,6 +41,61 @@ const description = ref("");
 onMounted(() => {
     walletStore.fetchWallets();
     categoryStore.fetchCategories();
+});
+
+// Watch for edit mode
+watch(() => props.transactionToEdit, (newVal) => {
+    if (newVal) {
+        activeTab.value = newVal.type === 'transfer_in' || newVal.type === 'transfer_out' ? 'transfer' : newVal.type;
+        // If transfer, we treat as simple Expense/Income for now as per plan constraints, 
+        // OR better: if it's transfer_out, show as expense; transfer_in as income.
+        // But if user wants to edit "Transfer", we need to know other leg.
+        // Current plan: Edit as single transaction.
+        if (newVal.type === 'transfer_out' || newVal.type === 'transfer_in') {
+            activeTab.value = 'transfer';
+            // Fetch related transaction to get the other wallet
+            // Note: transactionStore needs fetchTransaction action.
+            if (newVal.related_transaction_id) {
+                transactionStore.fetchTransaction(newVal.related_transaction_id).then(related => {
+                    if (related) {
+                         if (newVal.type === 'transfer_out') {
+                             toWallet.value = String(related.wallet_id);
+                         } else {
+                             toWallet.value = String(newVal.wallet_id); // Current is IN (to)
+                             selectedWallet.value = String(related.wallet_id); // Related is OUT (from)
+                         }
+                    }
+                });
+            }
+        }
+
+        // Standard setup
+        if (newVal.type === 'transfer_out') {
+             selectedWallet.value = String(newVal.wallet_id);
+        } else if (newVal.type === 'transfer_in') {
+             if (activeTab.value === 'transfer') {
+                  toWallet.value = String(newVal.wallet_id);
+             } else {
+                  selectedWallet.value = String(newVal.wallet_id);
+             }
+        } 
+
+        // Fix date format
+        date.value = format(parseISO(newVal.date), 'yyyy-MM-dd');
+        amount.value = newVal.amount.toString();
+        selectedWallet.value = String(newVal.wallet_id);
+        selectedCategory.value = String(newVal.category_id);
+        description.value = newVal.description;
+    } else {
+        // Reset defaults
+        activeTab.value = "expense";
+        date.value = format(new Date(), "yyyy-MM-dd");
+        amount.value = "";
+        selectedWallet.value = "";
+        toWallet.value = "";
+        selectedCategory.value = "";
+        description.value = "";
+    }
 });
 
 // Filter categories based on active tab
@@ -134,7 +190,35 @@ const handleSave = async () => {
         const [year = now.getFullYear(), month = now.getMonth() + 1, day = now.getDate()] = date.value.split('-').map(Number);
         const finalDate = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
 
-        if (activeTab.value === 'transfer') {
+        if (props.transactionToEdit) {
+             let finalType: string = activeTab.value;
+             let finalWalletId = Number(selectedWallet.value);
+
+             if (activeTab.value === 'transfer') {
+                  if (props.transactionToEdit.type === 'transfer_in') {
+                      finalType = 'transfer_in';
+                      // For transfer_in (Income), the wallet is the Destination (toWallet)
+                      finalWalletId = Number(toWallet.value);
+                  } else if (props.transactionToEdit.type === 'transfer_out') {
+                      finalType = 'transfer_out';
+                      // For transfer_out (Expense), the wallet is the Source (selectedWallet)
+                      finalWalletId = Number(selectedWallet.value);
+                  } else {
+                      // Fallback: If editing a non-transfer but tab is transfer, assume transfer_out (Source)
+                      finalType = 'transfer_out';
+                  }
+             }
+
+             await transactionStore.updateTransaction(props.transactionToEdit.id, {
+                wallet_id: finalWalletId,
+                category_id: Number(selectedCategory.value),
+                amount: Number(amount.value),
+                type: finalType,
+                description: description.value,
+                date: format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"),
+            });
+            swal.toast({ icon: 'success', title: 'Transaksi berhasil diperbarui' });
+        } else if (activeTab.value === 'transfer') {
              await transactionStore.transfer({
                 date: format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"),
                 amount: Number(amount.value),
@@ -152,7 +236,7 @@ const handleSave = async () => {
                 wallet_id: Number(selectedWallet.value),
                 description: description.value
             });
-            swal.success("Berhasil", "Transaksi berhasil disimpan");
+            swal.toast({ icon: 'success', title: 'Transaksi berhasil disimpan' });
         }
         
         // Reset form (keep date as today)
@@ -162,7 +246,7 @@ const handleSave = async () => {
         emit("save", {}); 
         emit("update:open", false);
     } catch (error) {
-        swal.error("Gagal", "Gagal melakukan transaksi");
+        swal.error("Gagal", props.transactionToEdit ? "Gagal memperbarui transaksi" : "Gagal melakukan transaksi");
     } finally {
         isSubmitting.value = false;
     }
@@ -185,9 +269,13 @@ const formattedAmount = computed({
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent class="max-w-md bg-card text-foreground" @interact-outside="swal.handleSwalInteractOutside">
       <DialogHeader>
-        <DialogTitle>Tambah Transaksi</DialogTitle>
+        <DialogTitle>{{ transactionToEdit ? 'Edit Transaksi' : 'Tambah Transaksi' }}</DialogTitle>
         <DialogDescription>Catat pengeluaran atau income baru.</DialogDescription>
       </DialogHeader>
+      
+      <div v-if="transactionToEdit && (transactionToEdit.type === 'transfer_in' || transactionToEdit.type === 'transfer_out')" class="bg-blue-50 p-3 rounded-lg text-xs text-blue-700 mb-4 border border-blue-200">
+        <strong>Info:</strong> Transaksi ini terhubung dengan transaksi transfer lainnya. Perubahan nominal, tanggal, atau deskripsi akan otomatis diterapkan pada pasangannya.
+      </div>
 
       <Tabs v-model="activeTab" class="w-full">
         <TabsList class="grid w-full grid-cols-3 mb-4 h-auto p-1 bg-muted/60 rounded-xl">
@@ -292,7 +380,9 @@ const formattedAmount = computed({
 
       <DialogFooter class="flex gap-2 justify-end mt-4">
         <Button variant="outline" @click="emit('update:open', false)" :disabled="isSubmitting">Batal</Button>
-        <Button @click="handleSave" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400" :disabled="isSubmitting">Simpan</Button>
+        <Button @click="handleSave" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400" :disabled="isSubmitting">
+            {{ transactionToEdit ? 'Simpan Perubahan' : 'Simpan' }}
+        </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

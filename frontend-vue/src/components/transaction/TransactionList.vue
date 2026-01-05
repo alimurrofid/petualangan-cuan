@@ -5,10 +5,45 @@ import { id } from "date-fns/locale";
 import { formatCurrency } from "@/lib/utils";
 import { getEmoji, getIconComponent } from "@/lib/icons";
 import { useTransactionStore } from "@/stores/transaction";
-import { Search } from "lucide-vue-next";
+import { Search, Pencil, Trash2 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
+import { useSwal } from "@/composables/useSwal";
 
 const transactionStore = useTransactionStore();
+const swal = useSwal();
+
+const emit = defineEmits<{
+  (e: 'page-change', page: number): void;
+  (e: 'edit', transaction: any): void;
+}>();
+
+const handleDelete = async (t: any) => {
+    const result = await swal.fire({
+        title: 'Hapus Transaksi?',
+        text: `Apakah Anda yakin ingin menghapus transaksi "${t.description}" senilai ${formatCurrency(t.amount)}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#EF4444',
+        cancelButtonColor: '#CBD5E1',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await transactionStore.deleteTransaction(t.id);
+            swal.toast({
+                icon: 'success',
+                title: 'Transaksi berhasil dihapus'
+            });
+        } catch (error) {
+            swal.toast({
+                icon: 'error',
+                title: 'Gagal menghapus transaksi'
+            });
+        }
+    }
+};
 
 const groupedTransactions = computed(() => {
     const groups: Record<string, any[]> = {};
@@ -87,6 +122,17 @@ const groupedTransactions = computed(() => {
                             {{ (t.type === 'income' || t.type === 'transfer_in') ? '+' : '-' }} {{ formatCurrency(t.amount) }}
                             </span>
                             <span class="text-[10px] text-muted-foreground">{{ format(parseISO(t.date), 'HH:mm') }}</span>
+                    </div>
+
+
+                    <!-- Action Buttons -->
+                    <div class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-background/80 backdrop-blur-sm rounded-lg p-1 shadow-sm border border-border">
+                        <button @click.stop="emit('edit', t)" class="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 hover:text-blue-600 transition-colors" title="Edit">
+                            <Pencil class="w-3.5 h-3.5" />
+                        </button>
+                        <button @click.stop="handleDelete(t)" class="p-1.5 hover:bg-red-50 rounded-md text-slate-500 hover:text-red-500 transition-colors" title="Hapus">
+                            <Trash2 class="w-3.5 h-3.5" />
+                        </button>
                     </div>
                 </div>
             </div>
