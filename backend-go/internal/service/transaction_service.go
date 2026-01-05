@@ -40,6 +40,7 @@ type CreateTransactionInput struct {
 	Amount      float64   `json:"amount" binding:"required"`
 	Type        string    `json:"type" binding:"required"` // income, expense
 	Description string    `json:"description"`
+	Attachment  string    `json:"attachment"`
 	Date        time.Time `json:"date" binding:"required"`
 }
 
@@ -79,6 +80,7 @@ func (s *transactionService) CreateTransaction(userID uint, input CreateTransact
 		Amount:      input.Amount,
 		Type:        input.Type,
 		Description: input.Description,
+		Attachment:  input.Attachment,
 		Date:        input.Date,
 	}
 
@@ -172,6 +174,11 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 	t.Amount = input.Amount
 	t.Type = input.Type
 	t.Description = input.Description
+	// Only update attachment if provided (or handle deletion appropriately in handler)
+	// For now, if input has it, update it.
+	if input.Attachment != "" {
+		t.Attachment = input.Attachment
+	}
 	t.Date = input.Date
 
 	if err := s.repo.WithTx(tx).Update(t); err != nil {

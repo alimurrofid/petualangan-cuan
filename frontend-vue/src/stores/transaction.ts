@@ -11,6 +11,7 @@ export interface Transaction {
   amount: number;
   type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
   description: string;
+  attachment: string;
   date: string;
   wallet: {
     name: string;
@@ -163,7 +164,7 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   };
 
-  const createTransaction = async (input: CreateTransactionInput) => {
+  const createTransaction = async (input: CreateTransactionInput | FormData) => {
     isLoading.value = true;
     error.value = null;
     const walletStore = useWalletStore();
@@ -181,7 +182,7 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   };
 
-  const updateTransaction = async (id: number, input: CreateTransactionInput) => {
+  const updateTransaction = async (id: number, input: CreateTransactionInput | FormData) => {
     isLoading.value = true;
     error.value = null;
     const walletStore = useWalletStore();

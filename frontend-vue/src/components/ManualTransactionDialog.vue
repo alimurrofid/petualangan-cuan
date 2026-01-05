@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
+import heic2any from "heic2any";
 import { format, parseISO } from "date-fns";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
@@ -28,6 +29,7 @@ const walletStore = useWalletStore();
 const categoryStore = useCategoryStore();
 const transactionStore = useTransactionStore();
 const swal = useSwal();
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
 const activeTab = ref<"expense" | "income" | "transfer">("expense");
 const date = ref(format(new Date(), "yyyy-MM-dd"));
@@ -36,6 +38,64 @@ const selectedWallet = ref("");
 const toWallet = ref(""); // New field for transfer
 const selectedCategory = ref("");
 const description = ref("");
+const file = ref<File | null>(null);
+const existingAttachment = ref("");
+
+const isProcessingFile = ref(false);
+
+const handleFileChange = async (event: Event) => {
+    // Explicitly cast to HTMLInputElement
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files.length > 0) {
+        const selectedFile = target.files[0];
+        if (!selectedFile) return;
+        
+        // 1. Validate Size (5MB)
+        if (selectedFile.size > 5 * 1024 * 1024) {
+            await swal.error("Gagal", "Ukuran file maksimal 5MB");
+            target.value = ""; // Reset
+            file.value = null;
+            return;
+        }
+
+        // 2. Initial Type Check & HEIC Conversion
+        const fileType = selectedFile.type.toLowerCase();
+        const fileName = selectedFile.name.toLowerCase();
+
+        if (fileType === "image/heic" || fileName.endsWith(".heic")) {
+             isProcessingFile.value = true;
+             try {
+                 const convertedBlob = await heic2any({
+                     blob: selectedFile,
+                     toType: "image/jpeg",
+                     quality: 0.8
+                 });
+                 
+                 // Handle array or single blob
+                 const finalBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+                 
+                 if (!finalBlob) {
+                     throw new Error("Conversion resulted in empty blob");
+                 }
+
+                 // Create new File from blob
+                 // Note: We rename it to .jpg
+                 const newName = fileName.replace(/\.heic$/, ".jpg");
+                 file.value = new File([finalBlob], newName, { type: "image/jpeg" });
+             } catch (e) {
+                 console.error("HEIC Conversion failed", e);
+                 await swal.error("Gagal", "Gagal memproses file HEIC. Silakan gunakan JPG/PNG.");
+                 target.value = "";
+                 file.value = null;
+             } finally {
+                 isProcessingFile.value = false;
+             }
+        } else {
+             // Standard JPEG/PNG
+             file.value = selectedFile;
+        }
+    }
+};
 
 // Initial fetch
 onMounted(() => {
@@ -86,6 +146,8 @@ watch(() => props.transactionToEdit, (newVal) => {
         selectedWallet.value = String(newVal.wallet_id);
         selectedCategory.value = String(newVal.category_id);
         description.value = newVal.description;
+        existingAttachment.value = newVal.attachment || "";
+        file.value = null; // Reset new file selection
     } else {
         // Reset defaults
         activeTab.value = "expense";
@@ -94,7 +156,10 @@ watch(() => props.transactionToEdit, (newVal) => {
         selectedWallet.value = "";
         toWallet.value = "";
         selectedCategory.value = "";
+        selectedCategory.value = "";
         description.value = "";
+        file.value = null;
+        existingAttachment.value = "";
     }
 });
 
@@ -205,20 +270,36 @@ const handleSave = async () => {
                       finalWalletId = Number(selectedWallet.value);
                   } else {
                       // Fallback: If editing a non-transfer but tab is transfer, assume transfer_out (Source)
+             // Fallback: If editing a non-transfer but tab is transfer, assume transfer_out (Source)
                       finalType = 'transfer_out';
                   }
              }
 
-             await transactionStore.updateTransaction(props.transactionToEdit.id, {
-                wallet_id: finalWalletId,
-                category_id: Number(selectedCategory.value),
-                amount: Number(amount.value),
-                type: finalType,
-                description: description.value,
-                date: format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"),
-            });
+             // Prepare Payload
+             const payload = new FormData();
+             payload.append('wallet_id', String(finalWalletId));
+             payload.append('category_id', String(selectedCategory.value));
+             payload.append('amount', String(amount.value));
+             payload.append('type', finalType);
+             payload.append('description', description.value || "");
+             payload.append('date', format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"));
+             
+             if (file.value) {
+                 payload.append('attachment', file.value);
+             }
+
+             await transactionStore.updateTransaction(props.transactionToEdit.id, payload);
             swal.toast({ icon: 'success', title: 'Transaksi berhasil diperbarui' });
         } else if (activeTab.value === 'transfer') {
+             // Transfer doesn't support generic file upload in this simplified flow yet (as it creates 2 txs)
+             // We'll stick to JSON for transfer for now unless we refactor transfer endpoint to handle files
+             // The Plan didn't explicitly say Transfer endpoint handles files, only "Transaction".
+             // Assuming Transfer endpoint remains JSON for now or we update it too.
+             // Given constraint: "tambahkan field untuk upload file pada transaction" implies singular.
+             // Let's keep Transfer as JSON for now to avoid breaking it, OR check if transfer endpoint was updated.
+             // I only updated CreateTransaction and UpdateTransaction. TransferTransaction endpoint was NOT updated to multipart.
+             // So file upload is only for Expense/Income.
+
              await transactionStore.transfer({
                 date: format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"),
                 amount: Number(amount.value),
@@ -228,20 +309,28 @@ const handleSave = async () => {
             });
             swal.success("Berhasil", "Transfer berhasil dilakukan");
         } else {
-            await transactionStore.createTransaction({
-                type: activeTab.value,
-                date: format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"),
-                amount: Number(amount.value),
-                category_id: Number(selectedCategory.value),
-                wallet_id: Number(selectedWallet.value),
-                description: description.value
-            });
+             const payload = new FormData();
+             payload.append('type', activeTab.value);
+             payload.append('date', format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"));
+             payload.append('amount', String(amount.value));
+             payload.append('category_id', String(selectedCategory.value));
+             payload.append('wallet_id', String(selectedWallet.value));
+             payload.append('description', description.value || "");
+             
+             if (file.value) {
+                 payload.append('attachment', file.value);
+             }
+
+            await transactionStore.createTransaction(payload);
             swal.toast({ icon: 'success', title: 'Transaksi berhasil disimpan' });
         }
         
         // Reset form (keep date as today)
         amount.value = "";
+        amount.value = "";
         description.value = "";
+        file.value = null;
+        existingAttachment.value = "";
         
         emit("save", {}); 
         emit("update:open", false);
@@ -375,13 +464,27 @@ const formattedAmount = computed({
                 <Label>Deskripsi (Opsional)</Label>
                 <Input placeholder="Misal: Makan siang, Gaji bulanan" v-model="description" class="bg-background" :disabled="isSubmitting" />
             </div>
+
+            <!-- File Upload -->
+            <div v-if="activeTab !== 'transfer'" class="space-y-2">
+                <Label>Lampiran (Foto/Gambar)</Label>
+                <div v-if="existingAttachment && !file" class="mb-2 relative w-fit">
+                    <img :src="`${baseUrl}${existingAttachment}`" alt="Lampiran" class="h-20 w-auto rounded-md border border-border" />
+                    <Button type="button" variant="destructive" size="icon" class="h-5 w-5 absolute -top-2 -right-2 rounded-full" @click="existingAttachment = ''">
+                        <span class="text-xs">x</span>
+                    </Button>
+                </div>
+                <Input type="file" accept="image/png, image/jpeg, image/jpg, .heic" @change="handleFileChange" class="bg-background" :disabled="isSubmitting || isProcessingFile" />
+                <p v-if="isProcessingFile" class="text-xs text-blue-500 font-medium animate-pulse mt-1">Sedang memproses gambar...</p>
+                <p class="text-[10px] text-muted-foreground">Maksimal 5MB. Format: JPG, PNG, HEIC.</p>
+            </div>
         </div>
       </Tabs>
 
       <DialogFooter class="flex gap-2 justify-end mt-4">
-        <Button variant="outline" @click="emit('update:open', false)" :disabled="isSubmitting">Batal</Button>
-        <Button @click="handleSave" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400" :disabled="isSubmitting">
-            {{ transactionToEdit ? 'Simpan Perubahan' : 'Simpan' }}
+        <Button variant="outline" @click="emit('update:open', false)" :disabled="isSubmitting || isProcessingFile">Batal</Button>
+        <Button @click="handleSave" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400" :disabled="isSubmitting || isProcessingFile">
+            {{ isProcessingFile ? 'Memproses...' : (transactionToEdit ? 'Simpan Perubahan' : 'Simpan') }}
         </Button>
       </DialogFooter>
     </DialogContent>

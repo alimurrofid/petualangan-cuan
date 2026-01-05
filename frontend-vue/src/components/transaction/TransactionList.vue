@@ -5,12 +5,13 @@ import { id } from "date-fns/locale";
 import { formatCurrency } from "@/lib/utils";
 import { getEmoji, getIconComponent } from "@/lib/icons";
 import { useTransactionStore } from "@/stores/transaction";
-import { Search, Pencil, Trash2 } from "lucide-vue-next";
+import { Search, Pencil, Trash2, Paperclip } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { useSwal } from "@/composables/useSwal";
 
 const transactionStore = useTransactionStore();
 const swal = useSwal();
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
 const emit = defineEmits<{
   (e: 'page-change', page: number): void;
@@ -109,9 +110,14 @@ const groupedTransactions = computed(() => {
                         </div>
                         <div>
                             <p class="font-bold text-sm truncate max-w-[120px]">{{ t.description || 'No Description' }}</p>
-                            <p class="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                                {{ t.wallet.name }} • {{ t.category.name }}
-                            </p>
+                            <div class="flex items-center gap-1">
+                                <p class="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                                    {{ t.wallet.name }} • {{ t.category.name }}
+                                </p>
+                                <a v-if="t.attachment" :href="`${baseUrl}${t.attachment}`" target="_blank" @click.stop class="text-xs text-blue-500 hover:text-blue-700 flex items-center" title="Lihat Lampiran">
+                                    <Paperclip class="w-3 h-3" />
+                                </a>
+                            </div>
                         </div>
                     </div>
                         <div class="text-right">

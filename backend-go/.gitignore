@@ -12,3 +12,6 @@ vendor/
 # Cover Profile
 *.out
 coverage.txt
+
+# upload file
+uploads/

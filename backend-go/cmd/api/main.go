@@ -77,7 +77,9 @@ func main() {
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
 
 	// Init Fiber
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		BodyLimit: 10 * 1024 * 1024, // 10MB
+	})
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     frontendURL,
@@ -135,6 +137,9 @@ func main() {
 
 	// Swagger Route
 	app.Get("/swagger/*", swagger.HandlerDefault) 
+
+    // Static Uploads
+    app.Static("/uploads", "./uploads")
 
 	port := os.Getenv("PORT")
 	if port == "" {

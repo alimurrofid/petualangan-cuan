@@ -7,6 +7,18 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+
+	"fmt"
+	"image"
+	"image/jpeg"
+	_ "image/png"
+	"mime/multipart"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"golang.org/x/image/draw"
 )
 
 type TransactionHandler interface {
@@ -43,9 +55,54 @@ func NewTransactionHandler(service service.TransactionService) TransactionHandle
 func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 
+	// Parse Multipart Form
+	// We need to handle this manually since BodyParser might struggle with mixed types if not strictly defined
+	// But Fiber's BodyParser supports it if struct tags are form.
+	
+	// Let's try parsing fields manually for control
+	
 	var input service.CreateTransactionInput
-	if err := c.BodyParser(&input); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+	input.Type = c.FormValue("type")
+	input.Description = c.FormValue("description")
+	
+	amountStr := c.FormValue("amount")
+	amount, _ := strconv.ParseFloat(amountStr, 64)
+	input.Amount = amount
+	
+	walletIDStr := c.FormValue("wallet_id")
+	walletID, _ := strconv.Atoi(walletIDStr)
+	input.WalletID = uint(walletID)
+	
+	categoryIDStr := c.FormValue("category_id")
+	categoryID, _ := strconv.Atoi(categoryIDStr)
+	input.CategoryID = uint(categoryID)
+	
+	dateStr := c.FormValue("date")
+	if dateStr != "" {
+		date, err := time.Parse(time.RFC3339, dateStr)
+		if err == nil {
+			input.Date = date
+		} else {
+             // Try simple date
+             date, err = time.Parse("2006-01-02", dateStr)
+             if err == nil {
+                 input.Date = date
+             } else {
+                 input.Date = time.Now()
+             }
+        }
+	} else {
+		input.Date = time.Now()
+	}
+
+	// Handle File
+	fileHeader, err := c.FormFile("attachment")
+	if err == nil {
+		path, err := processAndSaveImage(fileHeader)
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to process image: " + err.Error()})
+		}
+		input.Attachment = path
 	}
 
 	transaction, err := h.service.CreateTransaction(userID, input)
@@ -155,9 +212,54 @@ func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
+	// Manual parsing for Update
 	var input service.CreateTransactionInput
-	if err := c.BodyParser(&input); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+	input.Type = c.FormValue("type")
+	input.Description = c.FormValue("description")
+	
+	amountStr := c.FormValue("amount")
+	if amountStr != "" {
+		amount, _ := strconv.ParseFloat(amountStr, 64)
+		input.Amount = amount
+	}
+	
+	walletIDStr := c.FormValue("wallet_id")
+	if walletIDStr != "" {
+		walletID, _ := strconv.Atoi(walletIDStr)
+		input.WalletID = uint(walletID)
+	}
+
+	categoryIDStr := c.FormValue("category_id")
+	if categoryIDStr != "" {
+		categoryID, _ := strconv.Atoi(categoryIDStr)
+		input.CategoryID = uint(categoryID)
+	}
+	
+	dateStr := c.FormValue("date")
+	if dateStr != "" {
+		date, err := time.Parse(time.RFC3339, dateStr)
+		if err == nil {
+			input.Date = date
+		} else {
+             date, err = time.Parse("2006-01-02", dateStr)
+             if err == nil {
+                 input.Date = date
+             } else {
+                 input.Date = time.Now()
+             }
+        }
+	} else {
+		input.Date = time.Now()
+	}
+
+	// Handle File
+	fileHeader, err := c.FormFile("attachment")
+	if err == nil {
+		path, err := processAndSaveImage(fileHeader)
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to process image: " + err.Error()})
+		}
+		input.Attachment = path
 	}
 
 	transaction, err := h.service.UpdateTransaction(uint(id), userID, input)
@@ -328,4 +430,70 @@ func (h *transactionHandler) WebhookReceiver(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "Webhook receiver is ready!",
 	})
+}
+
+// Helper to process and save image
+func processAndSaveImage(fileHeader *multipart.FileHeader) (string, error) {
+	file, err := fileHeader.Open()
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	// Decode (detects PNG/JPEG)
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode image: %v", err)
+	}
+
+	// Resize logic
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+	maxDim := 1600
+
+	var finalImg image.Image = img
+
+	if width > maxDim || height > maxDim {
+		var newW, newH int
+		if width > height {
+			newW = maxDim
+			newH = (height * maxDim) / width
+		} else {
+			newH = maxDim
+			newW = (width * maxDim) / height
+		}
+		
+		// Create new image
+		dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
+		// High quality resize
+		draw.CatmullRom.Scale(dst, dst.Bounds(), img, bounds, draw.Over, nil)
+		finalImg = dst
+	}
+
+	// Generate filename
+	ext := ".jpg" // Always save as JPG
+	filename := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), strings.TrimSuffix(fileHeader.Filename, filepath.Ext(fileHeader.Filename)), ext)
+	
+	// Ensure dir exists
+	uploadDir := "./uploads"
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		os.MkdirAll(uploadDir, 0755)
+	}
+	
+	outPath := filepath.Join(uploadDir, filename)
+	outFile, err := os.Create(outPath)
+	if err != nil {
+		return "", err
+	}
+	defer outFile.Close()
+
+	// Encode as JPEG with Quality 75
+	err = jpeg.Encode(outFile, finalImg, &jpeg.Options{Quality: 75})
+	if err != nil {
+		return "", err
+	}
+
+	// Return relative URL path
+	return "/uploads/" + filename, nil
 }

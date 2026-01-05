@@ -16,6 +16,7 @@ type Transaction struct {
 	Amount      float64        `gorm:"not null" json:"amount"`
 	Type        string         `gorm:"not null" json:"type"`
 	Description string         `json:"description"`
+	Attachment  string         `json:"attachment"`
 	Date        time.Time      `gorm:"not null" json:"date"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
