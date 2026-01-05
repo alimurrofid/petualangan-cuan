@@ -17,6 +17,8 @@ services:
       - FRONTEND_URL=${FRONTEND_URL}
     ports:
       - "${PORT}:${PORT}"
+    volumes:
+      - ./uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_started
@@ -44,7 +46,6 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./uploads:/app/uploads
     networks:
       - app-network
     restart: always
