@@ -80,6 +80,22 @@ func (m *MockTransactionService) GetReport(userID uint, startDate, endDate strin
 	return args.Get(0).([]entity.CategoryBreakdown), args.Error(1)
 }
 
+func (m *MockTransactionService) ExportTransactions(userID uint, params entity.TransactionFilterParams) (*bytes.Buffer, error) {
+	args := m.Called(userID, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*bytes.Buffer), args.Error(1)
+}
+
+func (m *MockTransactionService) ExportReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) (*bytes.Buffer, error) {
+	args := m.Called(userID, startDate, endDate, walletID, filterType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*bytes.Buffer), args.Error(1)
+}
+
 func TestCreateTransaction(t *testing.T) {
 	mockService := new(MockTransactionService)
 	transactionHandler := handler.NewTransactionHandler(mockService)
