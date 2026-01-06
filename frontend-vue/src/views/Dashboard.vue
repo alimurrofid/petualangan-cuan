@@ -108,14 +108,29 @@ const chartLabelsDonut = computed(() => {
     return data.value?.expense_breakdown?.map(item => item.category_name) || [];
 });
 
+const totalExpenseAmount = computed(() => {
+    return data.value?.expense_breakdown?.reduce((sum, item) => sum + item.total_amount, 0) || 0;
+});
+
 const chartOptionsDonut = computed(() => ({
     chart: { type: 'donut', fontFamily: 'inherit', foreColor: '#94a3b8' },
     labels: chartLabelsDonut.value,
     plotOptions: {
         pie: {
             donut: {
-                size: '65%',
-                labels: { show: false }
+                size: '70%',
+                labels: {
+                    show: true,
+                    value: {
+                        show: true,
+                        formatter: (val: number) => formatCurrency(val)
+                    },
+                    total: {
+                        show: true,
+                        label: 'Total',
+                        formatter: () => formatCurrency(totalExpenseAmount.value)
+                    }
+                }
             }
         }
     },

@@ -166,6 +166,10 @@ const chartOptions = computed(() => {
                     size: '70%',
                     labels: {
                         show: true,
+                        value: {
+                            show: true,
+                            formatter: (val: number) => formatCurrency(val)
+                        },
                         total: {
                             show: true,
                             label: 'Total',
@@ -273,6 +277,17 @@ const getProgressColor = (item: CategoryBreakdown) => {
                 </SelectContent>
             </Select>
 
+            
+            <Select v-model="filterWallet">
+                <SelectTrigger class="w-full md:w-[140px] h-9 rounded-xl text-xs font-semibold">
+                    <SelectValue placeholder="Semua Dompet" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Semua Dompet</SelectItem>
+                    <SelectItem v-for="w in walletStore.wallets" :key="w.id" :value="String(w.id)">{{ w.name }}</SelectItem>
+                </SelectContent>
+            </Select>
+            
             <Select v-model="filterType">
                 <SelectTrigger class="w-full md:w-[120px] h-9 rounded-xl text-xs font-semibold">
                     <SelectValue placeholder="Tipe" />
@@ -281,16 +296,6 @@ const getProgressColor = (item: CategoryBreakdown) => {
                     <SelectItem value="all">Semua Tipe</SelectItem>
                     <SelectItem value="income">Pemasukan</SelectItem>
                     <SelectItem value="expense">Pengeluaran</SelectItem>
-                </SelectContent>
-            </Select>
-
-             <Select v-model="filterWallet">
-                <SelectTrigger class="w-full md:w-[140px] h-9 rounded-xl text-xs font-semibold">
-                    <SelectValue placeholder="Semua Dompet" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Semua Dompet</SelectItem>
-                    <SelectItem v-for="w in walletStore.wallets" :key="w.id" :value="String(w.id)">{{ w.name }}</SelectItem>
                 </SelectContent>
             </Select>
         </div>
