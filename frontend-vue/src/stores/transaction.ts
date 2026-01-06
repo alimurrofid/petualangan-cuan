@@ -268,6 +268,42 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   };
 
+  const exportTransactions = async (params: TransactionFilterParams = {}) => {
+    // Merge provided params with current store filters
+    const finalParams = { ...filters.value, ...params };
+    try {
+        const queryParams = new URLSearchParams();
+        if (finalParams.start_date) queryParams.append('start_date', finalParams.start_date);
+        if (finalParams.end_date) queryParams.append('end_date', finalParams.end_date);
+        if (finalParams.wallet_id && finalParams.wallet_id !== 'all') queryParams.append('wallet_id', finalParams.wallet_id.toString());
+        if (finalParams.category_id && finalParams.category_id !== 'all') queryParams.append('category_id', finalParams.category_id.toString());
+        if (finalParams.search) queryParams.append('search', finalParams.search);
+        if (finalParams.type) queryParams.append('type', finalParams.type);
+
+        const response = await api.get(`/api/transactions/export?${queryParams.toString()}`, {
+            responseType: 'blob'
+        });
+        return response.data;
+    } catch (err) {
+        console.error("Failed to export transactions", err);
+        throw err;
+    }
+  };
+
+  const exportReport = async (startDate: string, endDate: string, walletId?: number | string, type?: string) => {
+    try {
+        let url = `/api/transactions/report/export?start_date=${startDate}&end_date=${endDate}`;
+        if (walletId && walletId !== 'all') url += `&wallet_id=${walletId}`;
+        if (type && type !== 'all') url += `&type=${type}`;
+
+        const response = await api.get(url, { responseType: 'blob' });
+        return response.data;
+    } catch (err) {
+        console.error("Failed to export report", err);
+        throw err;
+    }
+  };
+
   const refreshData = async () => {
       // Refresh with current filters
       await Promise.all([
@@ -292,6 +328,8 @@ export const useTransactionStore = defineStore('transaction', () => {
     transfer,
     fetchCalendarData,
     fetchReport,
+    exportTransactions,
+    exportReport,
     reportData,
     refreshData
   };

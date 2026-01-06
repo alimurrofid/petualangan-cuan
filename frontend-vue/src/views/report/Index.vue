@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import DateRangePicker from "@/components/DateRangePicker.vue";
 
 import * as LucideIcons from "lucide-vue-next";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, PieChart } from "lucide-vue-next";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, PieChart, Download } from "lucide-vue-next";
 
 const transactionStore = useTransactionStore();
 const walletStore = useWalletStore();
@@ -229,7 +229,27 @@ const getProgressColor = (item: CategoryBreakdown) => {
         if (progress >= 80) return 'bg-yellow-500';
         return 'bg-emerald-500';
     }
-    return ''; // No color for income as bar is hidden
+    return '';
+};
+
+const handleExport = async () => {
+    try {
+        const { start, end } = dateRange.value;
+        const startDateStr = format(start, 'yyyy-MM-dd HH:mm:ss');
+        const endDateStr = format(end, 'yyyy-MM-dd HH:mm:ss');
+        
+        const blob = await transactionStore.exportReport(startDateStr, endDateStr, filterWallet.value, filterType.value);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `reports_petualangancuan_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (e) {
+        console.error("Export failed", e);
+    }
 };
 </script>
 
@@ -298,6 +318,11 @@ const getProgressColor = (item: CategoryBreakdown) => {
                     <SelectItem value="expense">Pengeluaran</SelectItem>
                 </SelectContent>
             </Select>
+
+            <Button variant="outline" size="sm" @click="handleExport" class="h-9 rounded-xl border-border shadow-sm hover:bg-muted/50 gap-2" title="Export Excel">
+                <Download class="h-4 w-4 text-muted-foreground" />
+                <span class="text-xs font-semibold text-muted-foreground">Export</span>
+             </Button>
         </div>
     </div>
 

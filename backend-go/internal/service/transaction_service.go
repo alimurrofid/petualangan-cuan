@@ -5,6 +5,9 @@ import (
 	"cuan-backend/internal/repository"
 	"errors"
 	"time"
+	"bytes"
+	"fmt"
+	"github.com/xuri/excelize/v2"
 
 	"gorm.io/gorm"
 )
@@ -18,6 +21,8 @@ type TransactionService interface {
 	TransferTransaction(userID uint, input TransferTransactionInput) error
 	GetCalendarData(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error)
 	GetReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error)
+	ExportTransactions(userID uint, params entity.TransactionFilterParams) (*bytes.Buffer, error)
+	ExportReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) (*bytes.Buffer, error)
 }
 
 type transactionService struct {
@@ -461,4 +466,126 @@ func (s *transactionService) GetCalendarData(userID uint, startDate, endDate str
 
 func (s *transactionService) GetReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error) {
 	return s.repo.GetCategoryBreakdown(userID, startDate, endDate, walletID, filterType)
+}
+
+func (s *transactionService) ExportTransactions(userID uint, params entity.TransactionFilterParams) (*bytes.Buffer, error) {
+	// Force limit to 0 to get all transactions
+	params.Limit = 0
+	transactions, _, err := s.repo.FindAll(userID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	f := excelize.NewFile()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+
+	// Create Sheet
+	sheetName := "Transactions"
+	index, err := f.NewSheet(sheetName)
+	if err != nil {
+		return nil, err
+	}
+	f.SetActiveSheet(index)
+	f.DeleteSheet("Sheet1") // Remove default sheet
+
+	// Header
+	headers := []string{"No", "Date", "Description", "Category", "Wallet", "Type", "Amount"}
+	for i, header := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheetName, cell, header)
+	}
+
+	// Style Header
+	style, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E0E0E0"}, Pattern: 1},
+	})
+	f.SetCellStyle(sheetName, "A1", "G1", style)
+
+	// Rows
+	for i, t := range transactions {
+		row := i + 2
+		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), i+1)
+		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), t.Date.Format("2006-01-02"))
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), t.Description)
+		f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), t.Category.Name)
+		f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), t.Wallet.Name)
+		f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), t.Type)
+		f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), t.Amount)
+	}
+	
+	f.SetColWidth(sheetName, "B", "B", 12)
+	f.SetColWidth(sheetName, "C", "C", 30)
+	f.SetColWidth(sheetName, "D", "E", 15)
+	f.SetColWidth(sheetName, "F", "F", 10)
+	f.SetColWidth(sheetName, "G", "G", 15)
+
+	return f.WriteToBuffer()
+}
+
+func (s *transactionService) ExportReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) (*bytes.Buffer, error) {
+	data, err := s.GetReport(userID, startDate, endDate, walletID, filterType)
+	if err != nil {
+		return nil, err
+	}
+
+	f := excelize.NewFile()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+
+	sheetName := "Report"
+	index, err := f.NewSheet(sheetName)
+	if err != nil {
+		return nil, err
+	}
+	f.SetActiveSheet(index)
+	f.DeleteSheet("Sheet1")
+
+	// Header
+	headers := []string{"No", "Category", "Type", "Total Amount", "Budget Limit", "Is Over Budget"}
+	for i, header := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheetName, cell, header)
+	}
+
+	// Style
+	style, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E0E0E0"}, Pattern: 1},
+	})
+	f.SetCellStyle(sheetName, "A1", "F1", style)
+
+	// Rows
+	for i, item := range data {
+		row := i + 2
+		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), i+1)
+		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), item.CategoryName)
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), item.Type)
+		f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), item.TotalAmount)
+		
+		if item.Type == "expense" && item.BudgetLimit > 0 {
+			f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), item.BudgetLimit)
+		} else {
+			f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), "-")
+		}
+		
+		if item.IsOverBudget {
+			f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), "Yes")
+		} else {
+			f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), "No")
+		}
+	}
+
+	f.SetColWidth(sheetName, "B", "C", 20)
+	f.SetColWidth(sheetName, "D", "E", 20)
+	f.SetColWidth(sheetName, "F", "F", 15)
+
+	return f.WriteToBuffer()
 }

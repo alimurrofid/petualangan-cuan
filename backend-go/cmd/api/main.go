@@ -126,7 +126,9 @@ func main() {
 	transactions.Get("/", h.GetTransactions)
 	transactions.Post("/", h.CreateTransaction)
 	transactions.Get("/calendar", h.GetCalendarData)
+	transactions.Get("/report/export", h.ExportReport) // BEFORE /report so it doesn't match keys if any, but /report is exact match
 	transactions.Get("/report", h.GetReport) 
+	transactions.Get("/export", h.ExportTransactions)
 	transactions.Post("/transfer", h.TransferTransaction)
 	transactions.Get("/:id", h.GetTransaction)
 	transactions.Put("/:id", h.UpdateTransaction)

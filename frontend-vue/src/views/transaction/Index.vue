@@ -137,6 +137,22 @@ const handleSave = () => {
 };
 
 
+const handleExport = async () => {
+    try {
+        const blob = await transactionStore.exportTransactions();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `transactions_petualangancuan_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (e) {
+        console.error("Export failed", e);
+    }
+};
+
 </script>
 
 <template>
@@ -162,6 +178,7 @@ const handleSave = () => {
             :formattedDateRange="formattedDateRange"
             @navigateDate="navigateDate"
             @update:dateRange="updateCustomDateRange"
+            @export="handleExport"
         />
 
         <div class="grid lg:grid-cols-3 gap-6 md:h-[600px] overflow-hidden">

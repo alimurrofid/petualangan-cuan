@@ -3,7 +3,7 @@ import { ref, watch } from 'vue';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-vue-next";
+import { Search, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Download } from "lucide-vue-next";
 import DateRangePicker from "@/components/DateRangePicker.vue";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
@@ -24,7 +24,8 @@ const emit = defineEmits([
     'update:categoryId', 
     'update:searchQuery', 
     'navigateDate', 
-    'update:dateRange' 
+    'update:dateRange',
+    'export'
 ]);
 
 const walletStore = useWalletStore();
@@ -132,6 +133,11 @@ watch(() => props.periodType, (val) => {
                     class="h-9 pl-8 rounded-full bg-muted/50 border-transparent focus:bg-background transition-all text-xs" 
                 />
             </div>
+
+             <Button variant="outline" size="sm" @click="$emit('export')" class="h-9 rounded-xl border-border shadow-sm hover:bg-muted/50 gap-2" title="Export Excel">
+                <Download class="h-4 w-4 text-muted-foreground" />
+                <span class="text-xs font-semibold text-muted-foreground">Export</span>
+             </Button>
         </div>
     </div>
 

@@ -30,6 +30,8 @@ type TransactionHandler interface {
 	TransferTransaction(c *fiber.Ctx) error
 	GetCalendarData(c *fiber.Ctx) error
 	GetReport(c *fiber.Ctx) error
+	ExportTransactions(c *fiber.Ctx) error
+	ExportReport(c *fiber.Ctx) error
 	WebhookReceiver(c *fiber.Ctx) error
 }
 
@@ -424,6 +426,102 @@ func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
 		"status": "success",
 		"data":   report,
 	})
+}
+
+// ExportTransactions godoc
+// @Summary Export transactions to Excel
+// @Description Export all matched transactions
+// @Tags transactions
+// @Produces application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+// @Param start_date query string false "Start Date"
+// @Param end_date query string false "End Date"
+// @Param wallet_id query int false "Wallet ID"
+// @Param category_id query int false "Category ID"
+// @Param search query string false "Search Term"
+// @Param type query string false "Transaction Type"
+// @Router /api/transactions/export [get]
+func (h *transactionHandler) ExportTransactions(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
+	search := c.Query("search")
+	transType := c.Query("type")
+	
+	walletID, _ := strconv.Atoi(c.Query("wallet_id", "0"))
+	categoryID, _ := strconv.Atoi(c.Query("category_id", "0"))
+
+	params := entity.TransactionFilterParams{
+		StartDate:  startDate,
+		EndDate:    endDate,
+		Search:     search,
+		Type:       transType,
+		WalletID:   uint(walletID),
+		CategoryID: uint(categoryID),
+		// Limit 0 is set in service
+	}
+
+	buffer, err := h.service.ExportTransactions(userID, params)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Disposition", "attachment; filename=transactions_export.xlsx")
+	
+	return c.SendStream(buffer)
+}
+
+// ExportReport godoc
+// @Summary Export report to Excel
+// @Description Export category breakdown report
+// @Tags transactions
+// @Produces application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+// @Param start_date query string true "Start Date"
+// @Param end_date query string true "End Date"
+// @Param wallet_id query int false "Wallet ID"
+// @Param type query string false "Filter Type"
+// @Router /api/transactions/report/export [get]
+func (h *transactionHandler) ExportReport(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(uint)
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
+	walletIDStr := c.Query("wallet_id")
+	filterType := c.Query("type")
+
+	if startDate == "" || endDate == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "start_date and end_date are required",
+		})
+	}
+
+	var walletID *uint
+	if walletIDStr != "" && walletIDStr != "all" {
+		id, err := strconv.ParseUint(walletIDStr, 10, 32)
+		if err == nil {
+			uid := uint(id)
+			walletID = &uid
+		}
+	}
+
+	var fType *string
+	if filterType != "" && filterType != "all" {
+		fType = &filterType
+	}
+
+	buffer, err := h.service.ExportReport(userID, startDate, endDate, walletID, fType)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Disposition", "attachment; filename=report_export.xlsx")
+	
+	return c.SendStream(buffer)
 }
 
 func (h *transactionHandler) WebhookReceiver(c *fiber.Ctx) error {
