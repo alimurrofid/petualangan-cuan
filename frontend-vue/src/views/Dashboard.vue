@@ -16,7 +16,8 @@ import {
   ArrowDown, 
   Wallet,
   TrendingUp,
-  Lightbulb
+  Lightbulb,
+  Paperclip
 } from 'lucide-vue-next';
 import { getEmoji, getIconComponent } from "@/lib/icons";
 import { format, parseISO, isSameDay, subDays } from 'date-fns';
@@ -24,6 +25,7 @@ import { id as localeId } from "date-fns/locale";
 
 const authStore = useAuthStore();
 const dashboardStore = useDashboardStore();
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
 onMounted(() => {
     dashboardStore.fetchDashboard();
@@ -342,6 +344,12 @@ const groupedRecentTransactions = computed(() => {
                                     <p class="font-bold text-sm truncate max-w-[180px] pb-0.5">{{ t.description || 'Tanpa Keterangan' }}</p>
                                     <p class="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
                                         {{ t.wallet?.name }} • {{ t.category?.name }}
+                                        <a v-if="t.attachment"
+                                            :href="`${baseUrl.replace(/\/$/, '')}/${t.attachment.replace(/^\//, '')}`"
+                                            target="_blank" @click.stop
+                                            class="text-xs text-blue-500 hover:text-blue-700 flex items-center">
+                                            <Paperclip class="w-3 h-3" />
+                                        </a>
                                     </p>
                                 </div>
                             </div>

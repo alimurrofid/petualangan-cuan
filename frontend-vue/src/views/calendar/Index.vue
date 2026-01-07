@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, isSameMonth, isSameDay, startOfWeek, endOfWeek, parseISO, isToday } from "date-fns";
 import { id } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-vue-next";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Paperclip } from "lucide-vue-next";
 import { useTransactionStore } from "@/stores/transaction";
 import { useCategoryStore } from "@/stores/category";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { getEmoji, getIconComponent } from "@/lib/icons";
 const transactionStore = useTransactionStore();
 const categoryStore = useCategoryStore();
 const currentMonth = ref(new Date());
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
 const selectedDate = ref<Date | null>(null);
 const isDialogOpen = ref(false);
 
@@ -195,7 +196,15 @@ const formatCurrency = (value: number) => {
                              </div>
                              <div class="overflow-hidden">
                                  <p class="font-bold text-sm truncate max-w-[150px]">{{ t.description || 'No Description' }}</p>
-                                 <p class="text-[10px] text-muted-foreground font-medium">{{ t.category.name }} • {{ t.wallet.name }}</p>
+                                 <div class="flex items-center gap-1">
+                                     <p class="text-[10px] text-muted-foreground font-medium">{{ t.category.name }} • {{ t.wallet.name }}</p>
+                                     <a v-if="t.attachment"
+                                         :href="`${baseUrl.replace(/\/$/, '')}/${t.attachment.replace(/^\//, '')}`"
+                                         target="_blank" @click.stop
+                                         class="text-xs text-blue-500 hover:text-blue-700 flex items-center">
+                                         <Paperclip class="w-3 h-3" />
+                                     </a>
+                                 </div>
                              </div>
                          </div>
                          <div class="flex flex-col items-end">
