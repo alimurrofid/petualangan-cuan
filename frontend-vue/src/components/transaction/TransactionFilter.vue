@@ -3,7 +3,7 @@ import { ref, watch } from 'vue';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Download } from "lucide-vue-next";
+import { Search, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-vue-next";
 import DateRangePicker from "@/components/DateRangePicker.vue";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
@@ -87,7 +87,7 @@ watch(() => props.periodType, (val) => {
         </div>
 
         <!-- Filters -->
-        <div class="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
+        <div class="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto flex-1 justify-end">
             <Select :modelValue="periodType" @update:modelValue="(val) => $emit('update:periodType', val)">
                 <SelectTrigger class="w-full md:w-[140px] h-9 rounded-xl text-xs font-semibold">
                     <SelectValue placeholder="Periode" />
@@ -100,27 +100,25 @@ watch(() => props.periodType, (val) => {
                 </SelectContent>
             </Select>
 
-            <div class="flex gap-2 w-full md:w-auto">
-                    <Select :modelValue="walletId" @update:modelValue="(val) => $emit('update:walletId', val)">
-                    <SelectTrigger class="flex-1 md:w-[140px] h-9 rounded-xl text-xs font-semibold">
-                        <SelectValue placeholder="Semua Dompet" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Semua Dompet</SelectItem>
-                        <SelectItem v-for="w in walletStore.wallets" :key="w.id" :value="String(w.id)">{{ w.name }}</SelectItem>
-                    </SelectContent>
-                </Select>
+            <Select :modelValue="walletId" @update:modelValue="(val) => $emit('update:walletId', val)">
+                <SelectTrigger class="w-full md:w-[140px] h-9 rounded-xl text-xs font-semibold">
+                    <SelectValue placeholder="Semua Dompet" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Semua Dompet</SelectItem>
+                    <SelectItem v-for="w in walletStore.wallets" :key="w.id" :value="String(w.id)">{{ w.name }}</SelectItem>
+                </SelectContent>
+            </Select>
 
-                <Select :modelValue="categoryId" @update:modelValue="(val) => $emit('update:categoryId', val)">
-                    <SelectTrigger class="flex-1 md:w-[140px] h-9 rounded-xl text-xs font-semibold">
-                        <SelectValue placeholder="Semua Kategori" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Semua Kategori</SelectItem>
-                            <SelectItem v-for="c in categoryStore.categories" :key="c.id" :value="String(c.id)">{{ c.name }}</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+            <Select :modelValue="categoryId" @update:modelValue="(val) => $emit('update:categoryId', val)">
+                <SelectTrigger class="w-full md:w-[140px] h-9 rounded-xl text-xs font-semibold">
+                    <SelectValue placeholder="Semua Kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Semua Kategori</SelectItem>
+                    <SelectItem v-for="c in categoryStore.categories" :key="c.id" :value="String(c.id)">{{ c.name }}</SelectItem>
+                </SelectContent>
+            </Select>
             
              <!-- Search Input -->
             <div class="relative w-full md:w-[180px]">
@@ -134,10 +132,6 @@ watch(() => props.periodType, (val) => {
                 />
             </div>
 
-             <Button variant="outline" size="sm" @click="$emit('export')" class="h-9 rounded-xl border-border shadow-sm hover:bg-muted/50 gap-2" title="Export Excel">
-                <Download class="h-4 w-4 text-muted-foreground" />
-                <span class="text-xs font-semibold text-muted-foreground">Export</span>
-             </Button>
         </div>
     </div>
 

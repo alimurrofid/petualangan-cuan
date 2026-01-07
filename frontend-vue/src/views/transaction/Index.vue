@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from "vue";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay, addMonths, addWeeks, addDays } from "date-fns";
+import { Download } from "lucide-vue-next";
 import { id } from "date-fns/locale";
 
 import { useTransactionStore } from "@/stores/transaction";
@@ -24,7 +25,7 @@ const periodType = ref<PeriodType>('monthly');
 const selectedDate = ref(new Date());
 const customDateRange = ref({
   start: new Date(),
-  end: new Date() 
+  end: new Date()
 });
 
 const filterWallet = ref<string>("all");
@@ -45,9 +46,9 @@ const dateRange = computed(() => {
     case 'daily':
       return { start: startOfDay(date), end: endOfDay(date) };
     case 'custom':
-      return { 
-          start: startOfDay(customDateRange.value.start), 
-          end: endOfDay(customDateRange.value.end) 
+      return {
+        start: startOfDay(customDateRange.value.start),
+        end: endOfDay(customDateRange.value.end)
       };
   }
 });
@@ -76,49 +77,49 @@ const navigateDate = (amount: number) => {
 };
 
 const updateCustomDateRange = (range: { start: Date, end: Date }) => {
-    customDateRange.value = range;
+  customDateRange.value = range;
 };
 
 // Fetch Data Logic
 const fetchData = async (page = 1) => {
-    const { start, end } = dateRange.value;
-    // Format with time to ensure full day coverage
-    const startDateStr = format(start, 'yyyy-MM-dd HH:mm:ss');
-    const endDateStr = format(end, 'yyyy-MM-dd HH:mm:ss');
+  const { start, end } = dateRange.value;
+  // Format with time to ensure full day coverage
+  const startDateStr = format(start, 'yyyy-MM-dd HH:mm:ss');
+  const endDateStr = format(end, 'yyyy-MM-dd HH:mm:ss');
 
-    // Sync store filters
-    transactionStore.setFilters({
-        page,
-        limit: 10,
-        start_date: startDateStr,
-        end_date: endDateStr,
-        wallet_id: filterWallet.value,
-        category_id: filterCategory.value,
-        search: searchQuery.value,
-    });
+  // Sync store filters
+  transactionStore.setFilters({
+    page,
+    limit: 10,
+    start_date: startDateStr,
+    end_date: endDateStr,
+    wallet_id: filterWallet.value,
+    category_id: filterCategory.value,
+    search: searchQuery.value,
+  });
 
-    // Fetch both list and summary/chart data
-    await transactionStore.refreshData();
+  // Fetch both list and summary/chart data
+  await transactionStore.refreshData();
 };
 
 // ...
 
 // Watchers
 watch([periodType, selectedDate, customDateRange, filterWallet, filterCategory, searchQuery], () => {
-    // Reset to page 1 on filter change
-    fetchData(1);
+  // Reset to page 1 on filter change
+  fetchData(1);
 }, { deep: true });
 
 onMounted(async () => {
-    await Promise.all([
-        walletStore.fetchWallets(),
-        categoryStore.fetchCategories(),
-        fetchData(1)
-    ]);
+  await Promise.all([
+    walletStore.fetchWallets(),
+    categoryStore.fetchCategories(),
+    fetchData(1)
+  ]);
 });
 
 const onPageChange = (page: number) => {
-    fetchData(page);
+  fetchData(page);
 };
 
 // Edit Logic
@@ -126,31 +127,31 @@ const showDialog = ref(false);
 const transactionToEdit = ref<any>(null);
 
 const handleEdit = (t: any) => {
-    transactionToEdit.value = t;
-    showDialog.value = true;
+  transactionToEdit.value = t;
+  showDialog.value = true;
 };
 
 const handleSave = () => {
-    // Store already refreshes data
-    showDialog.value = false;
-    transactionToEdit.value = null; // Reset
+  // Store already refreshes data
+  showDialog.value = false;
+  transactionToEdit.value = null; // Reset
 };
 
 
 const handleExport = async () => {
-    try {
-        const blob = await transactionStore.exportTransactions();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `transactions_petualangancuan_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-    } catch (e) {
-        console.error("Export failed", e);
-    }
+  try {
+    const blob = await transactionStore.exportTransactions();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `transactions_petualangancuan_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (e) {
+    console.error("Export failed", e);
+  }
 };
 
 </script>
@@ -167,54 +168,51 @@ const handleExport = async () => {
 
     <!-- Main Content -->
     <div class="space-y-6 relative">
-        <!-- Toolbar -->
-        <TransactionFilter 
-            v-model:periodType="periodType"
-            v-model:walletId="filterWallet"
-            v-model:categoryId="filterCategory"
-            v-model:searchQuery="searchQuery"
-            :startDate="customDateRange.start"
-            :endDate="customDateRange.end"
-            :formattedDateRange="formattedDateRange"
-            @navigateDate="navigateDate"
-            @update:dateRange="updateCustomDateRange"
-            @export="handleExport"
-        />
+      <!-- Toolbar -->
+      <TransactionFilter v-model:periodType="periodType" v-model:walletId="filterWallet"
+        v-model:categoryId="filterCategory" v-model:searchQuery="searchQuery" :startDate="customDateRange.start"
+        :endDate="customDateRange.end" :formattedDateRange="formattedDateRange" @navigateDate="navigateDate"
+        @update:dateRange="updateCustomDateRange" @export="handleExport" />
 
-        <div class="grid lg:grid-cols-3 gap-6 md:h-[600px] overflow-hidden">
-             <!-- Chart Section -->
-             <Card class="lg:col-span-2 bg-card border-border shadow-sm flex flex-col rounded-3xl overflow-hidden h-full">
-                <CardHeader class="pb-2 border-b border-border/50">
-                    <CardTitle class="text-base font-bold flex items-center gap-2">
-                        Grafik Pertumbuhan
-                    </CardTitle>
-                </CardHeader>
-                <CardContent class="flex-1 p-4 relative min-h-[250px] md:min-h-[300px]">
-                    <TransactionChart :summaryData="transactionStore.calendarData" :periodType="periodType" />
-                </CardContent>
-            </Card>
+      <div class="grid lg:grid-cols-3 gap-6 md:h-[600px] overflow-hidden">
+        <!-- Chart Section -->
+        <Card class="lg:col-span-2 bg-card border-border shadow-sm flex flex-col rounded-3xl overflow-hidden h-full">
+          <CardHeader class="pb-2 border-b border-border/50">
+            <CardTitle class="text-base font-bold flex items-center gap-2">
+              Grafik Pertumbuhan
+            </CardTitle>
+          </CardHeader>
+          <CardContent class="flex-1 p-4 relative min-h-[250px] md:min-h-[300px]">
+            <TransactionChart :summaryData="transactionStore.calendarData" :periodType="periodType" />
+          </CardContent>
+        </Card>
 
-            <!-- Transaction List -->
-             <Card class="bg-card border-border shadow-sm flex flex-col rounded-3xl overflow-hidden h-full">
-                 <CardHeader class="pb-3 border-b border-border/50">
-                    <div class="flex items-center gap-2">
-                         <h3 class="font-bold text-sm">Daftar Transaksi</h3>
-                    </div>
-                </CardHeader>
-                <CardContent class="overflow-y-auto p-0 flex-1 custom-scrollbar">
-                    <TransactionList @page-change="onPageChange" @edit="handleEdit" />
-                </CardContent>
-            </Card>
-        </div>
+        <!-- Transaction List -->
+        <Card class="bg-card border-border shadow-sm flex flex-col rounded-3xl overflow-hidden h-full">
+          <CardHeader class="pb-3 border-b border-border/50">
+            <div class="flex items-center justify-between w-full">
+              <h3 class="font-bold text-sm">Daftar Transaksi</h3>
+              <Button
+                @click="handleExport"
+                title="Export Excel"
+                class="h-9 px-3 rounded-xl border-border shadow-sm hover:bg-muted/50 flex items-center gap-2 text-xs"
+              >
+                <Download class="h-4 w-4 text-muted-foreground" />
+                <span>Export</span>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent class="overflow-y-auto p-0 flex-1 custom-scrollbar">
+            <TransactionList @page-change="onPageChange" @edit="handleEdit" />
+          </CardContent>
+        </Card>
+      </div>
     </div>
 
     <!-- Edit Dialog -->
-    <ManualTransactionDialog 
-        :open="showDialog" 
-        @update:open="(val) => { showDialog = val; if(!val) transactionToEdit = null; }" 
-        :transactionToEdit="transactionToEdit"
-        @save="handleSave"
-    />
+    <ManualTransactionDialog :open="showDialog"
+      @update:open="(val) => { showDialog = val; if (!val) transactionToEdit = null; }"
+      :transactionToEdit="transactionToEdit" @save="handleSave" />
   </div>
 </template>
 

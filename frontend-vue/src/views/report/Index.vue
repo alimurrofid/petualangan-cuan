@@ -319,10 +319,6 @@ const handleExport = async () => {
                 </SelectContent>
             </Select>
 
-            <Button variant="outline" size="sm" @click="handleExport" class="h-9 rounded-xl border-border shadow-sm hover:bg-muted/50 gap-2" title="Export Excel">
-                <Download class="h-4 w-4 text-muted-foreground" />
-                <span class="text-xs font-semibold text-muted-foreground">Export</span>
-             </Button>
         </div>
     </div>
 
@@ -361,7 +357,13 @@ const handleExport = async () => {
         <!-- Category List -->
         <Card class="lg:col-span-2 bg-card border-border shadow-sm flex flex-col rounded-3xl overflow-hidden">
             <CardHeader class="pb-3 border-b border-border/50">
-                <CardTitle class="text-base font-bold">Rincian Kategori</CardTitle>
+                <div class="flex items-center justify-between">
+                    <CardTitle class="text-base font-bold">Rincian Kategori</CardTitle>
+                    <Button variant="outline" size="sm" @click="handleExport" class="h-8 rounded-xl border-border shadow-sm hover:bg-muted/50 gap-2 text-xs" title="Export Excel">
+                        <Download class="h-3.5 w-3.5 text-muted-foreground" />
+                        <span class="text-xs font-semibold text-muted-foreground">Export</span>
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent class="p-0 custom-scrollbar overflow-y-auto max-h-[500px]">
                  <div v-if="reportData.length === 0" class="p-8 text-center text-muted-foreground">
