@@ -316,6 +316,8 @@ server {
     listen 443 ssl;
     server_name petualangancuan.rofid.me;
 
+    client_max_body_size 10M;
+
     ssl_certificate     /etc/ssl/cloudflare/origin.crt;
     ssl_certificate_key /etc/ssl/cloudflare/origin.key;
 
