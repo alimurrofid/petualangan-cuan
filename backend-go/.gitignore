@@ -15,3 +15,6 @@ coverage.txt
 
 # upload file
 uploads/
+
+bin/*.bin
+bin/whisper-cli
