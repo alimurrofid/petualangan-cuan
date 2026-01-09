@@ -1,6 +1,8 @@
 services:
   backend:
-    image: ghcr.io/alimurrofid/petualangan-cuan/backend:latest
+    build: 
+      context: ./backend-go
+      dockerfile: Dockerfile
     container_name: petualangan_cuan_backend
     environment:
       - PORT=${PORT}
@@ -15,28 +17,25 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL}
       - FRONTEND_URL=${FRONTEND_URL}
+      - OCR_URL=${OCR_URL}
+      - LLM_URL=${LLM_URL}
+      - WA_URL=${WA_URL}
+      - WHATSAPP_WEBHOOK_SECRET=${WHATSAPP_WEBHOOK_SECRET}
     ports:
       - "${PORT}:${PORT}"
     volumes:
       - ./uploads:/app/uploads
+      - ./backend-go/bin:/app/bin
     depends_on:
       postgres:
+        condition: service_started
+      llm-server:
         condition: service_started
     networks:
       - app-network
     restart: always
     user: appuser
-  frontend:
-    image: ghcr.io/alimurrofid/petualangan-cuan/frontend:latest
-    container_name: petualangan_cuan_frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    networks:
-      - app-network
-    restart: always
-  
+
   postgres:
     image: postgres:15-alpine
     container_name: petualangan_cuan_db
@@ -46,6 +45,56 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: always
+
+  ocr-service:
+    build: ./ocr-service
+    container_name: petualangan_cuan_ocr
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+    restart: always
+
+  llm-server:
+    image: ghcr.io/ggml-org/llama.cpp:full
+    container_name: petualangan_cuan_llm
+    volumes:
+      - ./ai-models:/models
+    entrypoint: ["/app/llama-server"]
+    command: -m /models/qwen2.5-1.5b-instruct-q4_k_m.gguf --host 0.0.0.0 --port 8080 -c 2048
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 4G
+    ports:
+      - "8081:8080"
+    networks:
+      - app-network
+    restart: always
+
+  wa-gateway:
+    build: 
+      context: ./wa-gateway
+      dockerfile: docker/golang.Dockerfile
+    container_name: petualangan_cuan_wa
+    ports:
+      - "3000:3000"
+    environment:
+      - APP_BASIC_AUTH_USERNAME=${WA_GATEWAY_USERNAME}
+      - APP_BASIC_AUTH_PASSWORD=${WA_GATEWAY_PASSWORD}
+      - DB_DRIVER=${WA_DB_DRIVER}
+      - WHATSAPP_WEBHOOK=${WA_WEBHOOK_URL}
+    volumes:
+      - ./wa-gateway-data:/app/db
+      - ./wa-gateway-data/statics:/app/statics
     networks:
       - app-network
     restart: always

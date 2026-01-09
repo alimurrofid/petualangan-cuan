@@ -16,6 +16,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/swagger"
 	"github.com/joho/godotenv"
 )
@@ -52,7 +53,7 @@ func main() {
 
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {
-		frontendURL = "http://localhost:5173"
+		log.Fatal("FRONTEND_URL environment variable is required")
 	}
 
 	// Init Layers
@@ -76,11 +77,22 @@ func main() {
 	dashboardSvc := service.NewDashboardService(repo, walletRepo)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
 
+	// Init AI Service
+	ocrURL := os.Getenv("OCR_URL")
+	llmURL := os.Getenv("LLM_URL")
+	// Whisper binary path default
+	whisperPath := "/app/bin/whisper-cli"
+
+	aiSvc := service.NewAIService(ocrURL, llmURL, whisperPath)
+	webhookHandler := handler.NewWebhookHandler(aiSvc, svc, userSvc)
+
 	// Init Fiber
 	app := fiber.New(fiber.Config{
 		BodyLimit: 10 * 1024 * 1024, // 10MB
 	})
 
+	app.Use(logger.New())
+	
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     frontendURL,
 		AllowCredentials: true,
@@ -89,11 +101,16 @@ func main() {
 	}))
 
 	api := app.Group("/api")
+	v1 := api.Group("/v1")
 
 	// Static Uploads
 	app.Static("/uploads", "./uploads")
 
+	// Old webhook (legacy/placeholder)
 	api.Post("/webhook", h.WebhookReceiver)
+	
+	// New WA Webhook
+	v1.Post("/webhook/whatsapp", webhookHandler.HandleWhatsAppWebhook)
 
 	auth := api.Group("/auth")
 	auth.Post("/register", userHandler.Register)
