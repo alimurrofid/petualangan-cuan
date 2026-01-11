@@ -76,6 +76,14 @@ func main() {
 	dashboardSvc := service.NewDashboardService(repo, walletRepo)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
 
+    // Chat AI
+    aiProvider, err := service.NewAIProvider()
+    if err != nil {
+        log.Println("Warning: AI Provider not configured correctly:", err)
+    }
+    chatSvc := service.NewChatService(aiProvider, svc, walletSvc, categorySvc)
+    chatHandler := handler.NewChatHandler(chatSvc)
+
 	// Init Fiber
 	app := fiber.New(fiber.Config{
 		BodyLimit: 10 * 1024 * 1024, // 10MB
@@ -126,8 +134,8 @@ func main() {
 	transactions.Get("/", h.GetTransactions)
 	transactions.Post("/", h.CreateTransaction)
 	transactions.Get("/calendar", h.GetCalendarData)
-	transactions.Get("/report/export", h.ExportReport) // BEFORE /report so it doesn't match keys if any, but /report is exact match
-	transactions.Get("/report", h.GetReport) 
+	transactions.Get("/report/export", h.ExportReport)
+	transactions.Get("/report", h.GetReport)
 	transactions.Get("/export", h.ExportTransactions)
 	transactions.Post("/transfer", h.TransferTransaction)
 	transactions.Get("/:id", h.GetTransaction)
@@ -139,6 +147,10 @@ func main() {
 	userRoutes.Get("/profile", userHandler.GetProfile)
 	userRoutes.Put("/profile", userHandler.UpdateProfile)
 	userRoutes.Put("/password", userHandler.ChangePassword)
+
+    // Chat Route
+    chat := api.Group("/chat", middleware.Protected())
+    chat.Post("/", chatHandler.SendMessage)
 
 	// Swagger Route
 	app.Get("/swagger/*", swagger.HandlerDefault) 
