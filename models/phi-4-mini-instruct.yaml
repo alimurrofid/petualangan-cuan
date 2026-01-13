@@ -1,0 +1,5 @@
+name: phi-4-mini-instruct
+parameters:
+  model: Phi-4-mini-instruct-Q4_K_M.gguf
+context_size: 4096
+threads: 8

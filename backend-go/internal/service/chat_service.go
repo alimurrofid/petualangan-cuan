@@ -18,9 +18,9 @@ type ChatService struct {
 
 // NewAIProvider creates an AI provider based on configuration
 func NewAIProvider() (ai_provider.AIProvider, error) {
-	apiKey := os.Getenv("AI_API_KEY")
+	baseURL := os.Getenv("AI_BASE_URL")
 	model := os.Getenv("AI_MODEL")
-	return ai_provider.NewGeminiProvider(apiKey, model), nil
+	return ai_provider.NewLocalAIProvider(baseURL, model), nil
 }
 
 func NewChatService(provider ai_provider.AIProvider, transactionSvc TransactionService, walletSvc WalletService, categorySvc CategoryService) *ChatService {
