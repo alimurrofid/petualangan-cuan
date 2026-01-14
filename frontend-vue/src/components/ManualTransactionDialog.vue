@@ -11,8 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import * as LucideIcons from "lucide-vue-next";
-import { Wallet } from "lucide-vue-next";
+import { getEmoji, getIconComponent } from "@/lib/icons";
 import { useSwal } from "@/composables/useSwal";
 
 const props = defineProps<{
@@ -174,24 +173,7 @@ const toWalletObj = computed(() => walletStore.wallets.find(w => String(w.id) ==
 const selectedCategoryObj = computed(() => categoryStore.categories.find(c => String(c.id) === selectedCategory.value));
 
 // Utils for icon rendering
-const getIconComponent = (name: string | undefined) => {
-    if (!name) return Wallet;
-    return (LucideIcons as any)[name] || null;
-};
 
-// Emoji map for rendering 
-// (Duplicate from other files, in real app should be shared constant/composable)
-const emojiCategories: Record<string, string> = {
-    Em_MoneyBag: "💰", Em_DollarBill: "💵", Em_Card: "💳", Em_Bank: "🏦", Em_MoneyWing: "💸", Em_Coin: "🪙",
-    Em_Pizza: "🍕", Em_Cart: "🛒", Em_Coffee: "☕", Em_Game: "🎮", Em_Airplane: "✈️", Em_Gift: "🎁",
-    Em_Star: "⭐", Em_Fire: "🔥", Em_Lock: "🔒", Em_Check: "✅", Em_Idea: "💡"
-};
-const getEmoji = (name: string | undefined) => {
-    if (!name) return null;
-    if (emojiCategories[name]) return emojiCategories[name];
-    if (/\p{Emoji}/u.test(name)) return name;
-    return null;
-};
 
 
 const isSubmitting = ref(false);
@@ -394,7 +376,7 @@ const formattedAmount = computed({
 
                     <div class="space-y-2">
                         <Label>Nominal (Rp)</Label>
-                        <Input type="text" placeholder="Rp 0" v-model="formattedAmount"
+                        <Input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" v-model="formattedAmount"
                             :class="['bg-background', errors.amount ? 'border-red-500 ring-1 ring-red-500' : '']"
                             :disabled="isSubmitting" />
                         <span v-if="errors.amount" class="text-xs text-red-500 font-medium">Nominal wajib diisi</span>

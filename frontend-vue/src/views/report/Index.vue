@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay, addMonths, addWeeks, addDays, parseISO, isWithinInterval, isSameDay } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay, addMonths, addWeeks, addDays } from "date-fns";
 import { id } from "date-fns/locale";
 
 import { useTransactionStore, type CategoryBreakdown } from "@/stores/transaction";
@@ -12,8 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DateRangePicker from "@/components/DateRangePicker.vue";
 
-import * as LucideIcons from "lucide-vue-next";
+
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, PieChart, Download } from "lucide-vue-next";
+import { getEmoji, getIconComponent } from "@/lib/icons";
 
 const transactionStore = useTransactionStore();
 const walletStore = useWalletStore();
@@ -37,12 +38,12 @@ watch(periodType, (val) => {
 });
 
 onMounted(async () => {
-    // Fetch all raw data required for client-side processing
+    // Fetch initial data
     await Promise.all([
-        transactionStore.fetchTransactions(),
         walletStore.fetchWallets(),
         categoryStore.fetchCategories()
     ]);
+    fetchReportData();
 });
 
 const dateRange = computed(() => {
@@ -86,61 +87,26 @@ const navigateDate = (amount: number) => {
   }
 };
 
-// Client-side filtering logic
-const filteredTransactions = computed(() => {
-  return transactionStore.transactions.filter((t) => {
-    const tDate = parseISO(t.date);
+const fetchReportData = async () => {
     const { start, end } = dateRange.value;
+    const startDateStr = format(start, 'yyyy-MM-dd');
+    const endDateStr = format(end, 'yyyy-MM-dd');
     
-    if (!start || !end) return false;
+    await transactionStore.fetchReport(
+        startDateStr, 
+        endDateStr, 
+        filterWallet.value === 'all' ? undefined : Number(filterWallet.value), 
+        filterType.value === 'all' ? undefined : filterType.value
+    );
+};
 
-    let matchesPeriod = false;
-    if (periodType.value === 'daily') {
-         matchesPeriod = isSameDay(tDate, selectedDate.value);
-    } else {
-         matchesPeriod = isWithinInterval(tDate, { start, end });
-    }
+// Watch for changes in filters to re-fetch
+watch([dateRange, filterWallet, filterType], () => {
+    fetchReportData();
+}, { deep: true });
 
-    const matchesWallet = filterWallet.value === "all" || t.wallet_id === Number(filterWallet.value);
-    
-    // For type filter, we map 'income'/'expense' exactly. 
-    // If 'all', we include everything.
-    const matchesType = filterType.value === "all" || t.type === filterType.value;
-
-    return matchesPeriod && matchesWallet && matchesType;
-  });
-});
-
-// Aggregation for Report
-const reportData = computed<CategoryBreakdown[]>(() => {
-    const groups: Record<number, number> = {};
-    
-    // Group totals by category_id
-    filteredTransactions.value.forEach(t => {
-        // Only include income and expense for the breakdown, exclude transfers if necessary or keeping them if they have categories
-        if (t.type === 'transfer_in' || t.type === 'transfer_out') return; 
-
-        const currentTotal = groups[t.category_id] || 0;
-        groups[t.category_id] = currentTotal + t.amount;
-    });
-
-    // Map to CategoryBreakdown format
-    // Sort by total_amount descending
-    return Object.entries(groups)
-        .map(([catId, total]) => {
-            const category = categoryStore.categories.find(c => c.id === Number(catId));
-            const budget = category?.budget_limit || 0;
-            return {
-                category_name: category?.name || 'Unknown',
-                category_icon: category?.icon || 'Em_Star',
-                type: category?.type || 'expense',
-                total_amount: total,
-                budget_limit: budget,
-                is_over_budget: (category?.type === 'expense' && budget > 0 && total > budget)
-            };
-        })
-        .sort((a, b) => b.total_amount - a.total_amount);
-});
+// Use store data directly
+const reportData = computed(() => transactionStore.reportData);
 
 // Charts & Visuals
 const formatCurrency = (value: number) => {
@@ -189,24 +155,7 @@ const chartOptions = computed(() => {
     };
 });
 
-// Helpers
-const getIconComponent = (name: string | undefined) => {
-    if (!name) return LucideIcons.Circle;
-    return (LucideIcons as any)[name] || LucideIcons.Circle;
-};
 
-const emojiCategories: Record<string, string> = {
-  Em_MoneyBag: "💰", Em_DollarBill: "💵", Em_Card: "💳", Em_Bank: "🏦", Em_MoneyWing: "💸", Em_Coin: "🪙",
-  Em_Pizza: "🍕", Em_Cart: "🛒", Em_Coffee: "☕", Em_Game: "🎮", Em_Airplane: "✈️", Em_Gift: "🎁",
-  Em_Star: "⭐", Em_Fire: "🔥", Em_Lock: "🔒", Em_Check: "✅", Em_Idea: "💡"
-};
-
-const getEmoji = (name: string | undefined) => {
-  if (!name) return null;
-  if (emojiCategories[name]) return emojiCategories[name];
-  if (/\p{Emoji}/u.test(name)) return name;
-  return null;
-};
 
 const getDisplayPercentage = (item: CategoryBreakdown) => {
     // If expense and has budget, use budget as base

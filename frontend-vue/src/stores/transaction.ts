@@ -77,7 +77,9 @@ export interface PaginationMeta {
 export const useTransactionStore = defineStore('transaction', () => {
   const transactions = ref<Transaction[]>([]);
   const paginationMeta = ref<PaginationMeta>({ total: 0, page: 1, limit: 10 });
+
   const reportData = ref<CategoryBreakdown[]>([]);
+  const calendarTransactions = ref<Transaction[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
@@ -268,6 +270,25 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   };
 
+  const fetchCalendarTransactions = async (startDate: string, endDate: string) => {
+    isLoading.value = true;
+    try {
+        const queryParams = new URLSearchParams();
+        queryParams.append('limit', '0');
+        queryParams.append('start_date', startDate);
+        queryParams.append('end_date', endDate);
+        
+        const response = await api.get(`/api/transactions?${queryParams.toString()}`);
+        if (response.data.status === 'success') {
+            calendarTransactions.value = response.data.data;
+        }
+    } catch (err: any) {
+        console.error("Failed to fetch calendar transactions", err);
+    } finally {
+        isLoading.value = false;
+    }
+  };
+
   const exportTransactions = async (params: TransactionFilterParams = {}) => {
     // Merge provided params with current store filters
     const finalParams = { ...filters.value, ...params };
@@ -315,6 +336,7 @@ export const useTransactionStore = defineStore('transaction', () => {
   return {
     transactions,
     calendarData,
+    calendarTransactions,
     paginationMeta,
     filters,
     isLoading,
@@ -327,6 +349,7 @@ export const useTransactionStore = defineStore('transaction', () => {
     deleteTransaction,
     transfer,
     fetchCalendarData,
+    fetchCalendarTransactions,
     fetchReport,
     exportTransactions,
     exportReport,

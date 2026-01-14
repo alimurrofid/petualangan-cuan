@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, isSameMonth, isSameDay, startOfWeek, endOfWeek, parseISO, isToday } from "date-fns";
 import { id } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Paperclip } from "lucide-vue-next";
@@ -26,7 +26,7 @@ const days = computed(() => {
 const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
 const getTransactionsForDay = (date: Date) => {
-    return transactionStore.transactions.filter(t => isSameDay(parseISO(t.date), date));
+    return transactionStore.calendarTransactions.filter(t => isSameDay(parseISO(t.date), date));
 };
 
 const navigateMonth = (amount: number) => {
@@ -42,15 +42,25 @@ const onDayClick = (date: Date) => {
     isDialogOpen.value = true;
 };
 
+const fetchData = async () => {
+    const start = startOfMonth(currentMonth.value);
+    const end = endOfMonth(currentMonth.value);
+    const gridStart = startOfWeek(start, { weekStartsOn: 1 });
+    const gridEnd = endOfWeek(end, { weekStartsOn: 1 });
+    
+    await transactionStore.fetchCalendarTransactions(
+        format(gridStart, 'yyyy-MM-dd'), 
+        format(gridEnd, 'yyyy-MM-dd')
+    );
+};
+
 // Fetch data when month changes
-// watch(currentMonth, fetchData); // No longer needed if we rely on global transactions
+watch(currentMonth, () => {
+    fetchData();
+}); 
 
 onMounted(async () => {
-    // Ensure we have transactions loaded
-    if (transactionStore.transactions.length === 0) {
-        await transactionStore.fetchTransactions();
-    }
-    // and categories
+    await fetchData();
     if (categoryStore.categories.length === 0) {
         await categoryStore.fetchCategories();
     }
@@ -58,7 +68,7 @@ onMounted(async () => {
 
 const selectedDayTransactions = computed(() => {
     if (!selectedDate.value) return [];
-    return transactionStore.transactions.filter(t => isSameDay(parseISO(t.date), selectedDate.value!));
+    return transactionStore.calendarTransactions.filter(t => isSameDay(parseISO(t.date), selectedDate.value!));
 });
 
 const formatCurrency = (value: number) => {

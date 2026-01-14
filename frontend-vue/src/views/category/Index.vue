@@ -253,7 +253,7 @@ const formattedBudgetLimit = computed({
 
           <div v-if="form.type === 'expense'" class="grid gap-2">
             <Label class="text-sm font-semibold opacity-70">Target Pengeluaran (Rp)</Label>
-            <Input v-model="formattedBudgetLimit" type="text" placeholder="Rp 0" class="h-11 bg-background shadow-sm" :disabled="isSubmitting" />
+            <Input v-model="formattedBudgetLimit" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" class="h-11 bg-background shadow-sm" :disabled="isSubmitting" />
             <p class="text-[10px] text-muted-foreground">Isi 0 jika tidak ingin membatasi pengeluaran.</p>
           </div>
 
