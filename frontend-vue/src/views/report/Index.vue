@@ -158,9 +158,11 @@ const chartOptions = computed(() => {
 
 
 const getDisplayPercentage = (item: CategoryBreakdown) => {
-    // If expense and has budget, use budget as base
-    if (item.type === 'expense' && item.budget_limit > 0) {
-        return Math.round((item.total_amount / item.budget_limit) * 100);
+    if (item.type === 'expense') {
+        if (item.budget_limit > 0) {
+            return Math.round((item.total_amount / item.budget_limit) * 100);
+        }
+        return 0;
     }
     // Fallback to percentage of total amount displayed (contribution)
     if (totalAmount.value === 0) return 0;
