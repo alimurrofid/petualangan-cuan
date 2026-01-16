@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ArrowUpRight, ArrowDownLeft, Filter, Pencil, Trash2, HandCoins, CircleFadingArrowUp, Eye } from "lucide-vue-next";
+import { Plus, ArrowUpRight, ArrowDownLeft, Pencil, Trash2, HandCoins, CircleFadingArrowUp, Eye } from "lucide-vue-next";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { getEmoji, getIconComponent } from "@/lib/icons";

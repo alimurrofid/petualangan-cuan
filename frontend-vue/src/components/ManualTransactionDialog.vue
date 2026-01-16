@@ -5,6 +5,7 @@ import { format, parseISO } from "date-fns";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
 import { useTransactionStore } from "@/stores/transaction";
+import { useWishlistStore } from "@/stores/wishlist";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,12 @@ import { useSwal } from "@/composables/useSwal";
 const props = defineProps<{
     open: boolean;
     transactionToEdit?: any | null;
+    initialData?: {
+        amount?: number;
+        category_id?: number;
+        description?: string;
+    } | null;
+    wishlistItemId?: number | null;
 }>();
 
 const emit = defineEmits<{
@@ -27,6 +34,7 @@ const emit = defineEmits<{
 const walletStore = useWalletStore();
 const categoryStore = useCategoryStore();
 const transactionStore = useTransactionStore();
+const wishlistStore = useWishlistStore();
 const swal = useSwal();
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -161,6 +169,16 @@ watch(() => props.transactionToEdit, (newVal) => {
         existingAttachment.value = "";
     }
 });
+
+// Watch for initialData (for Wishlist or other pre-fills)
+watch(() => props.initialData, (newVal) => {
+    if (newVal && !props.transactionToEdit) {
+        amount.value = newVal.amount?.toString() || "";
+        selectedCategory.value = newVal.category_id?.toString() || "";
+        description.value = newVal.description || "";
+        activeTab.value = "expense"; // Wishlist is typically expense
+    }
+}, { immediate: true });
 
 // Filter categories based on active tab
 const filteredCategories = computed(() => {
@@ -305,6 +323,11 @@ const handleSave = async () => {
 
             await transactionStore.createTransaction(payload);
             swal.toast({ icon: 'success', title: 'Transaksi berhasil disimpan' });
+
+            // If this transaction came from a wishlist item, mark it as bought
+            if (props.wishlistItemId) {
+                await wishlistStore.markAsBought(props.wishlistItemId);
+            }
         }
 
         // Reset form (keep date as today)

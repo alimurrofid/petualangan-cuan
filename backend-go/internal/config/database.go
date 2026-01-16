@@ -55,6 +55,7 @@ func Connect() (*gorm.DB, error) {
 func MigrateFresh(db *gorm.DB) {
 	fmt.Println("🚧 Dropping all tables...")
 	// Drop tables in reverse dependency order to avoid FK issues
+	db.Migrator().DropTable(&entity.WishlistItem{}) // Dependent on User & Category
 	db.Migrator().DropTable(&entity.Transaction{})
 	db.Migrator().DropTable(&entity.DebtPayment{})
 	db.Migrator().DropTable(&entity.Debt{})
@@ -64,10 +65,10 @@ func MigrateFresh(db *gorm.DB) {
 
 	fmt.Println("✅ All tables dropped!")
 	fmt.Println("🆕 Re-running Auto Migration...")
-	db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{})
+	db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{}, &entity.WishlistItem{})
 }
 
 func RunMigration(db *gorm.DB) error {
 	fmt.Println("Running Auto Migration...")
-	return db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{})
+	return db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{}, &entity.WishlistItem{})
 }

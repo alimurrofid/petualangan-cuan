@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import { Wallet, Bot, FolderOpen, ArrowLeftRight, TrendingUp, ToolCase, FileChartColumn, Settings2, Calendar1, HandCoins } from "lucide-vue-next";
+import { Wallet, Bot, FolderOpen, ArrowLeftRight, TrendingUp, ToolCase, FileChartColumn, Settings2, Calendar1, HandCoins, Heart } from "lucide-vue-next";
 
 const items = [
   {
@@ -42,6 +42,11 @@ const items = [
     title: "Utang & Piutang",
     url: "/debt",
     icon: HandCoins,
+  },
+  {
+    title: "Wishlist",
+    url: "/wishlist",
+    icon: Heart,
   },
 ];
 

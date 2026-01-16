@@ -84,6 +84,10 @@ func main() {
 	debtRepo := repository.NewDebtRepository(db)
 	debtSvc := service.NewDebtService(debtRepo, repo, walletRepo, db)
 	debtHandler := handler.NewDebtHandler(debtSvc)
+	// Wishlist
+	wishlistRepo := repository.NewWishlistRepository(db)
+	wishlistSvc := service.NewWishlistService(wishlistRepo)
+	wishlistHandler := handler.NewWishlistHandler(wishlistSvc)
 
 	// Init Fiber
 	app := fiber.New(fiber.Config{
@@ -158,6 +162,15 @@ func main() {
 	debts.Put("/:id", debtHandler.UpdateDebt)
 	debts.Delete("/:id", debtHandler.DeleteDebt)
 	debts.Delete("/payments/:id", debtHandler.DeletePayment)
+
+	// Wishlist Routes (/api/wishlist)
+	wishlist := api.Group("/wishlist", middleware.Protected())
+	wishlist.Post("/", wishlistHandler.Create)
+	wishlist.Get("/", wishlistHandler.FindAll)
+	wishlist.Get("/:id", wishlistHandler.FindByID)
+	wishlist.Put("/:id", wishlistHandler.Update)
+	wishlist.Delete("/:id", wishlistHandler.Delete)
+	wishlist.Patch("/:id/bought", wishlistHandler.MarkAsBought)
 
 	// Swagger Route
 	app.Get("/swagger/*", swagger.HandlerDefault) 
