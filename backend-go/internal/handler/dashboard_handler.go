@@ -28,7 +28,7 @@ func NewDashboardHandler(service service.DashboardService) DashboardHandler {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/dashboard [get]
 func (h *dashboardHandler) GetDashboard(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	data, err := h.service.GetDashboardData(userID)
 	if err != nil {

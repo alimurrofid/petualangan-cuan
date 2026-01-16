@@ -118,7 +118,7 @@ func (h *userHandler) Logout(c *fiber.Ctx) error {
 // @Failure 400 {object} map[string]string
 // @Router /api/user/profile [put]
 func (h *userHandler) UpdateProfile(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(uint)
+	userID, ok := c.Locals("userID").(uint)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
@@ -151,7 +151,7 @@ func (h *userHandler) UpdateProfile(c *fiber.Ctx) error {
 // @Failure 400 {object} map[string]string
 // @Router /api/user/password [put]
 func (h *userHandler) ChangePassword(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(uint)
+	userID, ok := c.Locals("userID").(uint)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
@@ -240,7 +240,7 @@ func (h *userHandler) GoogleCallback(c *fiber.Ctx) error {
 }
 
 func (h *userHandler) GetProfile(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(uint)
+	userID, ok := c.Locals("userID").(uint)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}

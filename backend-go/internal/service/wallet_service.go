@@ -30,10 +30,11 @@ type WalletService interface {
 
 type walletService struct {
 	walletRepository repository.WalletRepository
+	savingGoalRepo   repository.SavingGoalRepository
 }
 
-func NewWalletService(walletRepository repository.WalletRepository) WalletService {
-	return &walletService{walletRepository}
+func NewWalletService(walletRepository repository.WalletRepository, savingGoalRepo repository.SavingGoalRepository) WalletService {
+	return &walletService{walletRepository, savingGoalRepo}
 }
 
 func (s *walletService) CreateWallet(input CreateWalletInput) (*entity.Wallet, error) {
@@ -49,16 +50,43 @@ func (s *walletService) CreateWallet(input CreateWalletInput) (*entity.Wallet, e
 	if err != nil {
 		return nil, err
 	}
-
+	
+	wallet.AvailableBalance = wallet.Balance
 	return wallet, nil
 }
 
 func (s *walletService) GetWalletByID(id uint, userID uint) (*entity.Wallet, error) {
-	return s.walletRepository.FindByID(id, userID)
+	wallet, err := s.walletRepository.FindByID(id, userID)
+	if err != nil {
+		return nil, err
+	}
+	
+	activeContrib, err := s.savingGoalRepo.GetActiveContributions(wallet.ID)
+	if err == nil {
+		wallet.AvailableBalance = wallet.Balance - activeContrib
+	} else {
+		wallet.AvailableBalance = wallet.Balance
+	}
+	
+	return wallet, nil
 }
 
 func (s *walletService) GetUserWallets(userID uint) ([]entity.Wallet, error) {
-	return s.walletRepository.FindByUserID(userID)
+	wallets, err := s.walletRepository.FindByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+	
+	for i := range wallets {
+		activeContrib, err := s.savingGoalRepo.GetActiveContributions(wallets[i].ID)
+		if err == nil {
+			wallets[i].AvailableBalance = wallets[i].Balance - activeContrib
+		} else {
+			wallets[i].AvailableBalance = wallets[i].Balance
+		}
+	}
+	
+	return wallets, nil
 }
 
 func (s *walletService) UpdateWallet(id uint, userID uint, input UpdateWalletInput) (*entity.Wallet, error) {
@@ -75,6 +103,13 @@ func (s *walletService) UpdateWallet(id uint, userID uint, input UpdateWalletInp
 	err = s.walletRepository.Update(wallet)
 	if err != nil {
 		return nil, err
+	}
+	
+	activeContrib, err := s.savingGoalRepo.GetActiveContributions(wallet.ID)
+	if err == nil {
+		wallet.AvailableBalance = wallet.Balance - activeContrib
+	} else {
+		wallet.AvailableBalance = wallet.Balance
 	}
 
 	return wallet, nil

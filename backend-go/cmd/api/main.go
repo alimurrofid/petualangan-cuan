@@ -66,10 +66,12 @@ func main() {
 
 	repo := repository.NewTransactionRepository(db)
 	walletRepo := repository.NewWalletRepository(db)
+	savingGoalRepo := repository.NewSavingGoalRepository(db) // New Repo
+
 	svc := service.NewTransactionService(repo, walletRepo, db)
 	h := handler.NewTransactionHandler(svc)
 	
-	walletSvc := service.NewWalletService(walletRepo)
+	walletSvc := service.NewWalletService(walletRepo, savingGoalRepo) // Updated Injection
 	walletHandler := handler.NewWalletHandler(walletSvc)
 
 	categoryRepo := repository.NewCategoryRepository(db)
@@ -88,6 +90,10 @@ func main() {
 	wishlistRepo := repository.NewWishlistRepository(db)
 	wishlistSvc := service.NewWishlistService(wishlistRepo)
 	wishlistHandler := handler.NewWishlistHandler(wishlistSvc)
+
+	// Saving Goals
+	savingGoalSvc := service.NewSavingGoalService(savingGoalRepo, walletRepo, svc, db)
+	savingGoalHandler := handler.NewSavingGoalHandler(savingGoalSvc)
 
 	// Init Fiber
 	app := fiber.New(fiber.Config{
@@ -171,6 +177,12 @@ func main() {
 	wishlist.Put("/:id", wishlistHandler.Update)
 	wishlist.Delete("/:id", wishlistHandler.Delete)
 	wishlist.Patch("/:id/bought", wishlistHandler.MarkAsBought)
+
+	// Saving Goals Routes (/api/saving-goals)
+	savingGoals := api.Group("/saving-goals", middleware.Protected())
+	savingGoals.Get("/", savingGoalHandler.GetGoals)
+	savingGoals.Post("/", savingGoalHandler.CreateGoal)
+	savingGoals.Post("/:id/contributions", savingGoalHandler.AddContribution)
 
 	// Swagger Route
 	app.Get("/swagger/*", swagger.HandlerDefault) 

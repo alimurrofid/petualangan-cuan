@@ -28,7 +28,7 @@ func NewCategoryHandler(service service.CategoryService) *CategoryHandler {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/categories [post]
 func (h *CategoryHandler) CreateCategory(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	var input service.CreateCategoryInput
 	if err := c.BodyParser(&input); err != nil {
@@ -53,7 +53,7 @@ func (h *CategoryHandler) CreateCategory(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/categories [get]
 func (h *CategoryHandler) GetCategories(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	categories, err := h.service.GetCategories(userID)
 	if err != nil {
@@ -74,7 +74,7 @@ func (h *CategoryHandler) GetCategories(c *fiber.Ctx) error {
 // @Failure 404 {object} map[string]interface{}
 // @Router /api/categories/{id} [get]
 func (h *CategoryHandler) GetCategory(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	category, err := h.service.GetCategory(uint(id), userID)
@@ -98,7 +98,7 @@ func (h *CategoryHandler) GetCategory(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/categories/{id} [put]
 func (h *CategoryHandler) UpdateCategory(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	var input service.UpdateCategoryInput
@@ -125,7 +125,7 @@ func (h *CategoryHandler) UpdateCategory(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/categories/{id} [delete]
 func (h *CategoryHandler) DeleteCategory(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	err := h.service.DeleteCategory(uint(id), userID)

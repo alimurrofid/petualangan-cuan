@@ -293,43 +293,53 @@ const handleDelete = async (id: number) => {
 </script>
 
 <template>
-  <div class="p-6 space-y-8 text-foreground min-h-screen bg-background">
-    <div class="flex flex-col gap-2">
-      <h2 class="text-3xl font-bold tracking-tight">Utang & Piutang</h2>
-      <p class="text-sm text-muted-foreground">Kelola catatan utang dan piutang Anda.</p>
+  <div class="flex-1 space-y-6 pt-2" v-if="debtStore.isLoading">
+      <div class="flex items-center justify-center min-h-[400px]">
+          <p class="text-muted-foreground animate-pulse">Memuat data utang & piutang...</p>
+      </div>
+  </div>
+  <div class="flex-1 space-y-6 pt-2 text-foreground" v-else>
+    <div class="flex justify-between items-center">
+      <div>
+        <h2 class="text-3xl font-bold tracking-tight">Utang & Piutang</h2>
+        <p class="text-sm text-muted-foreground mt-1">Kelola catatan utang dan piutang Anda.</p>
+      </div>
+      <Button @click="openCreateDialog()" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md h-10 rounded-xl transition-all hover:scale-105 active:scale-95 px-4">
+        <Plus class="mr-2 h-4 w-4" /> Tambah Baru
+      </Button>
     </div>
 
     <!-- Summary Cards -->
-    <div class="grid gap-4 md:grid-cols-2">
-      <Card class="bg-card border-border shadow-sm">
+    <div class="grid gap-6 md:grid-cols-2">
+      <Card class="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border border-red-100 dark:border-red-900/30 shadow-sm rounded-3xl overflow-hidden">
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-sm font-medium">Total Utang Saya</CardTitle>
+          <CardTitle class="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Total Utang Saya</CardTitle>
           <ArrowUpRight class="h-4 w-4 text-red-500" />
         </CardHeader>
         <CardContent>
           <div class="text-2xl font-bold text-red-500">{{ formatCurrency(totalDebt) }}</div>
-          <p class="text-xs text-muted-foreground mt-1">Harus dibayar</p>
+          <p class="text-xs font-semibold text-muted-foreground mt-2 uppercase tracking-wide">Harus segera dibayar</p>
         </CardContent>
       </Card>
-      <Card class="bg-card border-border shadow-sm">
+      <Card class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border border-emerald-100 dark:border-emerald-900/30 shadow-sm rounded-3xl overflow-hidden">
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-sm font-medium">Total Piutang Saya</CardTitle>
+          <CardTitle class="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Total Piutang Saya</CardTitle>
           <ArrowDownLeft class="h-4 w-4 text-emerald-500" />
         </CardHeader>
         <CardContent>
           <div class="text-2xl font-bold text-emerald-500">{{ formatCurrency(totalReceivable) }}</div>
-          <p class="text-xs text-muted-foreground mt-1">Akan diterima</p>
+          <p class="text-xs font-semibold text-muted-foreground mt-2 uppercase tracking-wide">Akan segera diterima</p>
         </CardContent>
       </Card>
     </div>
 
     <!-- Main Content -->
-    <Card class="bg-card border-border shadow-sm">
-      <CardContent class="p-6">
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
+    <Card class="bg-card border-border shadow-sm rounded-3xl overflow-hidden border">
+      <CardContent class="p-0">
+          <div class="p-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-border/50 bg-muted/5">
              <div class="flex items-center gap-2 w-full sm:w-auto">
                 <Select v-model="filterType">
-                    <SelectTrigger class="w-full sm:w-[180px]">
+                    <SelectTrigger class="w-full sm:w-[180px] h-9 rounded-xl shadow-sm bg-background">
                         <SelectValue placeholder="Filter Tipe" />
                     </SelectTrigger>
                     <SelectContent>
@@ -339,25 +349,21 @@ const handleDelete = async (id: number) => {
                     </SelectContent>
                 </Select>
              </div>
-            <Button @click="openCreateDialog()" class="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto">
-              <Plus class="h-4 w-4" />
-              Tambah Baru
-            </Button>
           </div>
 
-            <div class="rounded-md border">
+            <div class="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader class="bg-muted/30">
                   <TableRow>
-                    <TableHead>Tipe</TableHead>
-                    <TableHead>Nama</TableHead>
-                    <TableHead>Keterangan</TableHead>
-                    <TableHead>Dompet</TableHead>
-                    <TableHead>Jatuh Tempo</TableHead>
-                    <TableHead class="text-right">Total</TableHead>
-                    <TableHead class="text-right">Sisa</TableHead>
-                    <TableHead class="text-center">Status</TableHead>
-                    <TableHead class="text-right">Aksi</TableHead>
+                     <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">Tipe</TableHead>
+                     <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">Nama</TableHead>
+                     <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">Keterangan</TableHead>
+                     <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">Dompet</TableHead>
+                     <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">Jatuh Tempo</TableHead>
+                     <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 text-right">Total</TableHead>
+                     <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 text-right">Sisa</TableHead>
+                     <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 text-center">Status</TableHead>
+                     <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -399,8 +405,8 @@ const handleDelete = async (id: number) => {
                            <TooltipProvider>
                                <Tooltip>
                                  <TooltipTrigger as-child>
-                                   <Button @click="openDetailDialog(item)" size="sm" variant="ghost" class="h-8 w-8 p-0 hover:bg-slate-100">
-                                     <Eye class="h-4 w-4 text-slate-500" />
+                                   <Button @click="openDetailDialog(item)" size="sm" variant="ghost" class="h-8 w-8 p-0 hover:bg-slate-100 rounded-lg">
+                                     <Eye class="h-3.5 w-3.5 text-slate-500" />
                                    </Button>
                                  </TooltipTrigger>
                                  <TooltipContent>
@@ -408,12 +414,12 @@ const handleDelete = async (id: number) => {
                                  </TooltipContent>
                                </Tooltip>
                            </TooltipProvider>
-
+ 
                            <TooltipProvider>
                                <Tooltip>
                                  <TooltipTrigger as-child>
-                                   <Button @click="openEditDialog(item)" size="sm" variant="ghost" class="h-8 w-8 p-0 hover:bg-blue-50">
-                                     <Pencil class="h-4 w-4 text-blue-500" />
+                                   <Button @click="openEditDialog(item)" size="sm" variant="ghost" class="h-8 w-8 p-0 hover:bg-blue-50 rounded-lg">
+                                     <Pencil class="h-3.5 w-3.5 text-blue-500" />
                                    </Button>
                                  </TooltipTrigger>
                                  <TooltipContent>
@@ -421,13 +427,13 @@ const handleDelete = async (id: number) => {
                                  </TooltipContent>
                                </Tooltip>
                            </TooltipProvider>
-
+ 
                            <TooltipProvider v-if="!item.is_paid">
                                <Tooltip>
                                  <TooltipTrigger as-child>
-                                   <Button @click="openPayDialog(item)" size="sm" variant="ghost" class="h-8 w-8 p-0 hover:bg-emerald-50">
-                                     <CircleFadingArrowUp v-if="item.type === 'debt'" class="h-4 w-4 text-emerald-600" />
-                                     <HandCoins v-else class="h-4 w-4 text-emerald-600" />
+                                   <Button @click="openPayDialog(item)" size="sm" variant="ghost" class="h-8 w-8 p-0 hover:bg-emerald-50 rounded-lg">
+                                     <CircleFadingArrowUp v-if="item.type === 'debt'" class="h-3.5 w-3.5 text-emerald-600" />
+                                     <HandCoins v-else class="h-3.5 w-3.5 text-emerald-600" />
                                    </Button>
                                  </TooltipTrigger>
                                  <TooltipContent>
@@ -435,12 +441,12 @@ const handleDelete = async (id: number) => {
                                  </TooltipContent>
                                </Tooltip>
                            </TooltipProvider>
-
+ 
                            <TooltipProvider>
                                <Tooltip>
                                  <TooltipTrigger as-child>
-                                   <Button @click="handleDelete(item.id)" size="sm" variant="ghost" class="h-8 w-8 p-0 hover:bg-red-50">
-                                     <Trash2 class="h-4 w-4 text-red-500" />
+                                   <Button @click="handleDelete(item.id)" size="sm" variant="ghost" class="h-8 w-8 p-0 hover:bg-red-50 rounded-lg">
+                                     <Trash2 class="h-3.5 w-3.5 text-red-500" />
                                    </Button>
                                  </TooltipTrigger>
                                  <TooltipContent>
@@ -459,7 +465,7 @@ const handleDelete = async (id: number) => {
 
     <!-- Create/Edit Dialog -->
     <Dialog :open="isCreateOpen" @update:open="isCreateOpen = $event">
-      <DialogContent class="sm:max-w-[500px]">
+      <DialogContent class="sm:max-w-[500px] rounded-3xl bg-card text-foreground">
         <DialogHeader>
           <DialogTitle>{{ isEditMode ? 'Edit Utang/Piutang' : 'Catat Utang/Piutang Baru' }}</DialogTitle>
           <DialogDescription>
@@ -468,30 +474,30 @@ const handleDelete = async (id: number) => {
         </DialogHeader>
         
         <Tabs v-model="activeTab" class="w-full mt-2" @update:modelValue="onTabChange">
-          <TabsList class="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="debt" :disabled="isEditMode" class="data-[state=active]:bg-red-500 data-[state=active]:text-white disabled:opacity-50">Utang (Saya Berutang)</TabsTrigger>
-            <TabsTrigger value="receivable" :disabled="isEditMode" class="data-[state=active]:bg-emerald-500 data-[state=active]:text-white disabled:opacity-50">Piutang (Orang Berutang)</TabsTrigger>
+          <TabsList class="grid w-full grid-cols-2 mb-4 h-auto p-1 bg-muted/60 rounded-xl">
+            <TabsTrigger value="debt" :disabled="isEditMode" class="rounded-lg py-2 data-[state=active]:bg-red-500 data-[state=active]:text-white disabled:opacity-50">Utang (Saya Berutang)</TabsTrigger>
+            <TabsTrigger value="receivable" :disabled="isEditMode" class="rounded-lg py-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white disabled:opacity-50">Piutang (Orang Berutang)</TabsTrigger>
           </TabsList>
         </Tabs>
-
+ 
         <div class="grid gap-4 py-2">
           <div class="grid gap-2">
             <Label>Nama {{ createForm.type === 'debt' ? 'Pemberi Utang' : 'Peminjam' }}</Label>
-            <Input v-model="createForm.name" placeholder="Contoh: Budi" />
+            <Input v-model="createForm.name" placeholder="Contoh: Budi" class="h-11 shadow-sm rounded-xl bg-background" />
           </div>
           <div class="grid gap-2">
             <Label>Nominal (Rp)</Label>
-            <Input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" v-model="formattedCreateAmount" />
-            <p v-if="isEditMode" class="text-xs text-muted-foreground text-yellow-600">
+            <Input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" v-model="formattedCreateAmount" class="h-11 shadow-sm rounded-xl bg-background" />
+            <p v-if="isEditMode" class="text-[10px] font-medium text-yellow-600 px-1">
                 Perhatian: Mengubah nominal akan menyesuaikan ulang saldo dompet.
             </p>
           </div>
           <div class="grid gap-2">
             <Label>Dompet Terkait</Label>
             <Select v-model="createWalletIdProxy">
-              <SelectTrigger class="w-full bg-background">
+              <SelectTrigger class="w-full h-11 rounded-xl bg-background shadow-sm">
                   <div v-if="selectedCreateWalletObj" class="flex items-center gap-2">
-                      <component v-if="getIconComponent(selectedCreateWalletObj.icon)" :is="getIconComponent(selectedCreateWalletObj.icon)" class="h-4 w-4" />
+                      <component v-if="getIconComponent(selectedCreateWalletObj.icon)" :is="getIconComponent(selectedCreateWalletObj.icon)" class="h-4 w-4 text-muted-foreground" />
                       <span v-else class="text-xs">{{ getEmoji(selectedCreateWalletObj.icon) || '💼' }}</span>
                       <span>{{ selectedCreateWalletObj.name }}</span>
                   </div>
@@ -507,7 +513,7 @@ const handleDelete = async (id: number) => {
                 </SelectItem>
               </SelectContent>
             </Select>
-            <p v-if="!isEditMode" class="text-xs text-muted-foreground mt-1">
+            <p v-if="!isEditMode" class="text-[10px] font-bold uppercase tracking-widest mt-1 px-1">
                <span v-if="createForm.type === 'debt'" class="text-emerald-600 flex items-center gap-1">
                  <ArrowDownLeft class="h-3 w-3" /> Saldo Dompet Bertambah (Income)
                </span>
@@ -518,16 +524,16 @@ const handleDelete = async (id: number) => {
           </div>
           <div class="grid gap-2">
             <Label>Keterangan</Label>
-            <Input v-model="createForm.description" placeholder="Optional" />
+            <Input v-model="createForm.description" placeholder="Optional" class="h-11 shadow-sm rounded-xl bg-background" />
           </div>
            <div class="grid gap-2">
             <Label>Jatuh Tempo</Label>
-            <Input type="date" :model-value="createForm.due_date || ''" @update:model-value="v => createForm.due_date = v as string" />
+            <Input type="date" :model-value="createForm.due_date || ''" @update:model-value="v => createForm.due_date = v as string" class="h-11 shadow-sm rounded-xl bg-background block w-full" />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" @click="isCreateOpen = false">Batal</Button>
-          <Button @click="handleCreate" :class="createForm.type === 'debt' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'">
+        <DialogFooter class="gap-2">
+          <Button variant="outline" @click="isCreateOpen = false" class="rounded-xl h-10 px-6">Batal</Button>
+          <Button @click="handleCreate" :class="createForm.type === 'debt' ? 'bg-red-600 hover:bg-red-700' : 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 font-bold'" class="rounded-xl h-10 px-6 text-white shadow-md">
             {{ isEditMode ? 'Simpan Perubahan' : 'Simpan' }}
           </Button>
         </DialogFooter>
@@ -536,7 +542,7 @@ const handleDelete = async (id: number) => {
 
     <!-- Pay Dialog -->
     <Dialog :open="isPayOpen" @update:open="isPayOpen = $event">
-      <DialogContent class="sm:max-w-[425px]">
+      <DialogContent class="sm:max-w-[425px] rounded-3xl bg-card text-foreground">
         <DialogHeader>
           <DialogTitle>{{ selectedDebt?.type === 'debt' ? 'Bayar Utang' : 'Terima Pembayaran' }}</DialogTitle>
           <DialogDescription>
@@ -545,19 +551,19 @@ const handleDelete = async (id: number) => {
         </DialogHeader>
         <div class="grid gap-4 py-4">
           <div class="grid gap-2">
-             <Label class="tex-sm text-muted-foreground">Sisa Kewajiban</Label>
-             <div class="text-xl font-bold">{{ selectedDebt ? formatCurrency(selectedDebt.remaining) : 0 }}</div>
+             <Label>Sisa Kewajiban</Label>
+             <div class="text-xl font-bold text-foreground">{{ selectedDebt ? formatCurrency(selectedDebt.remaining) : 0 }}</div>
           </div>
           <div class="grid gap-2">
             <Label>Nominal Pembayaran (Rp)</Label>
-            <Input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" v-model="formattedPayAmount" />
+            <Input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" v-model="formattedPayAmount" class="h-11 shadow-sm rounded-xl bg-background" />
           </div>
           <div class="grid gap-2">
             <Label>Dompet Sumber/Tujuan</Label>
              <Select v-model="payWalletIdProxy">
-              <SelectTrigger class="w-full bg-background">
+              <SelectTrigger class="w-full h-11 rounded-xl bg-background shadow-sm">
                   <div v-if="selectedPayWalletObj" class="flex items-center gap-2">
-                      <component v-if="getIconComponent(selectedPayWalletObj.icon)" :is="getIconComponent(selectedPayWalletObj.icon)" class="h-4 w-4" />
+                      <component v-if="getIconComponent(selectedPayWalletObj.icon)" :is="getIconComponent(selectedPayWalletObj.icon)" class="h-4 w-4 text-muted-foreground" />
                       <span v-else class="text-xs">{{ getEmoji(selectedPayWalletObj.icon) || '💼' }}</span>
                       <span>{{ selectedPayWalletObj.name }}</span>
                   </div>
@@ -573,7 +579,7 @@ const handleDelete = async (id: number) => {
                 </SelectItem>
               </SelectContent>
             </Select>
-            <p class="text-xs text-muted-foreground mt-1">
+            <p class="text-[10px] font-bold uppercase tracking-widest mt-1 px-1">
                <span v-if="selectedDebt?.type === 'debt'" class="text-red-600 flex items-center gap-1">
                  <ArrowUpRight class="h-3 w-3" /> Saldo Dompet Berkurang (Expense)
                </span>
@@ -584,12 +590,12 @@ const handleDelete = async (id: number) => {
           </div>
           <div class="grid gap-2">
             <Label>Catatan (Opsional)</Label>
-            <Input v-model="payForm.note" placeholder="Contoh: Cicilan ke-1" />
+            <Input v-model="payForm.note" placeholder="Contoh: Cicilan ke-1" class="h-11 shadow-sm rounded-xl bg-background" />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" @click="isPayOpen = false">Batal</Button>
-          <Button @click="handlePay" :class="selectedDebt?.type === 'debt' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'">Proses</Button>
+        <DialogFooter class="gap-2">
+          <Button variant="outline" @click="isPayOpen = false" class="rounded-xl h-10 px-6">Batal</Button>
+          <Button @click="handlePay" :class="selectedDebt?.type === 'debt' ? 'bg-red-600 hover:bg-red-700' : 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 font-bold'" class="rounded-xl h-10 px-6 text-white shadow-md">Proses</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

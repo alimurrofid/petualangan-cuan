@@ -53,13 +53,13 @@ const handleDeletePayment = async (paymentId: number) => {
 
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
-    <DialogContent class="sm:max-w-[700px]">
+    <DialogContent class="sm:max-w-[700px] rounded-3xl bg-card text-foreground">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
             <span>Detail {{ debt?.type === 'debt' ? 'Utang' : 'Piutang' }}</span>
             <span 
-                class="text-xs px-2 py-1 rounded border"
-                :class="debt?.is_paid ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'"
+                class="text-xs px-2 py-0.5 rounded-md border font-semibold tracking-wide uppercase"
+                :class="debt?.is_paid ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'"
             >
                 {{ debt?.is_paid ? 'LUNAS' : 'BELUM LUNAS' }}
             </span>
@@ -71,14 +71,14 @@ const handleDeletePayment = async (paymentId: number) => {
 
       <div v-if="debt" class="space-y-6 pt-4">
           <!-- History Table -->
-          <div class="border rounded-md">
+          <div class="border rounded-2xl overflow-hidden shadow-sm bg-card">
               <Table>
-                  <TableHeader>
+                  <TableHeader class="bg-muted/30">
                       <TableRow>
-                          <TableHead>Tanggal</TableHead>
-                          <TableHead>Dompet</TableHead>
-                          <TableHead>Catatan</TableHead>
-                          <TableHead class="text-right">Nominal</TableHead>
+                          <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">Tanggal</TableHead>
+                          <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">Dompet</TableHead>
+                          <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3">Catatan</TableHead>
+                          <TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 text-right">Nominal</TableHead>
                           <TableHead class="w-[50px]"></TableHead>
                       </TableRow>
                   </TableHeader>
@@ -112,10 +112,10 @@ const handleDeletePayment = async (paymentId: number) => {
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                class="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50"
+                                class="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                 @click="handleDeletePayment(payment.id)"
                               >
-                                  <Trash2 class="h-3 w-3" />
+                                  <Trash2 class="h-3.5 w-3.5" />
                               </Button>
                           </TableCell>
                       </TableRow>

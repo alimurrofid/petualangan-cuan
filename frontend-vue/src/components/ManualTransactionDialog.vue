@@ -24,6 +24,7 @@ const props = defineProps<{
         description?: string;
     } | null;
     wishlistItemId?: number | null;
+    savingGoalTarget?: any | null; // New prop for Saving Goal
 }>();
 
 const emit = defineEmits<{
@@ -38,7 +39,7 @@ const wishlistStore = useWishlistStore();
 const swal = useSwal();
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
-const activeTab = ref<"expense" | "income" | "transfer">("expense");
+const activeTab = ref<"expense" | "income" | "transfer" | "saving">("expense");
 const date = ref(format(new Date(), "yyyy-MM-dd"));
 const amount = ref("");
 const selectedWallet = ref("");
@@ -180,8 +181,22 @@ watch(() => props.initialData, (newVal) => {
     }
 }, { immediate: true });
 
+// Watch for Saving Goal Target
+watch(() => props.savingGoalTarget, (newVal) => {
+    if (newVal) {
+        activeTab.value = "saving";
+        description.value = `Alokasi ke ${newVal.name}`;
+        if (newVal.category_id) {
+            selectedCategory.value = String(newVal.category_id);
+        }
+    }
+}, { immediate: true });
+
 // Filter categories based on active tab
 const filteredCategories = computed(() => {
+    if (activeTab.value === 'saving') {
+        return categoryStore.categories.filter(c => c.type === 'expense');
+    }
     return categoryStore.categories.filter(c => c.type === activeTab.value);
 });
 
@@ -254,6 +269,24 @@ const handleSave = async () => {
         const now = new Date();
         const [year = now.getFullYear(), month = now.getMonth() + 1, day = now.getDate()] = date.value.split('-').map(Number);
         const finalDate = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
+
+        if (activeTab.value === 'saving' && props.savingGoalTarget) {
+            // Handle Saving Contribution
+            const { useSavingGoalStore } = await import("@/stores/saving_goal");
+            const savingStore = useSavingGoalStore();
+            
+            await savingStore.addContribution(props.savingGoalTarget.id, {
+                wallet_id: Number(selectedWallet.value),
+                amount: Number(amount.value),
+                date: finalDate.toISOString(), // Backend expects ISO string if binding to time.Time JSON
+                description: description.value
+            });
+            swal.toast({ icon: 'success', title: 'Berhasil menabung!' });
+            
+            emit("save", {});
+            emit("update:open", false);
+            return;
+        }
 
         if (props.transactionToEdit) {
             let finalType: string = activeTab.value;
@@ -368,23 +401,27 @@ const formattedAmount = computed({
             </DialogHeader>
 
             <div v-if="transactionToEdit && (transactionToEdit.type === 'transfer_in' || transactionToEdit.type === 'transfer_out')"
-                class="bg-blue-50 p-3 rounded-lg text-xs text-blue-700 mb-4 border border-blue-200">
+                class="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg text-xs text-blue-700 dark:text-blue-300 mb-4 border border-blue-200 dark:border-blue-800">
                 <strong>Info:</strong> Transaksi ini terhubung dengan transaksi transfer lainnya. Perubahan nominal,
                 tanggal, atau deskripsi akan otomatis diterapkan pada pasangannya.
             </div>
 
             <Tabs v-model="activeTab" class="w-full">
-                <TabsList class="grid w-full grid-cols-3 mb-4 h-auto p-1 bg-muted/60 rounded-xl">
+                <TabsList class="grid w-full grid-cols-3 mb-4 h-auto p-1 bg-muted/60 rounded-xl" v-if="activeTab !== 'saving'">
                     <TabsTrigger value="expense"
-                        class="rounded-lg py-2 data-[state=active]:bg-red-500 data-[state=active]:text-white">
+                        class="rounded-lg py-2 data-[state=active]:bg-red-500 data-[state=active]:text-white dark:data-[state=active]:bg-red-600 dark:text-muted-foreground dark:data-[state=active]:text-white transition-all">
                         Pengeluaran</TabsTrigger>
                     <TabsTrigger value="income"
-                        class="rounded-lg py-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+                        class="rounded-lg py-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-600 dark:text-muted-foreground dark:data-[state=active]:text-white transition-all">
                         Pemasukan</TabsTrigger>
                     <TabsTrigger value="transfer"
-                        class="rounded-lg py-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white">Transfer
+                        class="rounded-lg py-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white dark:data-[state=active]:bg-blue-600 dark:text-muted-foreground dark:data-[state=active]:text-white transition-all">Transfer
                     </TabsTrigger>
                 </TabsList>
+                
+                <div v-if="activeTab === 'saving'" class="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 p-3 rounded-lg mb-4 text-center font-medium border border-emerald-200 dark:border-emerald-800">
+                    Menabung untuk: {{ props.savingGoalTarget?.name }}
+                </div>
 
                 <div class="space-y-4 py-2">
                     <div class="space-y-2">
@@ -420,11 +457,16 @@ const formattedAmount = computed({
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem v-for="w in walletStore.wallets" :key="w.id" :value="String(w.id)">
-                                    <div class="flex items-center gap-2">
-                                        <component v-if="getIconComponent(w.icon)" :is="getIconComponent(w.icon)"
-                                            class="h-4 w-4" />
-                                        <span v-else class="text-xs">{{ getEmoji(w.icon) || '💼' }}</span>
-                                        <span>{{ w.name }}</span>
+                                    <div class="flex items-center gap-2 justify-between w-full">
+                                        <div class="flex items-center gap-2">
+                                            <component v-if="getIconComponent(w.icon)" :is="getIconComponent(w.icon)"
+                                                class="h-4 w-4" />
+                                            <span v-else class="text-xs">{{ getEmoji(w.icon) || '💼' }}</span>
+                                            <span>{{ w.name }}</span>
+                                        </div>
+                                        <div v-if="w.available_balance !== undefined && w.available_balance !== w.balance" class="text-xs text-muted-foreground">
+                                            (Tersedia: {{ new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(w.available_balance) }})
+                                        </div>
                                     </div>
                                 </SelectItem>
                             </SelectContent>
@@ -463,7 +505,7 @@ const formattedAmount = computed({
 
                     <div v-if="activeTab !== 'transfer'" class="space-y-2">
                         <Label>Kategori</Label>
-                        <Select v-model="selectedCategory" :disabled="isSubmitting">
+                        <Select v-model="selectedCategory" :disabled="isSubmitting || activeTab === 'saving'">
                             <SelectTrigger
                                 :class="['w-full bg-background', errors.category ? 'border-red-500 ring-1 ring-red-500' : '']">
                                 <div v-if="selectedCategoryObj" class="flex items-center gap-2">
@@ -490,10 +532,12 @@ const formattedAmount = computed({
                             dipilih</span>
                     </div>
 
+
+
                     <div class="space-y-2">
                         <Label>Deskripsi (Opsional)</Label>
                         <Input placeholder="Misal: Makan siang, Gaji bulanan" v-model="description"
-                            class="bg-background" :disabled="isSubmitting" />
+                            class="bg-background" :disabled="isSubmitting || activeTab === 'saving'" />
                     </div>
 
                     <!-- File Upload -->

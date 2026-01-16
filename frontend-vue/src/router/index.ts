@@ -72,6 +72,11 @@ const routes: RouteRecordRaw[] = [
         name: "Wishlist",
         component: () => import("@/views/wishlist/Index.vue"),
       },
+      {
+        path: "saving-goal",
+        name: "SavingGoal",
+        component: () => import("@/views/saving_goal/Index.vue"),
+      },
     ],
   },
 ];

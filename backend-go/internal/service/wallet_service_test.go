@@ -15,7 +15,8 @@ import (
 
 func TestCreateWallet(t *testing.T) {
 	mockRepo := new(mock.WalletRepositoryMock)
-	walletService := service.NewWalletService(mockRepo)
+	mockSavingRepo := new(mock.SavingGoalRepositoryMock)
+	walletService := service.NewWalletService(mockRepo, mockSavingRepo)
 
 	input := service.CreateWalletInput{
 		UserID:  1,
@@ -37,12 +38,15 @@ func TestCreateWallet(t *testing.T) {
 
 func TestGetWalletByID_Success(t *testing.T) {
 	mockRepo := new(mock.WalletRepositoryMock)
-	walletService := service.NewWalletService(mockRepo)
+	mockSavingRepo := new(mock.SavingGoalRepositoryMock)
+	walletService := service.NewWalletService(mockRepo, mockSavingRepo)
 
 	wallet := &entity.Wallet{ID: 1, UserID: 1, Name: "My Wallet"}
 
 	// Expect FindByID called with id=1, userID=1
 	mockRepo.On("FindByID", uint(1), uint(1)).Return(wallet, nil)
+	// Expect GetActiveContributions to be called
+	mockSavingRepo.On("GetActiveContributions", uint(1)).Return(0.0, nil)
 
 	result, err := walletService.GetWalletByID(1, 1)
 
@@ -52,7 +56,8 @@ func TestGetWalletByID_Success(t *testing.T) {
 
 func TestGetWalletByID_NotFound(t *testing.T) {
 	mockRepo := new(mock.WalletRepositoryMock)
-	walletService := service.NewWalletService(mockRepo)
+	mockSavingRepo := new(mock.SavingGoalRepositoryMock)
+	walletService := service.NewWalletService(mockRepo, mockSavingRepo)
 
 	// Simulate not found (e.g. belongs to other user)
 	mockRepo.On("FindByID", uint(1), uint(1)).Return(nil, errors.New("record not found"))

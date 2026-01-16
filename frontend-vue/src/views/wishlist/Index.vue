@@ -4,14 +4,15 @@ import { useWishlistStore, type WishlistItem } from "@/stores/wishlist";
 import { useCategoryStore } from "@/stores/category";
 import ManualTransactionDialog from "@/components/ManualTransactionDialog.vue";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Pencil, ShoppingCart, CheckCircle, Clock } from "lucide-vue-next";
+import { Plus, Trash2, Pencil, ShoppingCart, CheckCircle, Clock, Flame, Zap } from "lucide-vue-next";
 import { useSwal } from "@/composables/useSwal";
+import { getEmoji, getIconComponent } from "@/lib/icons";
 
 const wishlistStore = useWishlistStore();
 const categoryStore = useCategoryStore();
@@ -118,64 +119,81 @@ const formattedPrice = computed({
 </script>
 
 <template>
-    <div class="p-6 space-y-8 text-foreground min-h-screen bg-background">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+  <div class="flex-1 space-y-6 pt-2" v-if="wishlistStore.isLoading">
+      <div class="flex items-center justify-center min-h-[400px]">
+          <p class="text-muted-foreground animate-pulse">Memuat data wishlist...</p>
+      </div>
+  </div>
+  <div class="flex-1 space-y-6 pt-2 text-foreground" v-else>
+        <div class="flex justify-between items-center">
             <div>
                 <h2 class="text-3xl font-bold tracking-tight">Wishlist</h2>
-                <p class="text-muted-foreground mt-1">Simpan dan wujudkan impian finansial Anda.</p>
+                <p class="text-sm text-muted-foreground mt-1">Simpan dan wujudkan impian finansial Anda.</p>
             </div>
-            <Button @click="openAddDialog" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-lg px-6 h-12 rounded-full transition-all hover:scale-105 active:scale-95">
-                <Plus class="mr-2 h-5 w-5" /> Tambah Keinginan
+            <Button @click="openAddDialog" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md h-10 rounded-xl transition-all hover:scale-105 active:scale-95 px-4">
+                <Plus class="mr-2 h-4 w-4" /> Tambah Keinginan
             </Button>
         </div>
 
         <!-- Active Wishlist -->
         <div class="space-y-4">
              <div class="flex items-center gap-2">
-                <h3 class="text-lg font-bold flex items-center gap-2">
-                    <Clock class="h-5 w-5 text-indigo-500" />
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <Clock class="h-5 w-5 text-muted-foreground" />
                     Sedang Diusahakan
                 </h3>
-                <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{{ activeItems.length }} item</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/50">{{ activeItems.length }} item</span>
             </div>
 
             <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-                <Card v-for="item in activeItems" :key="item.id" class="rounded-3xl border-border shadow-sm hover:shadow-md transition-all overflow-hidden bg-card flex flex-col">
-                    <CardHeader class="pb-3 border-b border-border/50 bg-muted/20">
+                <Card v-for="item in activeItems" :key="item.id" class="rounded-3xl border-border shadow-sm hover:shadow-md transition-all overflow-hidden bg-card flex flex-col group relative">
+                    <CardHeader class="pb-3 border-b border-border/50">
                         <div class="flex justify-between items-start">
                             <div class="space-y-1">
-                                <CardTitle class="text-lg font-bold tracking-tight">{{ item.name }}</CardTitle>
-                                <div class="flex flex-wrap gap-2 items-center text-xs">
+                                <CardTitle class="text-base font-bold tracking-tight">{{ item.name }}</CardTitle>
+                                <div class="flex flex-wrap gap-2 items-center text-[10px] font-medium uppercase tracking-widest">
                                     <Badge variant="outline" :class="{
-                                        'border-red-500/50 text-red-600 bg-red-500/10': item.priority === 'high',
-                                        'border-yellow-500/50 text-yellow-600 bg-yellow-500/10': item.priority === 'medium',
-                                        'border-green-500/50 text-green-600 bg-green-500/10': item.priority === 'low'
-                                    }" class="capitalize px-2 py-0.5 rounded-md border text-[10px] font-semibold tracking-wider">
-                                        {{ item.priority === 'high' ? '🔥 Mendesak' : item.priority === 'medium' ? '⚡ Butuh' : '🌱 Santai' }}
+                                        'border-red-500/50 text-red-600 bg-red-50/50': item.priority === 'high',
+                                        'border-yellow-500/50 text-yellow-600 bg-yellow-50/50': item.priority === 'medium',
+                                        'border-green-500/50 text-green-600 bg-green-50/50': item.priority === 'low'
+                                    }" class="capitalize px-2 py-1 rounded-md border text-[9px] font-bold tracking-widest flex items-center gap-1">
+                                        <template v-if="item.priority === 'high'">
+                                            <Flame class="w-3 h-3" /> Mendesak
+                                        </template>
+                                        <template v-else-if="item.priority === 'medium'">
+                                            <Zap class="w-3 h-3" /> Butuh
+                                        </template>
+                                        <template v-else>
+                                            <Clock class="w-3 h-3" /> Santai
+                                        </template>
                                     </Badge>
-                                    <span class="text-muted-foreground flex items-center gap-1">
-                                        {{ item.category?.name }}
-                                    </span>
+                                    <div class="flex items-center gap-1.5 text-muted-foreground">
+                                        <div class="p-1 bg-muted/50 rounded-md">
+                                            <component v-if="item.category && getIconComponent(item.category.icon)" :is="getIconComponent(item.category.icon)" class="h-3 w-3" />
+                                            <span v-else-if="item.category">{{ getEmoji(item.category.icon) || '📦' }}</span>
+                                        </div>
+                                        <span>{{ item.category?.name }}</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex gap-1">
-                                <Button variant="ghost" size="icon" class="h-8 w-8 p-0 hover:bg-blue-50 rounded-full" @click="openEditDialog(item)">
-                                    <Pencil class="h-4 w-4 text-blue-500" />
+                                <Button variant="ghost" size="icon" class="h-7 w-7 p-0 hover:bg-blue-50 rounded-lg text-blue-500" @click="openEditDialog(item)">
+                                    <Pencil class="h-3.5 w-3.5" />
                                 </Button>
-                                <Button variant="ghost" size="icon" class="h-8 w-8 p-0 hover:bg-red-50 rounded-full" @click="handleDelete(item.id)">
-                                    <Trash2 class="h-4 w-4 text-red-500" />
+                                <Button variant="ghost" size="icon" class="h-7 w-7 p-0 hover:bg-red-50 rounded-lg text-red-500" @click="handleDelete(item.id)">
+                                    <Trash2 class="h-3.5 w-3.5" />
                                 </Button>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent class="pt-6 flex-1 flex flex-col justify-between gap-6">
                         <div class="space-y-1">
-                            <p class="text-xs uppercase font-bold text-muted-foreground tracking-widest">Estimasi Harga</p>
-                            <div class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-foreground to-muted-foreground">
+                            <p class="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Estimasi Harga</p>
+                            <div class="text-2xl font-bold text-foreground">
                                 {{ formatRp(item.estimated_price) }}
                             </div>
                         </div>
-                        <Button class="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-md hover:shadow-lg transition-all" @click="handleBuy(item)">
+                        <Button class="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-sm transition-all active:scale-95 h-9 text-xs font-bold" @click="handleBuy(item)">
                             <ShoppingCart class="mr-2 h-4 w-4" /> Beli Sekarang
                         </Button>
                     </CardContent>
@@ -191,30 +209,34 @@ const formattedPrice = computed({
 
         <div v-if="boughtItems.length > 0" class="space-y-4 pt-8 border-t border-border">
             <div class="flex items-center gap-2">
-                <h2 class="text-xl font-bold flex items-center gap-2 text-emerald-600">
-                    <CheckCircle class="h-6 w-6" /> Sudah Terwujud
+                <h2 class="text-base font-bold flex items-center gap-2 text-emerald-600 uppercase tracking-widest">
+                    <CheckCircle class="h-5 w-5" /> Sudah Terwujud
                 </h2>
-                <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">{{ boughtItems.length }} item</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">{{ boughtItems.length }} item</span>
             </div>
             
-            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 opacity-80 hover:opacity-100 transition-opacity">
-                 <Card v-for="item in boughtItems" :key="item.id" class="rounded-3xl border-border bg-muted/30 hover:bg-card transition-colors group">
-                    <CardHeader class="pb-2">
+            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 opacity-90 hover:opacity-100 transition-opacity">
+                 <Card v-for="item in boughtItems" :key="item.id" class="rounded-3xl border-border bg-card hover:bg-muted/50 transition-all group overflow-hidden border">
+                    <CardHeader class="pb-3 border-b border-border/50">
                         <div class="flex justify-between items-start">
                             <div class="space-y-1">
-                                <CardTitle class="text-lg line-through decoration-emerald-500/50 text-muted-foreground">{{ item.name }}</CardTitle>
-                                <CardDescription>{{ item.category?.name }}</CardDescription>
+                                <CardTitle class="text-base font-bold line-through decoration-emerald-500/50 text-muted-foreground">{{ item.name }}</CardTitle>
+                                <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                    <component v-if="item.category && getIconComponent(item.category.icon)" :is="getIconComponent(item.category.icon)" class="h-3 w-3" />
+                                    <span v-else-if="item.category">{{ getEmoji(item.category.icon) || '📦' }}</span>
+                                    <span>{{ item.category?.name }}</span>
+                                </div>
                             </div>
-                            <Button variant="ghost" size="icon" class="h-8 w-8 p-0 hover:bg-red-50 rounded-full transition-all" @click="handleDelete(item.id)">
-                                <Trash2 class="h-4 w-4 text-red-500" />
+                            <Button variant="ghost" size="icon" class="h-7 w-7 p-0 hover:bg-red-50 rounded-lg transition-all text-red-500" @click="handleDelete(item.id)">
+                                <Trash2 class="h-4 w-4" />
                             </Button>
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        <div class="text-xl font-bold text-muted-foreground/70">
+                    <CardContent class="pt-4 flex justify-between items-center">
+                        <div class="text-lg font-bold text-muted-foreground/60">
                             {{ formatRp(item.estimated_price) }}
                         </div>
-                        <Badge variant="default" class="mt-3 bg-emerald-500/10 text-emerald-600 border-emerald-200 hover:bg-emerald-500/20">
+                        <Badge variant="default" class="bg-emerald-500/10 text-emerald-600 border-emerald-200 shadow-none text-[9px] font-bold uppercase tracking-widest">
                             <CheckCircle class="w-3 h-3 mr-1" /> Terbeli
                         </Badge>
                     </CardContent>
@@ -224,49 +246,68 @@ const formattedPrice = computed({
 
         <!-- Add/Edit Dialog -->
         <Dialog :open="isDialogOpen" @update:open="isDialogOpen = $event">
-            <DialogContent class="sm:max-w-[425px]">
+            <DialogContent class="sm:max-w-[425px] rounded-3xl bg-card text-foreground">
                 <DialogHeader>
                     <DialogTitle>{{ isEditing ? 'Edit Keinginan' : 'Tambah Keinginan Baru' }}</DialogTitle>
                 </DialogHeader>
                 <div class="space-y-4 py-4">
                     <div class="space-y-2">
-                        <Label>Nama Barang/Jasa</Label>
-                        <Input v-model="form.name" placeholder="Misal: iPhone 15, Liburan ke Bali" />
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Nama Barang/Jasa</Label>
+                        <Input v-model="form.name" placeholder="Misal: iPhone 15, Liburan ke Bali" class="h-11 shadow-sm rounded-xl bg-background" />
                     </div>
                     <div class="space-y-2">
-                        <Label>Kategori</Label>
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Kategori</Label>
                         <Select v-model="form.category_id">
-                            <SelectTrigger class="w-full">
+                            <SelectTrigger class="w-full h-11 rounded-xl bg-background shadow-sm">
                                 <SelectValue placeholder="Pilih Kategori" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem v-for="cat in categoryStore.categories.filter(c => c.type === 'expense')" :key="cat.id" :value="String(cat.id)">
-                                    {{ cat.name }}
+                                    <div class="flex items-center gap-2">
+                                        <component v-if="getIconComponent(cat.icon)" :is="getIconComponent(cat.icon)" class="h-4 w-4" />
+                                        <span v-else>{{ getEmoji(cat.icon) || '📦' }}</span>
+                                        <span>{{ cat.name }}</span>
+                                    </div>
                                 </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div class="space-y-2">
-                        <Label>Estimasi Harga</Label>
-                        <Input type="text" inputmode="numeric" pattern="[0-9]*" v-model="formattedPrice" placeholder="Rp 0" />
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Estimasi Harga</Label>
+                        <Input type="text" inputmode="numeric" pattern="[0-9]*" v-model="formattedPrice" placeholder="Rp 0" class="h-11 shadow-sm rounded-xl bg-background" />
                     </div>
                     <div class="space-y-2">
-                        <Label>Prioritas</Label>
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Prioritas</Label>
                          <Select v-model="form.priority">
-                            <SelectTrigger class="w-full">
+                            <SelectTrigger class="w-full h-11 rounded-xl bg-background shadow-sm">
                                 <SelectValue placeholder="Pilih Prioritas" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="low">🌱 Rendah (Santai)</SelectItem>
-                                <SelectItem value="medium">⚡ Sedang (Butuh)</SelectItem>
-                                <SelectItem value="high">🔥 Tinggi (Mendesak)</SelectItem>
+                                <SelectItem value="low">
+                                    <div class="flex items-center gap-2">
+                                        <Clock class="h-4 w-4 text-green-500" />
+                                        <span>Rendah (Santai)</span>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="medium">
+                                    <div class="flex items-center gap-2">
+                                        <Zap class="h-4 w-4 text-yellow-500" />
+                                        <span>Sedang (Butuh)</span>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="high">
+                                    <div class="flex items-center gap-2">
+                                        <Flame class="h-4 w-4 text-red-500" />
+                                        <span>Tinggi (Mendesak)</span>
+                                    </div>
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
-                <DialogFooter>
-                    <Button variant="outline" @click="isDialogOpen = false">Batal</Button>
-                    <Button @click="handleSave" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md">
+                <DialogFooter class="gap-2">
+                    <Button variant="outline" @click="isDialogOpen = false" class="rounded-xl h-10 px-6">Batal</Button>
+                    <Button @click="handleSave" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md rounded-xl h-10 px-6 font-bold">
                         {{ isEditing ? 'Simpan Perubahan' : 'Simpan' }}
                     </Button>
                 </DialogFooter>

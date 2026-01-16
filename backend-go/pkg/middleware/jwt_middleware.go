@@ -62,7 +62,7 @@ func Protected() fiber.Handler {
 		if ok && token.Valid {
 			// Extract user_id as float64 (default for JSON numbers) and convert to uint
 			if userID, ok := claims["user_id"].(float64); ok {
-				c.Locals("user_id", uint(userID))
+				c.Locals("userID", uint(userID))
 			}
 		}
 

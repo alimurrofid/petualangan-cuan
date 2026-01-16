@@ -158,7 +158,12 @@ const formattedBudgetLimit = computed({
 </script>
 
 <template>
-  <div class="p-6 space-y-8 text-foreground min-h-screen bg-background">
+  <div class="flex-1 space-y-6 pt-2" v-if="categoryStore.isLoading">
+      <div class="flex items-center justify-center min-h-[400px]">
+          <p class="text-muted-foreground animate-pulse">Memuat data kategori...</p>
+      </div>
+  </div>
+  <div class="flex-1 space-y-6 pt-2 text-foreground" v-else>
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div>
         <h2 class="text-3xl font-bold tracking-tight">Kategori</h2>

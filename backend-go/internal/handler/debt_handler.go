@@ -38,7 +38,7 @@ func NewDebtHandler(service service.DebtService) DebtHandler {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/debts [post]
 func (h *debtHandler) CreateDebt(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	var input service.CreateDebtInput
 	if err := c.BodyParser(&input); err != nil {
@@ -63,7 +63,7 @@ func (h *debtHandler) CreateDebt(c *fiber.Ctx) error {
 // @Success 200 {object} []entity.Debt
 // @Router /api/debts [get]
 func (h *debtHandler) GetDebts(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	debtType := c.Query("type")
 
 	debts, err := h.service.GetDebts(userID, debtType)
@@ -85,7 +85,7 @@ func (h *debtHandler) GetDebts(c *fiber.Ctx) error {
 // @Failure 404 {object} map[string]interface{}
 // @Router /api/debts/{id} [get]
 func (h *debtHandler) GetDebt(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	debt, err := h.service.GetDebt(uint(id), userID)
@@ -109,7 +109,7 @@ func (h *debtHandler) GetDebt(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/debts/{id}/pay [post]
 func (h *debtHandler) PayDebt(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	var input service.PayDebtInput
@@ -139,7 +139,7 @@ func (h *debtHandler) PayDebt(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/debts/{id} [put]
 func (h *debtHandler) UpdateDebt(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	var input service.UpdateDebtInput
@@ -165,7 +165,7 @@ func (h *debtHandler) UpdateDebt(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/debts/{id} [delete]
 func (h *debtHandler) DeleteDebt(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	if err := h.service.DeleteDebt(uint(id), userID); err != nil {
@@ -185,7 +185,7 @@ func (h *debtHandler) DeleteDebt(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/debts/payments/{id} [delete]
 func (h *debtHandler) DeletePayment(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	if err := h.service.DeletePayment(uint(id), userID); err != nil {

@@ -22,10 +22,12 @@ export interface WishlistItem {
 
 export const useWishlistStore = defineStore('wishlist', () => {
     const items = ref<WishlistItem[]>([]);
+    const isLoading = ref(false);
     const baseUrl = import.meta.env.VITE_API_BASE_URL;
     const swal = useSwal();
 
     const fetchItems = async () => {
+        isLoading.value = true;
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(`${baseUrl}/api/wishlist`, {
@@ -34,6 +36,8 @@ export const useWishlistStore = defineStore('wishlist', () => {
             items.value = response.data;
         } catch (error) {
             console.error('Failed to fetch wishlist items:', error);
+        } finally {
+            isLoading.value = false;
         }
     };
 
@@ -102,6 +106,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
 
     return {
         items,
+        isLoading,
         fetchItems,
         createItem,
         updateItem,

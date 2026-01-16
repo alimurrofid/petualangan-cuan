@@ -55,7 +55,7 @@ func NewTransactionHandler(service service.TransactionService) TransactionHandle
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions [post]
 func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	// Parse Multipart Form
 	// We need to handle this manually since BodyParser might struggle with mixed types if not strictly defined
@@ -133,7 +133,7 @@ func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions [get]
 func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	// Parse Query Params
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -187,7 +187,7 @@ func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 // @Failure 404 {object} map[string]interface{}
 // @Router /api/transactions/{id} [get]
 func (h *transactionHandler) GetTransaction(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	transaction, err := h.service.GetTransaction(uint(id), userID)
@@ -211,7 +211,7 @@ func (h *transactionHandler) GetTransaction(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions/{id} [put]
 func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	// Manual parsing for Update
@@ -283,7 +283,7 @@ func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions/{id} [delete]
 func (h *transactionHandler) DeleteTransaction(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	err := h.service.DeleteTransaction(uint(id), userID)
@@ -306,7 +306,7 @@ func (h *transactionHandler) DeleteTransaction(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions/transfer [post]
 func (h *transactionHandler) TransferTransaction(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	var input service.TransferTransactionInput
 	if err := c.BodyParser(&input); err != nil {
@@ -336,7 +336,7 @@ func (h *transactionHandler) TransferTransaction(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions/calendar [get]
 func (h *transactionHandler) GetCalendarData(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 	walletIDStr := c.Query("wallet_id")
@@ -389,7 +389,7 @@ func (h *transactionHandler) GetCalendarData(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/transactions/report [get]
 func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 	walletIDStr := c.Query("wallet_id")
@@ -441,7 +441,7 @@ func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
 // @Param type query string false "Transaction Type"
 // @Router /api/transactions/export [get]
 func (h *transactionHandler) ExportTransactions(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
@@ -485,7 +485,7 @@ func (h *transactionHandler) ExportTransactions(c *fiber.Ctx) error {
 // @Param type query string false "Filter Type"
 // @Router /api/transactions/report/export [get]
 func (h *transactionHandler) ExportReport(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 	walletIDStr := c.Query("wallet_id")

@@ -8,6 +8,7 @@ export interface Wallet {
   name: string;
   type: 'Bank' | 'E-Wallet' | 'Cash';
   balance: number;
+  available_balance?: number;
   icon?: string;
   created_at?: string;
   updated_at?: string;

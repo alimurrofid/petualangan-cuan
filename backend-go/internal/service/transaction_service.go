@@ -1,12 +1,13 @@
 package service
 
 import (
+	"bytes"
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
 	"errors"
-	"time"
-	"bytes"
 	"fmt"
+	"time"
+
 	"github.com/xuri/excelize/v2"
 
 	"gorm.io/gorm"
@@ -96,15 +97,17 @@ func (s *transactionService) CreateTransaction(userID uint, input CreateTransact
 	}
 
 	// 3. Update Wallet Balance
-	// 3. Update Wallet Balance
-	switch input.Type {
-	case "income":
-		wallet.Balance += input.Amount
-	case "expense":
-		if wallet.Balance < input.Amount {
-			// Optional: Allow negative balance or return error?
+	// 3. Update Wallet Balance if NOT saving_allocation
+	if input.Type != "saving_allocation" {
+		switch input.Type {
+		case "income":
+			wallet.Balance += input.Amount
+		case "expense":
+			if wallet.Balance < input.Amount {
+				// Optional: Allow negative balance or return error?
+			}
+			wallet.Balance -= input.Amount
 		}
-		wallet.Balance -= input.Amount
 	}
 
 	// Use wallet repository linked to this transaction? 
@@ -166,6 +169,8 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 		oldWallet.Balance -= t.Amount
 	case "expense", "transfer_out":
 		oldWallet.Balance += t.Amount
+	case "saving_allocation":
+		// Do nothing to physical balance
 	}
 
 	if err := s.walletRepo.WithTx(tx).Update(oldWallet); err != nil {
@@ -204,6 +209,8 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 		newWallet.Balance += input.Amount
 	case "expense", "transfer_out":
 		newWallet.Balance -= input.Amount
+	case "saving_allocation":
+		// Do nothing
 	}
 
 	if err := s.walletRepo.WithTx(tx).Update(newWallet); err != nil {
@@ -298,6 +305,8 @@ func (s *transactionService) DeleteTransaction(id uint, userID uint) error {
 		w.Balance -= t.Amount
 	case "transfer_out":
 		w.Balance += t.Amount
+	case "saving_allocation":
+		// Do nothing
 	}
 
 	if err := tx.Save(w).Error; err != nil {

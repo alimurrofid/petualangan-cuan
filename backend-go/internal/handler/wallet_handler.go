@@ -41,7 +41,7 @@ func (h *walletHandler) CreateWallet(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	input.UserID = userID
 
@@ -63,7 +63,7 @@ func (h *walletHandler) CreateWallet(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]string
 // @Router /api/wallets [get]
 func (h *walletHandler) GetWallets(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	wallets, err := h.walletService.GetUserWallets(userID)
 	if err != nil {
@@ -90,7 +90,7 @@ func (h *walletHandler) GetWallet(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	wallet, err := h.walletService.GetWalletByID(uint(id), userID)
 	if err != nil {
@@ -124,7 +124,7 @@ func (h *walletHandler) UpdateWallet(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	wallet, err := h.walletService.UpdateWallet(uint(id), userID, input)
 	if err != nil {
@@ -150,7 +150,7 @@ func (h *walletHandler) DeleteWallet(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
-	userID := c.Locals("user_id").(uint)
+	userID := c.Locals("userID").(uint)
 
 	err = h.walletService.DeleteWallet(uint(id), userID)
 	if err != nil {

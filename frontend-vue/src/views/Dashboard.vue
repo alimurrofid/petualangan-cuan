@@ -233,7 +233,7 @@ const groupedRecentTransactions = computed(() => {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-100 dark:border-emerald-900/30">
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Pemasukan</CardTitle>
           <div class="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -246,7 +246,7 @@ const groupedRecentTransactions = computed(() => {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card class="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border-red-100 dark:border-red-900/30">
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Pengeluaran</CardTitle>
           <div class="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center">

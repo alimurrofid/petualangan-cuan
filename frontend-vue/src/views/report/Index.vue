@@ -205,7 +205,12 @@ const handleExport = async () => {
 </script>
 
 <template>
-  <div class="p-6 space-y-8 text-foreground min-h-screen bg-background">
+  <div class="flex-1 space-y-6 pt-2" v-if="transactionStore.isLoading">
+      <div class="flex items-center justify-center min-h-[400px]">
+          <p class="text-muted-foreground animate-pulse">Memuat data laporan...</p>
+      </div>
+  </div>
+  <div class="flex-1 space-y-6 pt-2 text-foreground" v-else>
     <div class="flex flex-col gap-2">
       <h2 class="text-3xl font-bold tracking-tight">Laporan Keuangan</h2>
       <p class="text-sm text-muted-foreground">Analisis pengeluaran dan pemasukan per kategori.</p>
