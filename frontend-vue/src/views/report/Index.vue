@@ -15,6 +15,7 @@ import DateRangePicker from "@/components/DateRangePicker.vue";
 
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, PieChart, Download } from "lucide-vue-next";
 import { getEmoji, getIconComponent } from "@/lib/icons";
+import { formatCurrency, formatCompactNumber } from "@/lib/utils";
 
 const transactionStore = useTransactionStore();
 const walletStore = useWalletStore();
@@ -109,10 +110,6 @@ watch([dateRange, filterWallet, filterType], () => {
 const reportData = computed(() => transactionStore.reportData);
 
 // Charts & Visuals
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
-};
-
 const totalAmount = computed(() => {
     return reportData.value.reduce((sum, item) => sum + item.total_amount, 0);
 });
@@ -129,17 +126,17 @@ const chartOptions = computed(() => {
         plotOptions: {
             pie: {
                 donut: {
-                    size: '70%',
+                    size: '75%',
                     labels: {
                         show: true,
                         value: {
                             show: true,
-                            formatter: (val: number) => formatCurrency(val)
+                            formatter: (val: number) => formatCompactNumber(val)
                         },
                         total: {
                             show: true,
                             label: 'Total',
-                            formatter: () => formatCurrency(totalAmount.value)
+                            formatter: () => formatCompactNumber(totalAmount.value)
                         }
                     }
                 }

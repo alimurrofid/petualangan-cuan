@@ -125,12 +125,12 @@ const formattedPrice = computed({
       </div>
   </div>
   <div class="flex-1 space-y-6 pt-2 text-foreground" v-else>
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
             <div>
                 <h2 class="text-3xl font-bold tracking-tight">Wishlist</h2>
                 <p class="text-sm text-muted-foreground mt-1">Simpan dan wujudkan impian finansial Anda.</p>
             </div>
-            <Button @click="openAddDialog" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md h-10 rounded-xl transition-all hover:scale-105 active:scale-95 px-4">
+            <Button @click="openAddDialog" class="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md h-10 rounded-xl transition-all hover:scale-105 active:scale-95 px-4">
                 <Plus class="mr-2 h-4 w-4" /> Tambah Keinginan
             </Button>
         </div>
@@ -153,9 +153,9 @@ const formattedPrice = computed({
                                 <CardTitle class="text-base font-bold tracking-tight">{{ item.name }}</CardTitle>
                                 <div class="flex flex-wrap gap-2 items-center text-[10px] font-medium uppercase tracking-widest">
                                     <Badge variant="outline" :class="{
-                                        'border-red-500/50 text-red-600 bg-red-50/50': item.priority === 'high',
-                                        'border-yellow-500/50 text-yellow-600 bg-yellow-50/50': item.priority === 'medium',
-                                        'border-green-500/50 text-green-600 bg-green-50/50': item.priority === 'low'
+                                        'border-red-500/50 text-red-600': item.priority === 'high',
+                                        'border-yellow-500/50 text-yellow-600': item.priority === 'medium',
+                                        'border-green-500/50 text-green-600': item.priority === 'low'
                                     }" class="capitalize px-2 py-1 rounded-md border text-[9px] font-bold tracking-widest flex items-center gap-1">
                                         <template v-if="item.priority === 'high'">
                                             <Flame class="w-3 h-3" /> Mendesak
@@ -220,7 +220,7 @@ const formattedPrice = computed({
                     <CardHeader class="pb-3 border-b border-border/50">
                         <div class="flex justify-between items-start">
                             <div class="space-y-1">
-                                <CardTitle class="text-base font-bold line-through decoration-emerald-500/50 text-muted-foreground">{{ item.name }}</CardTitle>
+                                <CardTitle class="text-base font-bold line-through decoration-emerald-500/50 dark:decoration-emerald-400 text-muted-foreground dark:text-slate-400">{{ item.name }}</CardTitle>
                                 <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                     <component v-if="item.category && getIconComponent(item.category.icon)" :is="getIconComponent(item.category.icon)" class="h-3 w-3" />
                                     <span v-else-if="item.category">{{ getEmoji(item.category.icon) || '📦' }}</span>
@@ -233,10 +233,10 @@ const formattedPrice = computed({
                         </div>
                     </CardHeader>
                     <CardContent class="pt-4 flex justify-between items-center">
-                        <div class="text-lg font-bold text-muted-foreground/60">
+                        <div class="text-lg font-bold text-muted-foreground/60 dark:text-white">
                             {{ formatRp(item.estimated_price) }}
                         </div>
-                        <Badge variant="default" class="bg-emerald-500/10 text-emerald-600 border-emerald-200 shadow-none text-[9px] font-bold uppercase tracking-widest">
+                        <Badge variant="default" class="bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900 shadow-none text-[9px] font-bold uppercase tracking-widest">
                             <CheckCircle class="w-3 h-3 mr-1" /> Terbeli
                         </Badge>
                     </CardContent>
@@ -259,7 +259,18 @@ const formattedPrice = computed({
                         <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Kategori</Label>
                         <Select v-model="form.category_id">
                             <SelectTrigger class="w-full h-11 rounded-xl bg-background shadow-sm">
-                                <SelectValue placeholder="Pilih Kategori" />
+                                <template v-if="form.category_id">
+                                    <div class="flex items-center gap-2" v-if="categoryStore.categories.find(c => String(c.id) === form.category_id)">
+                                        <component v-if="getIconComponent(categoryStore.categories.find(c => String(c.id) === form.category_id)?.icon || '')" 
+                                            :is="getIconComponent(categoryStore.categories.find(c => String(c.id) === form.category_id)?.icon || '')" 
+                                            class="h-4 w-4" 
+                                        />
+                                        <span v-else>{{ getEmoji(categoryStore.categories.find(c => String(c.id) === form.category_id)?.icon || '') || '📦' }}</span>
+                                        <span>{{ categoryStore.categories.find(c => String(c.id) === form.category_id)?.name }}</span>
+                                    </div>
+                                    <span v-else>Pilih Kategori</span>
+                                </template>
+                                <SelectValue v-else placeholder="Pilih Kategori" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem v-for="cat in categoryStore.categories.filter(c => c.type === 'expense')" :key="cat.id" :value="String(cat.id)">
@@ -280,7 +291,21 @@ const formattedPrice = computed({
                         <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Prioritas</Label>
                          <Select v-model="form.priority">
                             <SelectTrigger class="w-full h-11 rounded-xl bg-background shadow-sm">
-                                <SelectValue placeholder="Pilih Prioritas" />
+                                <template v-if="form.priority">
+                                    <div class="flex items-center gap-2" v-if="form.priority === 'low'">
+                                        <Clock class="h-4 w-4 text-green-500" />
+                                        <span>Rendah (Santai)</span>
+                                    </div>
+                                    <div class="flex items-center gap-2" v-else-if="form.priority === 'medium'">
+                                        <Zap class="h-4 w-4 text-yellow-500" />
+                                        <span>Sedang (Butuh)</span>
+                                    </div>
+                                    <div class="flex items-center gap-2" v-else-if="form.priority === 'high'">
+                                        <Flame class="h-4 w-4 text-red-500" />
+                                        <span>Tinggi (Mendesak)</span>
+                                    </div>
+                                </template>
+                                <SelectValue v-else placeholder="Pilih Prioritas" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="low">

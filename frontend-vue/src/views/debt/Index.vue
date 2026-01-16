@@ -299,12 +299,12 @@ const handleDelete = async (id: number) => {
       </div>
   </div>
   <div class="flex-1 space-y-6 pt-2 text-foreground" v-else>
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
       <div>
         <h2 class="text-3xl font-bold tracking-tight">Utang & Piutang</h2>
         <p class="text-sm text-muted-foreground mt-1">Kelola catatan utang dan piutang Anda.</p>
       </div>
-      <Button @click="openCreateDialog()" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md h-10 rounded-xl transition-all hover:scale-105 active:scale-95 px-4">
+      <Button @click="openCreateDialog()" class="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md h-10 rounded-xl transition-all hover:scale-105 active:scale-95 px-4">
         <Plus class="mr-2 h-4 w-4" /> Tambah Baru
       </Button>
     </div>

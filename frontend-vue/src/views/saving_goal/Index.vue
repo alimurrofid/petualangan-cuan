@@ -100,12 +100,12 @@ const formattedTarget = computed({
       </div>
   </div>
   <div class="flex-1 space-y-6 pt-2 text-foreground" v-else>
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
             <div>
                 <h1 class="text-3xl font-bold tracking-tight">Target Menabung</h1>
                 <p class="text-sm text-muted-foreground mt-1">Wujudkan impianmu dengan menabung secara konsisten.</p>
             </div>
-            <Button @click="isCreateOpen = true" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md h-10 rounded-xl transition-all hover:scale-105 active:scale-95 px-4">
+            <Button @click="isCreateOpen = true" class="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md h-10 rounded-xl transition-all hover:scale-105 active:scale-95 px-4">
                 <Plus class="w-4 h-4 mr-2" /> Tambah Target
             </Button>
         </div>

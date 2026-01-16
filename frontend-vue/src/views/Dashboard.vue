@@ -21,6 +21,7 @@ import {
   HeartPulse
 } from 'lucide-vue-next';
 import { getEmoji, getIconComponent } from "@/lib/icons";
+import { formatCompactNumber } from "@/lib/utils";
 import { format, parseISO, isSameDay, subDays } from 'date-fns';
 import { id as localeId } from "date-fns/locale";
 
@@ -95,13 +96,23 @@ const chartOptionsArea = computed(() => ({
     axisBorder: { show: false },
     axisTicks: { show: false }
   },
-  yaxis: { show: false },
+  yaxis: { 
+    show: false,
+    labels: {
+        formatter: (value: number) => formatCurrency(value)
+    }
+  },
   grid: { 
      show: true,
      borderColor: '#334155', 
      strokeDashArray: 4,
   },
-  tooltip: { theme: 'dark' }
+  tooltip: { 
+    theme: 'dark',
+    y: {
+        formatter: (value: number) => formatCurrency(value)
+    }
+  }
 }));
 
 // Donut Chart (Breakdown)
@@ -128,12 +139,12 @@ const chartOptionsDonut = computed(() => ({
                     show: true,
                     value: {
                         show: true,
-                        formatter: (val: number) => formatCurrency(val)
+                        formatter: (val: number) => formatCompactNumber(val)
                     },
                     total: {
                         show: true,
                         label: 'Total',
-                        formatter: () => formatCurrency(totalExpenseAmount.value)
+                        formatter: () => formatCompactNumber(totalExpenseAmount.value)
                     }
                 }
             }
