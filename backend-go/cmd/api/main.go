@@ -95,6 +95,10 @@ func main() {
 	savingGoalSvc := service.NewSavingGoalService(savingGoalRepo, walletRepo, svc, db)
 	savingGoalHandler := handler.NewSavingGoalHandler(savingGoalSvc)
 
+	// Financial Health
+	financialHealthSvc := service.NewFinancialHealthService(repo, walletRepo, debtRepo)
+	financialHealthHandler := handler.NewFinancialHealthHandler(financialHealthSvc)
+
 	// Init Fiber
 	app := fiber.New(fiber.Config{
 		BodyLimit: 10 * 1024 * 1024, // 10MB
@@ -183,6 +187,9 @@ func main() {
 	savingGoals.Get("/", savingGoalHandler.GetGoals)
 	savingGoals.Post("/", savingGoalHandler.CreateGoal)
 	savingGoals.Post("/:id/contributions", savingGoalHandler.AddContribution)
+
+	// Financial Health
+	api.Get("/financial-health", middleware.Protected(), financialHealthHandler.GetFinancialHealth)
 
 	// Swagger Route
 	app.Get("/swagger/*", swagger.HandlerDefault) 

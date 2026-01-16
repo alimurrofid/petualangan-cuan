@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue';
 import { useAuthStore } from "@/stores/auth";
 import { useDashboardStore } from "@/stores/dashboard";
+import { useFinancialHealthStore } from "@/stores/financialHealth";
 import { 
   Card, 
   CardContent, 
@@ -16,8 +17,8 @@ import {
   ArrowDown, 
   Wallet,
   TrendingUp,
-  Lightbulb,
-  Paperclip
+  Paperclip,
+  HeartPulse
 } from 'lucide-vue-next';
 import { getEmoji, getIconComponent } from "@/lib/icons";
 import { format, parseISO, isSameDay, subDays } from 'date-fns';
@@ -25,10 +26,12 @@ import { id as localeId } from "date-fns/locale";
 
 const authStore = useAuthStore();
 const dashboardStore = useDashboardStore();
+const healthStore = useFinancialHealthStore();
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
 onMounted(() => {
     dashboardStore.fetchDashboard();
+    healthStore.fetchFinancialHealth();
 });
 
 const data = computed(() => dashboardStore.data);
@@ -259,15 +262,27 @@ const groupedRecentTransactions = computed(() => {
         </CardContent>
       </Card>
 
-      <Card class="bg-gradient-to-br from-amber-100 to-orange-50 border-amber-200">
+      <Card class="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 dark:from-blue-950/20 dark:to-indigo-950/20 dark:border-blue-900/30 cursor-pointer hover:shadow-md transition-all group" @click="$router.push('/financial-health')">
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-sm font-medium text-amber-900">AI Tip Harian</CardTitle>
-          <Lightbulb class="h-4 w-4 text-amber-600" />
+          <CardTitle class="text-sm font-medium text-blue-900 dark:text-blue-100">Kesehatan Keuangan</CardTitle>
+          <HeartPulse class="h-4 w-4 text-blue-600 group-hover:scale-110 transition-transform" />
         </CardHeader>
         <CardContent>
-          <p class="text-xs font-medium text-amber-800 leading-relaxed">
-            "Hindari belanja impulsif dengan menerapkan aturan tunggu 24 jam sebelum membeli barang non-pokok."
-          </p>
+          <div v-if="healthStore.isLoading" class="h-8 w-24 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+          <div v-else-if="healthStore.data" class="flex flex-col">
+              <div class="flex items-baseline gap-2">
+                 <div class="text-2xl font-bold" :class="{
+                    'text-emerald-600': healthStore.data.overall_status === 'Sehat',
+                    'text-amber-500': healthStore.data.overall_status === 'Waspada',
+                    'text-red-500': healthStore.data.overall_status === 'Bahaya'
+                 }">
+                    {{ healthStore.data.overall_status }}
+                 </div>
+                 <span class="text-xs text-muted-foreground">Score {{ healthStore.data.overall_score }}</span>
+              </div>
+             <p class="text-xs text-muted-foreground mt-1 truncate">{{ healthStore.data.ratios.filter((r: any) => r.status !== 'Sehat').length === 0 ? 'Semua indikator aman.' : `${healthStore.data.ratios.filter((r: any) => r.status !== 'Sehat').length} indikator perlu perhatian` }}</p>
+          </div>
+          <div v-else class="text-sm text-muted-foreground">Belum ada analisis.</div>
         </CardContent>
       </Card>
     </div>

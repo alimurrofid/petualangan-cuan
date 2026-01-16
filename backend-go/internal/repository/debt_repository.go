@@ -12,6 +12,7 @@ type DebtRepository interface {
 	Delete(id uint, userID uint) error
 	FindByID(id uint, userID uint) (*entity.Debt, error)
 	FindByUserID(userID uint, debtType string) ([]entity.Debt, error)
+	GetTotalPayments(userID uint, startDate, endDate string) (float64, error)
 	WithTx(tx *gorm.DB) DebtRepository
 }
 
@@ -56,4 +57,14 @@ func (r *debtRepository) FindByUserID(userID uint, debtType string) ([]entity.De
 	}
 	err := query.Order("created_at desc").Find(&debts).Error
 	return debts, err
+}
+
+func (r *debtRepository) GetTotalPayments(userID uint, startDate, endDate string) (float64, error) {
+	var total float64
+	err := r.db.Model(&entity.DebtPayment{}).
+		Joins("JOIN debts ON debts.id = debt_payments.debt_id").
+		Where("debts.user_id = ? AND debts.type = ? AND debt_payments.date BETWEEN ? AND ?", userID, entity.DebtTypePayable, startDate, endDate).
+		Select("COALESCE(SUM(debt_payments.amount), 0)").
+		Scan(&total).Error
+	return total, err
 }
