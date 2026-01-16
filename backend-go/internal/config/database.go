@@ -42,11 +42,12 @@ func Connect() (*gorm.DB, error) {
 
 	fmt.Println("✅ Terhubung ke Database dengan Connection Pool!")
 
-	fmt.Println("Running Auto Migration...")
-	err = db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{})
-	if err != nil {
-		return nil, fmt.Errorf("❌ Gagal migrasi database: %w", err)
-	}
+	// AutoMigrate removed from Connect to allow --fresh flag to work if migration fails
+	// fmt.Println("Running Auto Migration...")
+	// err = db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{})
+	// if err != nil {
+	// 	return nil, fmt.Errorf("❌ Gagal migrasi database: %w", err)
+	// }
 
 	return db, nil
 }
@@ -55,11 +56,18 @@ func MigrateFresh(db *gorm.DB) {
 	fmt.Println("🚧 Dropping all tables...")
 	// Drop tables in reverse dependency order to avoid FK issues
 	db.Migrator().DropTable(&entity.Transaction{})
+	db.Migrator().DropTable(&entity.DebtPayment{})
+	db.Migrator().DropTable(&entity.Debt{})
 	db.Migrator().DropTable(&entity.Category{})
 	db.Migrator().DropTable(&entity.Wallet{})
 	db.Migrator().DropTable(&entity.User{})
 
 	fmt.Println("✅ All tables dropped!")
 	fmt.Println("🆕 Re-running Auto Migration...")
-	db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{})
+	db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{})
+}
+
+func RunMigration(db *gorm.DB) error {
+	fmt.Println("Running Auto Migration...")
+	return db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{})
 }

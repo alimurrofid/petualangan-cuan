@@ -44,6 +44,10 @@ func main() {
 	// Handle Database Workflow Flags
 	if *freshPtr {
 		config.MigrateFresh(db)
+	} else {
+		if err := config.RunMigration(db); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	if *seedPtr {
@@ -75,6 +79,11 @@ func main() {
 	// Dashboard
 	dashboardSvc := service.NewDashboardService(repo, walletRepo)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
+
+	// Debt
+	debtRepo := repository.NewDebtRepository(db)
+	debtSvc := service.NewDebtService(debtRepo, repo, walletRepo, db)
+	debtHandler := handler.NewDebtHandler(debtSvc)
 
 	// Init Fiber
 	app := fiber.New(fiber.Config{
@@ -139,6 +148,16 @@ func main() {
 	userRoutes.Get("/profile", userHandler.GetProfile)
 	userRoutes.Put("/profile", userHandler.UpdateProfile)
 	userRoutes.Put("/password", userHandler.ChangePassword)
+
+	// Debt Routes (/api/debts)
+	debts := api.Group("/debts", middleware.Protected())
+	debts.Post("/", debtHandler.CreateDebt)
+	debts.Get("/", debtHandler.GetDebts)
+	debts.Get("/:id", debtHandler.GetDebt)
+	debts.Post("/:id/pay", debtHandler.PayDebt)
+	debts.Put("/:id", debtHandler.UpdateDebt)
+	debts.Delete("/:id", debtHandler.DeleteDebt)
+	debts.Delete("/payments/:id", debtHandler.DeletePayment)
 
 	// Swagger Route
 	app.Get("/swagger/*", swagger.HandlerDefault) 
