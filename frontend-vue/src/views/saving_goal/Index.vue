@@ -4,23 +4,29 @@ import { useSavingGoalStore } from "@/stores/saving_goal";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
 import { format } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Plus, PiggyBank, Target, Calendar } from "lucide-vue-next";
+import { Plus, PiggyBank, Target, Calendar, Pencil, Trash2, Eye } from "lucide-vue-next";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ManualTransactionDialog from "@/components/ManualTransactionDialog.vue";
+import Detail from "./Detail.vue";
 import { getEmoji, getIconComponent } from "@/lib/icons";
+import { useSwal } from "@/composables/useSwal";
 
 const store = useSavingGoalStore();
 const walletStore = useWalletStore(); // Ensure wallets are loaded for contribution
 const categoryStore = useCategoryStore();
+const swal = useSwal();
 const isCreateOpen = ref(false);
 const isContributeOpen = ref(false);
+const isDetailOpen = ref(false);
+const isEditing = ref(false);
+const editingId = ref<number | null>(null);
 const selectedGoalForContribution = ref<any>(null);
+const selectedGoal = ref<any>(null);
 
 // Form for New Goal
 const newGoalName = ref("");
@@ -40,7 +46,15 @@ const handleCreate = async () => {
         icon: "PiggyBank"
     };
 
-    const success = await store.createGoal(payload);
+    let success = false;
+    if (isEditing.value && editingId.value) {
+        success = await store.updateGoal(editingId.value, payload);
+        if (success) swal.success("Berhasil", "Target menabung berhasil diperbarui");
+    } else {
+        success = await store.createGoal(payload);
+        if (success) swal.success("Berhasil", "Target menabung berhasil dibuat");
+    }
+
     if (success) {
         isCreateOpen.value = false;
         newGoalName.value = "";
@@ -54,6 +68,48 @@ const handleCreate = async () => {
 const openContribute = (goal: any) => {
     selectedGoalForContribution.value = goal;
     isContributeOpen.value = true;
+};
+
+const openCreateDialog = () => {
+    isEditing.value = false;
+    editingId.value = null;
+    newGoalName.value = "";
+    newGoalTarget.value = "";
+    newGoalDeadline.value = "";
+    newGoalCategory.value = "";
+    isCreateOpen.value = true;
+};
+
+const openEditDialog = (goal: any) => {
+    isEditing.value = true;
+    editingId.value = goal.id;
+    newGoalName.value = goal.name;
+    newGoalTarget.value = String(goal.target_amount);
+    newGoalCategory.value = goal.category_id ? String(goal.category_id) : "";
+    if (goal.deadline) {
+        try {
+             const date = new Date(goal.deadline);
+             newGoalDeadline.value = date.toISOString().split('T')[0] ?? "";
+        } catch(e) {
+             newGoalDeadline.value = "";
+        }
+    } else {
+        newGoalDeadline.value = "";
+    }
+    isCreateOpen.value = true;
+};
+
+const openDetailDialog = (goal: any) => {
+    selectedGoal.value = goal;
+    isDetailOpen.value = true;
+};
+
+const handleDelete = async (id: number) => {
+    const confirmed = await swal.confirmDelete("Target Menabung");
+    if (confirmed) {
+        const success = await store.deleteGoal(id);
+        if (success) swal.success("Terhapus", "Target menabung berhasil dihapus");
+    }
 };
 
 // Close Handlers
@@ -86,11 +142,18 @@ const formattedTarget = computed({
         if (!newGoalTarget.value) return "";
         return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(newGoalTarget.value));
     },
-    set: (val: string) => {
-        const numericValue = Number(val.replace(/[^0-9]/g, ""));
+    set: (val: string | number | undefined) => {
+        if (!val) {
+            newGoalTarget.value = "";
+            return;
+        }
+        const stringVal = String(val);
+        const numericValue = Number(stringVal.replace(/[^0-9]/g, ""));
         newGoalTarget.value = numericValue.toString();
     }
 });
+
+
 </script>
 
 <template>
@@ -105,38 +168,52 @@ const formattedTarget = computed({
                 <h1 class="text-3xl font-bold tracking-tight">Target Menabung</h1>
                 <p class="text-sm text-muted-foreground mt-1">Wujudkan impianmu dengan menabung secara konsisten.</p>
             </div>
-            <Button @click="isCreateOpen = true" class="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md h-10 rounded-xl transition-all hover:scale-105 active:scale-95 px-4">
-                <Plus class="w-4 h-4 mr-2" /> Tambah Target
+            <Button @click="openCreateDialog()" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-lg h-12 rounded-full transition-all hover:scale-105 active:scale-95 px-6">
+                <Plus class="w-5 h-5 mr-2" /> Tambah Target
             </Button>
         </div>
 
         <!-- Goals Grid -->
         <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card v-for="goal in store.goals" :key="goal.id" class="relative overflow-hidden border-border shadow-sm hover:shadow-md transition-all rounded-3xl bg-card border group">
-                <CardHeader class="pb-2 border-b border-border/50">
+            <Card 
+                v-for="goal in store.goals" 
+                :key="goal.id" 
+                class="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-emerald-200 dark:hover:border-emerald-900"
+            >
+                <CardHeader class="pb-2">
                     <div class="flex justify-between items-start">
                         <div class="space-y-1">
-                            <CardTitle class="flex items-center gap-2 text-base font-bold">
-                                <PiggyBank v-if="!goal.is_achieved" class="w-5 h-5 text-emerald-500" />
-                                <Target v-else class="w-5 h-5 text-emerald-600" />
+                            <CardTitle class="flex items-center gap-2 text-xl font-bold tracking-tight">
+                                <div class="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400">
+                                    <PiggyBank v-if="!goal.is_achieved" class="w-5 h-5" />
+                                    <Target v-else class="w-5 h-5" />
+                                </div>
                                 {{ goal.name }}
                             </CardTitle>
-                            <CardDescription v-if="goal.deadline">
-                                <span class="flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                                    <Calendar class="w-3 h-3" /> Target: {{ format(new Date(goal.deadline), 'dd MMM yyyy') }}
-                                </span>
-                            </CardDescription>
+                            <div v-if="goal.deadline" class="flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground pl-1">
+                                <Calendar class="w-3 h-3" /> Target: {{ format(new Date(goal.deadline), 'dd MMM yyyy') }}
+                            </div>
                         </div>
-                        <div v-if="goal.is_achieved" class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                        
+                        <div v-if="goal.is_achieved" class="px-3 py-1 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-full uppercase tracking-wider border border-emerald-200 dark:border-emerald-800">
                             Tercapai
+                        </div>
+                        <div v-else class="flex gap-1">
+                             <Button variant="ghost" size="icon" class="h-8 w-8 text-muted-foreground hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-800" @click="openEditDialog(goal)">
+                                <Pencil class="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" class="h-8 w-8 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" @click="handleDelete(goal.id)">
+                                <Trash2 class="h-4 w-4" />
+                            </Button>
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent class="pt-4">
-                    <div class="space-y-4">
+
+                <CardContent class="space-y-4 pt-2">
+                    <div class="space-y-2">
                         <div class="flex justify-between items-end">
                             <span class="text-xs text-muted-foreground font-medium uppercase tracking-widest">Terkumpul</span>
-                            <span class="font-bold text-lg text-foreground">{{ formatCurrency(goal.current_amount) }}</span>
+                            <span class="font-mono text-2xl font-bold tracking-tight text-foreground">{{ formatCurrency(goal.current_amount) }}</span>
                         </div>
                         
                         <div class="space-y-1.5">
@@ -144,15 +221,26 @@ const formattedTarget = computed({
                                 <span>Progress {{ Math.round(getProgress(goal.current_amount, goal.target_amount)) }}%</span>
                                 <span>Dari {{ formatCurrency(goal.target_amount) }}</span>
                             </div>
-                            <Progress :model-value="getProgress(goal.current_amount, goal.target_amount)" class="h-1.5 bg-muted [&>div]:bg-emerald-500" />
+                            <!-- Standard Progress Bar -->
+                            <div class="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                                <div class="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out" 
+                                     :style="{ width: getProgress(goal.current_amount, goal.target_amount) + '%' }"
+                                ></div>
+                            </div>
                         </div>
+                    </div>
 
-                        <Button v-if="!goal.is_achieved" @click="openContribute(goal)" class="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white mt-2 shadow-sm transition-all active:scale-95 h-9 text-xs font-bold" size="sm">
-                            Tabung Sekarang
+                    <div class="grid grid-cols-[1fr,auto] gap-2 pt-2">
+                        <Button v-if="!goal.is_achieved" @click="openContribute(goal)" class="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-sm border-0 font-bold h-10 transition-all active:scale-95 text-xs" size="sm">
+                            <Plus class="w-4 h-4 mr-2" /> Tabung
                         </Button>
-                        <Button v-else disabled class="w-full rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 mt-2 h-9 text-xs font-bold" size="sm">
+                        <Button v-else disabled class="w-full rounded-xl bg-muted text-muted-foreground border border-border h-10 text-xs font-bold" size="sm">
                             Selesai 🎉
                         </Button>
+
+                         <Button variant="outline" class="w-full rounded-xl bg-background border-input hover:bg-accent hover:text-accent-foreground font-bold h-10 text-xs transition-all active:scale-95 px-4" @click="openDetailDialog(goal)">
+                             <Eye class="mr-2 h-4 w-4" /> Detail
+                         </Button>
                     </div>
                 </CardContent>
             </Card>
@@ -164,7 +252,7 @@ const formattedTarget = computed({
                 </div>
                 <h3 class="text-lg font-medium">Belum ada target menabung</h3>
                 <p class="text-muted-foreground mt-2 max-w-sm mx-auto">Mulai buat target impianmu sekarang, cicil sedikit demi sedikit lama-lama menjadi bukit!</p>
-                <Button @click="isCreateOpen = true" class="mt-4" variant="outline">Buat Target Pertama</Button>
+                <Button @click="openCreateDialog()" class="mt-4" variant="outline">Buat Target Pertama</Button>
             </div>
         </div>
 
@@ -172,7 +260,7 @@ const formattedTarget = computed({
         <Dialog :open="isCreateOpen" @update:open="isCreateOpen = $event">
             <DialogContent class="sm:max-w-[425px] rounded-3xl bg-card text-foreground">
                 <DialogHeader>
-                    <DialogTitle>Buat Target Baru</DialogTitle>
+                    <DialogTitle>{{ isEditing ? "Edit Target" : "Buat Target Baru" }}</DialogTitle>
                     <DialogDescription>Tentukan barang impian atau tujuan finansialmu.</DialogDescription>
                 </DialogHeader>
                 <div class="space-y-4 py-4">
@@ -190,7 +278,7 @@ const formattedTarget = computed({
                             <SelectTrigger class="w-full h-11 rounded-xl bg-background shadow-sm">
                                 <SelectValue placeholder="Pilih Kategori" />
                             </SelectTrigger>
-                             <SelectContent>
+                            <SelectContent>
                                 <SelectItem v-for="c in categoryStore.categories.filter(c => c.type === 'expense')" :key="c.id" :value="String(c.id)">
                                     <div class="flex items-center gap-2">
                                         <component v-if="getIconComponent(c.icon)" :is="getIconComponent(c.icon)" class="h-4 w-4" />
@@ -208,18 +296,24 @@ const formattedTarget = computed({
                 </div>
                 <DialogFooter class="gap-2">
                     <Button variant="outline" @click="isCreateOpen = false" class="rounded-xl h-10 px-6">Batal</Button>
-                    <Button @click="handleCreate" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md rounded-xl h-10 px-6 font-bold">Buat Target</Button>
+                    <Button @click="handleCreate" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md rounded-xl h-10 px-6 font-bold">
+                        {{ isEditing ? "Simpan Perubahan" : "Buat Target" }}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
 
         <!-- Use ManualTransactionDialog for Contribution -->
-        <!-- We pass a special prop or manage state to pre-fill it -->
         <ManualTransactionDialog 
             :open="isContributeOpen" 
             @update:open="isContributeOpen = $event"
             @save="handleContributeClose"
             :savingGoalTarget="selectedGoalForContribution"
+        />
+
+        <Detail 
+            v-model:open="isDetailOpen" 
+            :goal="selectedGoal"
         />
     </div>
 </template>

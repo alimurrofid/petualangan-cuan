@@ -54,8 +54,9 @@ func Connect() (*gorm.DB, error) {
 
 func MigrateFresh(db *gorm.DB) {
 	fmt.Println("🚧 Dropping all tables...")
-	// Drop tables in reverse dependency order to avoid FK issues
-	db.Migrator().DropTable(&entity.WishlistItem{}) // Dependent on User & Category
+	db.Migrator().DropTable(&entity.SavingContribution{})
+	db.Migrator().DropTable(&entity.SavingGoal{})
+	db.Migrator().DropTable(&entity.WishlistItem{})
 	db.Migrator().DropTable(&entity.Transaction{})
 	db.Migrator().DropTable(&entity.DebtPayment{})
 	db.Migrator().DropTable(&entity.Debt{})

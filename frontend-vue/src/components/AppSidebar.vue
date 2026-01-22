@@ -9,6 +9,11 @@ const items = [
     icon: ToolCase,
   },
   {
+    title: "Kesehatan Keuangan",
+    url: "/financial-health",
+    icon: HeartPulse,
+  },
+  {
     title: "AI Assistant",
     url: "/chat",
     icon: Bot,
@@ -52,11 +57,6 @@ const items = [
     title: "Target Menabung",
     url: "/saving-goal",
     icon: PiggyBank,
-  },
-  {
-    title: "Kesehatan Keuangan",
-    url: "/financial-health",
-    icon: HeartPulse,
   },
 ];
 

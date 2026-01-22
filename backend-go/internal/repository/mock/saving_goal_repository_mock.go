@@ -46,7 +46,25 @@ func (m *SavingGoalRepositoryMock) AddContribution(contribution *entity.SavingCo
 	return args.Error(0)
 }
 
+func (m *SavingGoalRepositoryMock) DeleteContributions(goalID uint) error {
+	args := m.Called(goalID)
+	return args.Error(0)
+}
+
 func (m *SavingGoalRepositoryMock) GetActiveContributions(walletID uint) (float64, error) {
 	args := m.Called(walletID)
 	return args.Get(0).(float64), args.Error(1)
+}
+
+func (m *SavingGoalRepositoryMock) FindContributionByID(id uint) (*entity.SavingContribution, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.SavingContribution), args.Error(1)
+}
+
+func (m *SavingGoalRepositoryMock) DeleteContribution(contribution *entity.SavingContribution) error {
+	args := m.Called(contribution)
+	return args.Error(0)
 }

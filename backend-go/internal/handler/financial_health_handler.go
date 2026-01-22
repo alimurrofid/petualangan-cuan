@@ -14,6 +14,15 @@ func NewFinancialHealthHandler(service service.FinancialHealthService) *Financia
 	return &FinancialHealthHandler{service: service}
 }
 
+// GetFinancialHealth godoc
+// @Summary Get financial health analysis
+// @Description Get comprehensive financial health check including savings rate, liquidity, and debt ratio
+// @Tags financial_health
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/financial-health [get]
 func (h *FinancialHealthHandler) GetFinancialHealth(c *fiber.Ctx) error {
 	// Assumes JWT middleware sets "userID" in Locals
 	userID := c.Locals("userID").(uint)

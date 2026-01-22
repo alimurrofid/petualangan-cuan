@@ -14,6 +14,7 @@ type SavingGoal struct {
 	Deadline      *time.Time `json:"deadline"` // Optional deadline
 	IsAchieved    bool      `gorm:"default:false" json:"is_achieved"`
 	Icon          string    `json:"icon"` // PiggyBank or Target icon
+	Contributions []SavingContribution `gorm:"foreignKey:GoalID" json:"contributions"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }

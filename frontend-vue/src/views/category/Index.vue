@@ -190,32 +190,37 @@ const formattedBudgetLimit = computed({
                 v-for="item in filteredCategories"
                 :key="item.id"
                 @click="openEdit(item)"
-                :class="['group relative bg-card h-48 rounded-3xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border border-border/60 hover:border-border', item.type === 'expense' ? 'hover:border-red-200 dark:hover:border-red-500/50' : 'hover:border-emerald-200 dark:hover:border-emerald-500/50']"
+                :class="['group relative bg-card rounded-3xl p-5 cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border border-border/60 hover:border-border flex flex-col gap-4', item.type === 'expense' ? 'hover:border-red-200 dark:hover:border-red-500/50' : 'hover:border-emerald-200 dark:hover:border-emerald-500/50']"
             >
-                <!-- Header: Icon & Edit Hint -->
-                <div class="relative z-10 flex justify-between items-start">
-                    <div :class="['h-14 w-14 rounded-2xl flex items-center justify-center border shadow-sm transition-transform group-hover:scale-110', getGradientIcon(item.type), item.type === 'expense' ? 'border-red-100 dark:border-red-800' : 'border-emerald-100 dark:border-emerald-800']">
-                         <component v-if="getIconComponent(item.icon)" :is="getIconComponent(item.icon)" class="h-7 w-7" />
-                         <span v-else-if="getEmoji(item.icon)" class="text-3xl leading-none filter drop-shadow-sm">{{ getEmoji(item.icon) }}</span>
-                         <component v-else :is="getIconComponent(null, 'LayoutGrid')" class="h-7 w-7" />
+                <!-- Top Section: Type Label & Edit Hint -->
+                <div class="flex justify-between items-start">
+                    <div :class="['px-2.5 py-1 rounded-lg text-[10px] uppercase font-bold tracking-widest border', item.type === 'expense' ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-300 dark:border-red-900/30' : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-900/30']">
+                         {{ item.type === 'expense' ? 'Pengeluaran' : 'Pemasukan' }}
                     </div>
                     <div class="opacity-0 group-hover:opacity-100 transition-opacity">
-                         <div class="bg-muted p-2 rounded-full transform rotate-12 group-hover:rotate-0 transition-transform">
-                            <Pencil class="w-3.5 h-3.5 text-muted-foreground" />
+                         <div class="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full transform rotate-12 group-hover:rotate-0 transition-transform shadow-sm">
+                            <Pencil class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                          </div>
                     </div>
                 </div>
 
-                <!-- Footer: Name & Type -->
-                <div class="relative z-10 mt-auto">
-                    <p class="font-bold text-lg tracking-wide truncate leading-tight text-foreground group-hover:text-primary transition-colors">{{ item.name }}</p>
-                    <div class="flex items-center gap-1.5 mt-2">
-                         <div :class="['h-1.5 w-1.5 rounded-full', item.type === 'expense' ? 'bg-red-500' : 'bg-emerald-500']"></div>
-                         <p class="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">{{ item.type === 'expense' ? 'Pengeluaran' : 'Pemasukan' }}</p>
+                <!-- Main Content: Icon & Title -->
+                <div class="flex items-center gap-4">
+                    <!-- Icon -->
+                    <div :class="['h-14 w-14 shrink-0 rounded-2xl flex items-center justify-center border shadow-sm transition-transform group-hover:scale-110', getGradientIcon(item.type), item.type === 'expense' ? 'border-red-100 dark:border-red-800' : 'border-emerald-100 dark:border-emerald-800']">
+                         <component v-if="getIconComponent(item.icon)" :is="getIconComponent(item.icon)" class="h-7 w-7" />
+                         <span v-else-if="getEmoji(item.icon)" class="text-3xl leading-none filter drop-shadow-sm">{{ getEmoji(item.icon) }}</span>
+                         <component v-else :is="getIconComponent(null, 'LayoutGrid')" class="h-7 w-7" />
                     </div>
-                     <p v-if="item.type === 'expense' && item.budget_limit" class="text-xs text-muted-foreground mt-1">
-                        Target: {{ new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.budget_limit) }}
-                    </p>
+
+                    <!-- Title & Target -->
+                    <div class="min-w-0 flex-1 space-y-1">
+                        <p class="font-bold text-lg tracking-wide truncate leading-tight text-foreground group-hover:text-primary transition-colors">{{ item.name }}</p>
+                        <p v-if="item.type === 'expense' && item.budget_limit" class="text-xs text-muted-foreground flex items-center gap-1">
+                            <span class="opacity-70">Target:</span> 
+                            <span class="font-medium">{{ new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.budget_limit) }}</span>
+                        </p>
+                    </div>
                 </div>
             </div>
 

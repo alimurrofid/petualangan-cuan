@@ -19,10 +19,86 @@ definitions:
       user_id:
         type: integer
     type: object
+  entity.Debt:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      description:
+        type: string
+      due_date:
+        type: string
+      id:
+        type: integer
+      is_paid:
+        type: boolean
+      name:
+        type: string
+      payments:
+        items:
+          $ref: '#/definitions/entity.DebtPayment'
+        type: array
+      remaining:
+        type: number
+      type:
+        $ref: '#/definitions/entity.DebtType'
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      wallet:
+        $ref: '#/definitions/entity.Wallet'
+      wallet_id:
+        type: integer
+    type: object
+  entity.DebtPayment:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      date:
+        type: string
+      debt_id:
+        type: integer
+      id:
+        type: integer
+      note:
+        type: string
+      transaction:
+        $ref: '#/definitions/entity.Transaction'
+      transaction_id:
+        type: integer
+      updated_at:
+        type: string
+      wallet:
+        allOf:
+        - $ref: '#/definitions/entity.Wallet'
+        description: Wallet used for THIS payment
+      wallet_id:
+        type: integer
+    type: object
+  entity.DebtType:
+    enum:
+    - debt
+    - receivable
+    type: string
+    x-enum-comments:
+      DebtTypePayable: Utang (kita berutang)
+      DebtTypeReceivable: Piutang (orang lain berutang ke kita)
+    x-enum-descriptions:
+    - Utang (kita berutang)
+    - Piutang (orang lain berutang ke kita)
+    x-enum-varnames:
+    - DebtTypePayable
+    - DebtTypeReceivable
   entity.Transaction:
     properties:
       amount:
         type: number
+      attachment:
+        type: string
       category:
         $ref: '#/definitions/entity.Category'
       category_id:
@@ -34,6 +110,8 @@ definitions:
       description:
         type: string
       id:
+        type: integer
+      related_transaction_id:
         type: integer
       type:
         type: string
@@ -48,6 +126,8 @@ definitions:
     type: object
   entity.Wallet:
     properties:
+      available_balance:
+        type: number
       balance:
         type: number
       created_at:
@@ -66,10 +146,58 @@ definitions:
       user_id:
         type: integer
     type: object
+  entity.WishlistItem:
+    properties:
+      category:
+        $ref: '#/definitions/entity.Category'
+      category_id:
+        type: integer
+      created_at:
+        type: string
+      estimated_price:
+        type: number
+      id:
+        type: integer
+      is_bought:
+        type: boolean
+      name:
+        type: string
+      priority:
+        $ref: '#/definitions/entity.WishlistPriority'
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  entity.WishlistPriority:
+    enum:
+    - low
+    - medium
+    - high
+    type: string
+    x-enum-varnames:
+    - WishlistPriorityLow
+    - WishlistPriorityMedium
+    - WishlistPriorityHigh
   service.ChangePasswordInput:
     properties:
       new_password:
         type: string
+    type: object
+  service.ContributionInput:
+    properties:
+      amount:
+        type: number
+      date:
+        type: string
+      description:
+        type: string
+      wallet_id:
+        type: integer
+    required:
+    - amount
+    - date
+    - wallet_id
     type: object
   service.CreateCategoryInput:
     properties:
@@ -85,10 +213,52 @@ definitions:
     - name
     - type
     type: object
+  service.CreateDebtInput:
+    properties:
+      amount:
+        type: number
+      description:
+        type: string
+      due_date:
+        type: string
+      name:
+        type: string
+      type:
+        enum:
+        - debt
+        - receivable
+        type: string
+      wallet_id:
+        type: integer
+    required:
+    - amount
+    - name
+    - type
+    - wallet_id
+    type: object
+  service.CreateGoalInput:
+    properties:
+      category_id:
+        type: integer
+      deadline:
+        type: string
+      icon:
+        type: string
+      name:
+        type: string
+      target_amount:
+        type: number
+    required:
+    - category_id
+    - name
+    - target_amount
+    type: object
   service.CreateTransactionInput:
     properties:
       amount:
         type: number
+      attachment:
+        type: string
       category_id:
         type: integer
       date:
@@ -127,6 +297,18 @@ definitions:
       password:
         type: string
     type: object
+  service.PayDebtInput:
+    properties:
+      amount:
+        type: number
+      note:
+        type: string
+      wallet_id:
+        type: integer
+    required:
+    - amount
+    - wallet_id
+    type: object
   service.RegisterInput:
     properties:
       email:
@@ -135,6 +317,25 @@ definitions:
         type: string
       password:
         type: string
+    type: object
+  service.StoreWishlistRequest:
+    properties:
+      category_id:
+        type: integer
+      estimated_price:
+        type: number
+      name:
+        type: string
+      priority:
+        enum:
+        - low
+        - medium
+        - high
+        type: string
+    required:
+    - category_id
+    - estimated_price
+    - name
     type: object
   service.TransferTransactionInput:
     properties:
@@ -164,6 +365,23 @@ definitions:
         type: string
       type:
         type: string
+    type: object
+  service.UpdateDebtInput:
+    properties:
+      amount:
+        type: number
+      description:
+        type: string
+      due_date:
+        type: string
+      name:
+        type: string
+      wallet_id:
+        type: integer
+    required:
+    - amount
+    - name
+    - wallet_id
     type: object
   service.UpdateProfileInput:
     properties:
@@ -350,6 +568,368 @@ paths:
       summary: Get dashboard data
       tags:
       - dashboard
+  /api/debts:
+    get:
+      consumes:
+      - application/json
+      description: Get list of debts filtered by type
+      parameters:
+      - description: Type (debt/receivable)
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.Debt'
+            type: array
+      summary: Get all debts/receivables
+      tags:
+      - debts
+    post:
+      consumes:
+      - application/json
+      description: Create a new debt record and automatically create associated transaction
+      parameters:
+      - description: Debt Input
+        in: body
+        name: debt
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateDebtInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entity.Debt'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new debt or receivable
+      tags:
+      - debts
+  /api/debts/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 'Delete a debt record (CAUTION: does not revert transactions)'
+      parameters:
+      - description: Debt ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a debt record
+      tags:
+      - debts
+    get:
+      consumes:
+      - application/json
+      description: Get details of a specific debt
+      parameters:
+      - description: Debt ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Debt'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a single debt
+      tags:
+      - debts
+    put:
+      consumes:
+      - application/json
+      description: Update name, description, and due date of a debt
+      parameters:
+      - description: Debt ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update Input
+        in: body
+        name: debt
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateDebtInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Debt'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a debt record
+      tags:
+      - debts
+  /api/debts/{id}/pay:
+    post:
+      consumes:
+      - application/json
+      description: Record a payment for a debt and update remaining amount
+      parameters:
+      - description: Debt ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Payment Input
+        in: body
+        name: payment
+        required: true
+        schema:
+          $ref: '#/definitions/service.PayDebtInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Debt'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Pay a debt installment
+      tags:
+      - debts
+  /api/debts/payments/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a debt payment and revert balance/debt remaining
+      parameters:
+      - description: Payment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a debt payment
+      tags:
+      - debts
+  /api/financial-health:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive financial health check including savings rate,
+        liquidity, and debt ratio
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get financial health analysis
+      tags:
+      - financial_health
+  /api/saving-goals:
+    get:
+      consumes:
+      - application/json
+      description: Get list of saving goals for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all saving goals
+      tags:
+      - saving_goals
+    post:
+      consumes:
+      - application/json
+      description: Create a new saving goal record
+      parameters:
+      - description: Goal Input
+        in: body
+        name: goal
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateGoalInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new saving goal
+      tags:
+      - saving_goals
+  /api/saving-goals/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a saving goal
+      parameters:
+      - description: Goal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a saving goal
+      tags:
+      - saving_goals
+    put:
+      consumes:
+      - application/json
+      description: Update details of a saving goal
+      parameters:
+      - description: Goal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Goal Input
+        in: body
+        name: goal
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateGoalInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a saving goal
+      tags:
+      - saving_goals
+  /api/saving-goals/{id}/contributions:
+    post:
+      consumes:
+      - application/json
+      description: Add money to a saving goal
+      parameters:
+      - description: Goal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Contribution Input
+        in: body
+        name: contribution
+        required: true
+        schema:
+          $ref: '#/definitions/service.ContributionInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Add contribution to a saving goal
+      tags:
+      - saving_goals
   /api/transactions:
     get:
       consumes:
@@ -465,6 +1045,67 @@ paths:
       summary: Delete a transaction
       tags:
       - transactions
+    get:
+      consumes:
+      - application/json
+      description: Get a single transaction by ID
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Transaction'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a transaction
+      tags:
+      - transactions
+    put:
+      consumes:
+      - application/json
+      description: Update an existing transaction and adjust wallet balances
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Transaction Input
+        in: body
+        name: transaction
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateTransactionInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Transaction'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a transaction
+      tags:
+      - transactions
   /api/transactions/calendar:
     get:
       consumes:
@@ -515,6 +1156,38 @@ paths:
       summary: Get aggregated calendar data
       tags:
       - transactions
+  /api/transactions/export:
+    get:
+      description: Export all matched transactions
+      parameters:
+      - description: Start Date
+        in: query
+        name: start_date
+        type: string
+      - description: End Date
+        in: query
+        name: end_date
+        type: string
+      - description: Wallet ID
+        in: query
+        name: wallet_id
+        type: integer
+      - description: Category ID
+        in: query
+        name: category_id
+        type: integer
+      - description: Search Term
+        in: query
+        name: search
+        type: string
+      - description: Transaction Type
+        in: query
+        name: type
+        type: string
+      responses: {}
+      summary: Export transactions to Excel
+      tags:
+      - transactions
   /api/transactions/report:
     get:
       consumes:
@@ -550,6 +1223,32 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get category breakdown for report
+      tags:
+      - transactions
+  /api/transactions/report/export:
+    get:
+      description: Export category breakdown report
+      parameters:
+      - description: Start Date
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: End Date
+        in: query
+        name: end_date
+        required: true
+        type: string
+      - description: Wallet ID
+        in: query
+        name: wallet_id
+        type: integer
+      - description: Filter Type
+        in: query
+        name: type
+        type: string
+      responses: {}
+      summary: Export report to Excel
       tags:
       - transactions
   /api/transactions/transfer:
@@ -815,6 +1514,161 @@ paths:
       summary: Update a wallet
       tags:
       - wallets
+  /api/wishlists:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all wishlist items for the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.WishlistItem'
+            type: array
+      summary: Get all wishlist items
+      tags:
+      - wishlist
+    post:
+      consumes:
+      - application/json
+      description: Create a new prospective purchase item
+      parameters:
+      - description: Wishlist Item
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/service.StoreWishlistRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new wishlist item
+      tags:
+      - wishlist
+  /api/wishlists/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a wishlist item
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a wishlist item
+      tags:
+      - wishlist
+    get:
+      consumes:
+      - application/json
+      description: Get details of a specific wishlist item
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.WishlistItem'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a wishlist item
+      tags:
+      - wishlist
+    put:
+      consumes:
+      - application/json
+      description: Update details of a wishlist item
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Wishlist Item
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/service.StoreWishlistRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a wishlist item
+      tags:
+      - wishlist
+  /api/wishlists/{id}/bought:
+    patch:
+      consumes:
+      - application/json
+      description: Mark item as purchased
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Mark a wishlist item as bought
+      tags:
+      - wishlist
   /auth/login:
     post:
       consumes:

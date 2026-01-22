@@ -4,6 +4,7 @@ import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
 	"errors"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -146,6 +147,7 @@ func (s *debtService) CreateDebt(userID uint, input CreateDebtInput) (*entity.De
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
+			fmt.Println("Recovered in CreateDebt:", r)
 			tx.Rollback()
 		}
 	}()

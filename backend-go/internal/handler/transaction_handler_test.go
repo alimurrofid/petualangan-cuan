@@ -6,6 +6,7 @@ import (
 	"cuan-backend/internal/handler"
 	"cuan-backend/internal/service"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -111,18 +112,25 @@ func TestCreateTransaction(t *testing.T) {
 		Type:       "expense",
 		Date:       now,
 	}
-	body, _ := json.Marshal(input)
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	writer.WriteField("wallet_id", "1")
+	writer.WriteField("category_id", "1")
+	writer.WriteField("amount", "10000")
+	writer.WriteField("type", "expense")
+	writer.WriteField("date", now.Format(time.RFC3339))
+	writer.Close()
 	
 	mockTransaction := &entity.Transaction{
 		ID: 1, UserID: 1, WalletID: 1, CategoryID: 1, Amount: 10000, Type: "expense", Date: now,
 	}
 	
 	mockService.On("CreateTransaction", uint(1), mock.MatchedBy(func(i service.CreateTransactionInput) bool {
-		return i.WalletID == input.WalletID && i.Amount == input.Amount
+		return i.WalletID == input.WalletID && i.Amount == input.Amount && i.Type == input.Type
 	})).Return(mockTransaction, nil)
 
-	req := httptest.NewRequest("POST", "/api/transactions", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
+	req := httptest.NewRequest("POST", "/api/transactions", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	resp, _ := app.Test(req)
 
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
@@ -255,6 +263,32 @@ func TestGetReport_WithFilters(t *testing.T) {
 	})).Return(mockData, nil)
 
 	req := httptest.NewRequest("GET", "/transactions/report?start_date=2023-01-01&end_date=2023-01-31&wallet_id=5&type=income", nil)
+	resp, _ := app.Test(req)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	mockService.AssertExpectations(t)
+}
+
+func TestUpdateTransaction(t *testing.T) {
+	mockService := new(MockTransactionService)
+	transactionHandler := handler.NewTransactionHandler(mockService)
+
+	app := fiber.New()
+	app.Put("/api/transactions/:id", mockAuthMiddleware(1), transactionHandler.UpdateTransaction)
+
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	writer.WriteField("type", "expense")
+	writer.WriteField("description", "Updated")
+	writer.Close()
+
+	// Update Mock Expectation
+	mockService.On("UpdateTransaction", uint(1), uint(1), mock.MatchedBy(func(i service.CreateTransactionInput) bool {
+		return i.Type == "expense" && i.Description == "Updated"
+	})).Return(&entity.Transaction{ID: 1, Type: "expense", Description: "Updated"}, nil)
+
+	req := httptest.NewRequest("PUT", "/api/transactions/1", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	resp, _ := app.Test(req)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)

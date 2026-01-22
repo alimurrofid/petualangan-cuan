@@ -118,14 +118,14 @@ const getStatusIcon = (status: string) => {
 </script>
 
 <template>
-  <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+  <div class="flex-1 space-y-6 pt-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
       <div>
         <h2 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Kesehatan Keuangan</h2>
         <p class="text-muted-foreground mt-1 text-sm">Analisa kondisi finansial Anda secara objektif.</p>
       </div>
-      <button @click="store.fetchFinancialHealth" class="w-full sm:w-auto justify-center group flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all text-xs font-medium">
-        <RotateCcw class="w-3.5 h-3.5 text-emerald-600 group-hover:-rotate-180 transition-transform duration-500" :class="{'animate-spin': store.isLoading}" />
+      <button @click="store.fetchFinancialHealth" class="group flex items-center gap-2 px-6 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all text-xs font-bold hover:scale-105 active:scale-95">
+        <RotateCcw class="w-4 h-4 text-emerald-600 group-hover:-rotate-180 transition-transform duration-500" :class="{'animate-spin': store.isLoading}" />
         <span>Refresh Analisa</span>
       </button>
     </div>

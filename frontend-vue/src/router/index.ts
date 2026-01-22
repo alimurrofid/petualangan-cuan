@@ -28,6 +28,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/Dashboard.vue"),
       },
       {
+        path: "financial-health",
+        name: "FinancialHealth",
+        component: () => import("@/views/financial-health/Index.vue"),
+      },
+      {
          path: "chat",
          name: "Chat",
          component: () => import("@/views/chat/Index.vue"),
@@ -76,11 +81,6 @@ const routes: RouteRecordRaw[] = [
         path: "saving-goal",
         name: "SavingGoal",
         component: () => import("@/views/saving_goal/Index.vue"),
-      },
-      {
-        path: "financial-health",
-        name: "FinancialHealth",
-        component: () => import("@/views/financial-health/Index.vue"),
       },
     ],
   },

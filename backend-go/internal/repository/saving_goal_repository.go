@@ -16,6 +16,9 @@ type SavingGoalRepository interface {
 	// Contributions
 	AddContribution(contribution *entity.SavingContribution) error
 	GetActiveContributions(walletID uint) (float64, error) // For calculating available balance
+	DeleteContributions(goalID uint) error
+	FindContributionByID(id uint) (*entity.SavingContribution, error)
+	DeleteContribution(contribution *entity.SavingContribution) error
 }
 
 type savingGoalRepository struct {
@@ -32,13 +35,25 @@ func (r *savingGoalRepository) Create(goal *entity.SavingGoal) error {
 
 func (r *savingGoalRepository) FindAll(userID uint) ([]entity.SavingGoal, error) {
 	var goals []entity.SavingGoal
-	err := r.db.Where("user_id = ?", userID).Find(&goals).Error
+	err := r.db.Where("user_id = ?", userID).
+		Preload("Contributions", func(db *gorm.DB) *gorm.DB {
+			return db.Order("date desc") // Order contributions by date
+		}).
+		Preload("Contributions.Wallet").
+		Preload("Contributions.Transaction").
+		Find(&goals).Error
 	return goals, err
 }
 
 func (r *savingGoalRepository) FindByID(id uint, userID uint) (*entity.SavingGoal, error) {
 	var goal entity.SavingGoal
-	err := r.db.Where("id = ? AND user_id = ?", id, userID).First(&goal).Error
+	err := r.db.Where("id = ? AND user_id = ?", id, userID).
+		Preload("Contributions", func(db *gorm.DB) *gorm.DB {
+			return db.Order("date desc")
+		}).
+		Preload("Contributions.Wallet").
+		Preload("Contributions.Transaction").
+		First(&goal).Error
 	if err != nil {
 		return nil, err
 	}
@@ -74,4 +89,21 @@ func (r *savingGoalRepository) GetActiveContributions(walletID uint) (float64, e
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&total).Error
 	return total, err
+}
+
+func (r *savingGoalRepository) DeleteContributions(goalID uint) error {
+	return r.db.Where("goal_id = ?", goalID).Delete(&entity.SavingContribution{}).Error
+}
+
+func (r *savingGoalRepository) FindContributionByID(id uint) (*entity.SavingContribution, error) {
+	var contribution entity.SavingContribution
+	err := r.db.Preload("Transaction").Preload("SavingGoal").First(&contribution, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &contribution, nil
+}
+
+func (r *savingGoalRepository) DeleteContribution(contribution *entity.SavingContribution) error {
+	return r.db.Delete(contribution).Error
 }

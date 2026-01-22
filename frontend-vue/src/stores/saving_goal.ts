@@ -44,11 +44,52 @@ export const useSavingGoalStore = defineStore("savingGoal", () => {
         }
     };
 
+    const updateGoal = async (id: number, payload: any) => {
+        try {
+            await api.put(`/api/saving-goals/${id}`, payload);
+            await fetchGoals();
+            return true;
+        } catch (error: any) {
+            console.error("Failed to update saving goal", error);
+            swal.error("Gagal", error.response?.data?.error || "Gagal memperbarui target menabung");
+            return false;
+        }
+    };
+
+    const deleteGoal = async (id: number) => {
+        try {
+            await api.delete(`/api/saving-goals/${id}`);
+            await fetchGoals();
+            return true;
+        } catch (error: any) {
+            console.error("Failed to delete saving goal", error);
+            swal.error("Gagal", error.response?.data?.error || "Gagal menghapus target menabung");
+            return false;
+        }
+    };
+
+    const deleteContribution = async (goalId: number, contributionId: number) => {
+        try {
+            // Note: The route is typically /api/saving-goals/:id/contributions/:contribution_id
+            await api.delete(`/api/saving-goals/${goalId}/contributions/${contributionId}`);
+            // Fetch goals again to update progress
+            await fetchGoals();
+            return true;
+        } catch (error: any) {
+            console.error("Failed to delete contribution", error);
+            swal.error("Gagal", error.response?.data?.error || "Gagal menghapus data menabung");
+            return false;
+        }
+    };
+
     return {
         goals,
         isLoading,
         fetchGoals,
         createGoal,
         addContribution,
+        updateGoal,
+        deleteGoal,
+        deleteContribution, // Export the new action
     };
 });

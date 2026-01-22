@@ -38,3 +38,9 @@ type TransactionFilterParams struct {
 	Search     string
 	Type       string
 }
+
+type TransactionTrend struct {
+	Month   string  `json:"month"`
+	Income  float64 `json:"income"`
+	Expense float64 `json:"expense"`
+}

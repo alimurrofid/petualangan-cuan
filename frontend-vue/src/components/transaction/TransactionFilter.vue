@@ -2,8 +2,7 @@
 import { ref, watch } from 'vue';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Search, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-vue-next";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-vue-next";
 import DateRangePicker from "@/components/DateRangePicker.vue";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
@@ -14,7 +13,6 @@ const props = defineProps<{
     endDate: Date,
     walletId: string,
     categoryId: string,
-    searchQuery: string,
     formattedDateRange: string
 }>();
 
@@ -22,7 +20,6 @@ const emit = defineEmits([
     'update:periodType', 
     'update:walletId', 
     'update:categoryId', 
-    'update:searchQuery', 
     'navigateDate', 
     'update:dateRange',
     'export'
@@ -33,26 +30,7 @@ const categoryStore = useCategoryStore();
 
 const showDatePicker = ref(false);
 
-const localSearch = ref(props.searchQuery);
-const isFocused = ref(false);
-let debounceTimer: any = null;
 
-watch(() => props.searchQuery, (val) => {
-    // Only sync from prop if user is not actively interacting
-    if (!isFocused.value && localSearch.value !== val) {
-        localSearch.value = val;
-    }
-});
-
-watch(localSearch, (val) => {
-    // Only emit if it's different to avoid redundant fetches
-    if (val === props.searchQuery) return;
-
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        emit('update:searchQuery', val);
-    }, 300);
-});
 
 watch(() => props.periodType, (val) => {
     if (val === 'custom') {
@@ -120,17 +98,7 @@ watch(() => props.periodType, (val) => {
                 </SelectContent>
             </Select>
             
-             <!-- Search Input -->
-            <div class="relative w-full md:w-[180px]">
-                <Search class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                <Input 
-                    v-model="localSearch" 
-                    @focus="isFocused = true"
-                    @blur="isFocused = false"
-                    placeholder="Cari transaksi..." 
-                    class="h-9 pl-8 rounded-full bg-muted/50 border-transparent focus:bg-background transition-all text-xs" 
-                />
-            </div>
+
 
         </div>
     </div>

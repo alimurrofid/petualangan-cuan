@@ -13,7 +13,11 @@ type WalletRepositoryMock struct {
 }
 
 func (m *WalletRepositoryMock) WithTx(tx *gorm.DB) repository.WalletRepository {
-	return m
+	args := m.Called(tx)
+	if args.Get(0) == nil {
+		return m
+	}
+	return args.Get(0).(repository.WalletRepository)
 }
 
 func (m *WalletRepositoryMock) Create(wallet *entity.Wallet) error {

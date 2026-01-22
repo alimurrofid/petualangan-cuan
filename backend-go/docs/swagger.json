@@ -247,6 +247,542 @@
                 }
             }
         },
+        "/api/debts": {
+            "get": {
+                "description": "Get list of debts filtered by type",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "debts"
+                ],
+                "summary": "Get all debts/receivables",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Type (debt/receivable)",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entity.Debt"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new debt record and automatically create associated transaction",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "debts"
+                ],
+                "summary": "Create a new debt or receivable",
+                "parameters": [
+                    {
+                        "description": "Debt Input",
+                        "name": "debt",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateDebtInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Debt"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/debts/payments/{id}": {
+            "delete": {
+                "description": "Delete a debt payment and revert balance/debt remaining",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "debts"
+                ],
+                "summary": "Delete a debt payment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Payment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/debts/{id}": {
+            "get": {
+                "description": "Get details of a specific debt",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "debts"
+                ],
+                "summary": "Get a single debt",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Debt ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Debt"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update name, description, and due date of a debt",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "debts"
+                ],
+                "summary": "Update a debt record",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Debt ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Input",
+                        "name": "debt",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.UpdateDebtInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Debt"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a debt record (CAUTION: does not revert transactions)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "debts"
+                ],
+                "summary": "Delete a debt record",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Debt ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/debts/{id}/pay": {
+            "post": {
+                "description": "Record a payment for a debt and update remaining amount",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "debts"
+                ],
+                "summary": "Pay a debt installment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Debt ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Payment Input",
+                        "name": "payment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.PayDebtInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Debt"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/financial-health": {
+            "get": {
+                "description": "Get comprehensive financial health check including savings rate, liquidity, and debt ratio",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "financial_health"
+                ],
+                "summary": "Get financial health analysis",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/saving-goals": {
+            "get": {
+                "description": "Get list of saving goals for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "saving_goals"
+                ],
+                "summary": "Get all saving goals",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new saving goal record",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "saving_goals"
+                ],
+                "summary": "Create a new saving goal",
+                "parameters": [
+                    {
+                        "description": "Goal Input",
+                        "name": "goal",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateGoalInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/saving-goals/{id}": {
+            "put": {
+                "description": "Update details of a saving goal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "saving_goals"
+                ],
+                "summary": "Update a saving goal",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Goal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Goal Input",
+                        "name": "goal",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateGoalInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a saving goal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "saving_goals"
+                ],
+                "summary": "Delete a saving goal",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Goal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/saving-goals/{id}/contributions": {
+            "post": {
+                "description": "Add money to a saving goal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "saving_goals"
+                ],
+                "summary": "Add contribution to a saving goal",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Goal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Contribution Input",
+                        "name": "contribution",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.ContributionInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/transactions": {
             "get": {
                 "description": "Get all transactions for the logged in user with pagination and filtering",
@@ -448,6 +984,54 @@
                 }
             }
         },
+        "/api/transactions/export": {
+            "get": {
+                "description": "Export all matched transactions",
+                "tags": [
+                    "transactions"
+                ],
+                "summary": "Export transactions to Excel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start Date",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End Date",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Wallet ID",
+                        "name": "wallet_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Category ID",
+                        "name": "category_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search Term",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Transaction Type",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {}
+            }
+        },
         "/api/transactions/report": {
             "get": {
                 "security": [
@@ -505,6 +1089,44 @@
                 }
             }
         },
+        "/api/transactions/report/export": {
+            "get": {
+                "description": "Export category breakdown report",
+                "tags": [
+                    "transactions"
+                ],
+                "summary": "Export report to Excel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start Date",
+                        "name": "start_date",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "End Date",
+                        "name": "end_date",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Wallet ID",
+                        "name": "wallet_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter Type",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {}
+            }
+        },
         "/api/transactions/transfer": {
             "post": {
                 "description": "Create a transfer comprising an expense and an income",
@@ -555,6 +1177,96 @@
             }
         },
         "/api/transactions/{id}": {
+            "get": {
+                "description": "Get a single transaction by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "transactions"
+                ],
+                "summary": "Get a transaction",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Transaction"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing transaction and adjust wallet balances",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "transactions"
+                ],
+                "summary": "Update a transaction",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Transaction Input",
+                        "name": "transaction",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.CreateTransactionInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Transaction"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "delete": {
                 "description": "Delete a transaction by ID and revert balance",
                 "consumes": [
@@ -954,6 +1666,236 @@
                 }
             }
         },
+        "/api/wishlists": {
+            "get": {
+                "description": "Get list of all wishlist items for the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "wishlist"
+                ],
+                "summary": "Get all wishlist items",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entity.WishlistItem"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new prospective purchase item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "wishlist"
+                ],
+                "summary": "Create a new wishlist item",
+                "parameters": [
+                    {
+                        "description": "Wishlist Item",
+                        "name": "item",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.StoreWishlistRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/wishlists/{id}": {
+            "get": {
+                "description": "Get details of a specific wishlist item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "wishlist"
+                ],
+                "summary": "Get a wishlist item",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.WishlistItem"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update details of a wishlist item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "wishlist"
+                ],
+                "summary": "Update a wishlist item",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Wishlist Item",
+                        "name": "item",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.StoreWishlistRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a wishlist item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "wishlist"
+                ],
+                "summary": "Delete a wishlist item",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/wishlists/{id}/bought": {
+            "patch": {
+                "description": "Mark item as purchased",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "wishlist"
+                ],
+                "summary": "Mark a wishlist item as bought",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "Login with email and password to get JWT token",
@@ -1104,11 +2046,126 @@
                 }
             }
         },
+        "entity.Debt": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_paid": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "payments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.DebtPayment"
+                    }
+                },
+                "remaining": {
+                    "type": "number"
+                },
+                "type": {
+                    "$ref": "#/definitions/entity.DebtType"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "wallet": {
+                    "$ref": "#/definitions/entity.Wallet"
+                },
+                "wallet_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "entity.DebtPayment": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "debt_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "transaction": {
+                    "$ref": "#/definitions/entity.Transaction"
+                },
+                "transaction_id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "wallet": {
+                    "description": "Wallet used for THIS payment",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Wallet"
+                        }
+                    ]
+                },
+                "wallet_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "entity.DebtType": {
+            "type": "string",
+            "enum": [
+                "debt",
+                "receivable"
+            ],
+            "x-enum-comments": {
+                "DebtTypePayable": "Utang (kita berutang)",
+                "DebtTypeReceivable": "Piutang (orang lain berutang ke kita)"
+            },
+            "x-enum-descriptions": [
+                "Utang (kita berutang)",
+                "Piutang (orang lain berutang ke kita)"
+            ],
+            "x-enum-varnames": [
+                "DebtTypePayable",
+                "DebtTypeReceivable"
+            ]
+        },
         "entity.Transaction": {
             "type": "object",
             "properties": {
                 "amount": {
                     "type": "number"
+                },
+                "attachment": {
+                    "type": "string"
                 },
                 "category": {
                     "$ref": "#/definitions/entity.Category"
@@ -1126,6 +2183,9 @@
                     "type": "string"
                 },
                 "id": {
+                    "type": "integer"
+                },
+                "related_transaction_id": {
                     "type": "integer"
                 },
                 "type": {
@@ -1148,6 +2208,9 @@
         "entity.Wallet": {
             "type": "object",
             "properties": {
+                "available_balance": {
+                    "type": "number"
+                },
                 "balance": {
                     "type": "number"
                 },
@@ -1175,11 +2238,81 @@
                 }
             }
         },
+        "entity.WishlistItem": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "$ref": "#/definitions/entity.Category"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "estimated_price": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_bought": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "$ref": "#/definitions/entity.WishlistPriority"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "entity.WishlistPriority": {
+            "type": "string",
+            "enum": [
+                "low",
+                "medium",
+                "high"
+            ],
+            "x-enum-varnames": [
+                "WishlistPriorityLow",
+                "WishlistPriorityMedium",
+                "WishlistPriorityHigh"
+            ]
+        },
         "service.ChangePasswordInput": {
             "type": "object",
             "properties": {
                 "new_password": {
                     "type": "string"
+                }
+            }
+        },
+        "service.ContributionInput": {
+            "type": "object",
+            "required": [
+                "amount",
+                "date",
+                "wallet_id"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "wallet_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -1204,6 +2337,64 @@
                 }
             }
         },
+        "service.CreateDebtInput": {
+            "type": "object",
+            "required": [
+                "amount",
+                "name",
+                "type",
+                "wallet_id"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "debt",
+                        "receivable"
+                    ]
+                },
+                "wallet_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "service.CreateGoalInput": {
+            "type": "object",
+            "required": [
+                "category_id",
+                "name",
+                "target_amount"
+            ],
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "deadline": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "target_amount": {
+                    "type": "number"
+                }
+            }
+        },
         "service.CreateTransactionInput": {
             "type": "object",
             "required": [
@@ -1216,6 +2407,9 @@
             "properties": {
                 "amount": {
                     "type": "number"
+                },
+                "attachment": {
+                    "type": "string"
                 },
                 "category_id": {
                     "type": "integer"
@@ -1266,6 +2460,24 @@
                 }
             }
         },
+        "service.PayDebtInput": {
+            "type": "object",
+            "required": [
+                "amount",
+                "wallet_id"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "wallet_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "service.RegisterInput": {
             "type": "object",
             "properties": {
@@ -1277,6 +2489,33 @@
                 },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "service.StoreWishlistRequest": {
+            "type": "object",
+            "required": [
+                "category_id",
+                "estimated_price",
+                "name"
+            ],
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "estimated_price": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                    ]
                 }
             }
         },
@@ -1320,6 +2559,31 @@
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "service.UpdateDebtInput": {
+            "type": "object",
+            "required": [
+                "amount",
+                "name",
+                "wallet_id"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "wallet_id": {
+                    "type": "integer"
                 }
             }
         },

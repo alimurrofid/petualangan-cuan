@@ -187,6 +187,9 @@ func main() {
 	savingGoals.Get("/", savingGoalHandler.GetGoals)
 	savingGoals.Post("/", savingGoalHandler.CreateGoal)
 	savingGoals.Post("/:id/contributions", savingGoalHandler.AddContribution)
+	savingGoals.Put("/:id", savingGoalHandler.UpdateGoal)
+	savingGoals.Delete("/:id", savingGoalHandler.DeleteGoal)
+	savingGoals.Delete("/:id/contributions/:contribution_id", savingGoalHandler.DeleteContribution)
 
 	// Financial Health
 	api.Get("/financial-health", middleware.Protected(), financialHealthHandler.GetFinancialHealth)

@@ -57,7 +57,7 @@ func (m *MockWalletService) DeleteWallet(id uint, userID uint) error {
 
 func mockAuthMiddleware(userID uint) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		c.Locals("user_id", userID)
+		c.Locals("userID", userID)
 		return c.Next()
 	}
 }
