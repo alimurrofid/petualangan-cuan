@@ -44,6 +44,7 @@ const date = ref(format(new Date(), "yyyy-MM-dd"));
 const amount = ref("");
 const selectedWallet = ref("");
 const toWallet = ref(""); // New field for transfer
+const transferFee = ref(""); // New field for transfer fee
 const selectedCategory = ref("");
 const description = ref("");
 const file = ref<File | null>(null);
@@ -161,6 +162,7 @@ watch(() => props.transactionToEdit, (newVal) => {
         activeTab.value = "expense";
         date.value = format(new Date(), "yyyy-MM-dd");
         amount.value = "";
+        transferFee.value = "";
         selectedWallet.value = "";
         toWallet.value = "";
         selectedCategory.value = "";
@@ -258,10 +260,23 @@ const handleSave = async () => {
     }
 
     // Logical validation for transfer
-    if (activeTab.value === 'transfer' && selectedWallet.value === toWallet.value) {
-        await swal.error("Gagal", "Dompet asal dan tujuan tidak boleh sama");
-        setTimeout(() => { isSubmitting.value = false; }, 300);
-        return;
+    if (activeTab.value === 'transfer') {
+        if (selectedWallet.value === toWallet.value) {
+            await swal.error("Gagal", "Dompet asal dan tujuan tidak boleh sama");
+            setTimeout(() => { isSubmitting.value = false; }, 300);
+            return;
+        }
+
+        // Validate Balance for Amount + Fee
+        const wallet = walletStore.wallets.find(w => String(w.id) === selectedWallet.value);
+        if (wallet) {
+            const totalRequired = Number(amount.value) + Number(transferFee.value || 0);
+            if (wallet.balance < totalRequired) {
+                await swal.error("Gagal", `Saldo tidak cukup untuk Transfer + Biaya (Total: ${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(totalRequired)})`);
+                setTimeout(() => { isSubmitting.value = false; }, 300);
+                return;
+            }
+        }
     }
 
     try {
@@ -336,6 +351,7 @@ const handleSave = async () => {
             await transactionStore.transfer({
                 date: format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"),
                 amount: Number(amount.value),
+                transfer_fee: Number(transferFee.value || 0),
                 from_wallet_id: Number(selectedWallet.value),
                 to_wallet_id: Number(toWallet.value),
                 description: description.value || "Transfer Antar Dompet"
@@ -365,7 +381,7 @@ const handleSave = async () => {
 
         // Reset form (keep date as today)
         amount.value = "";
-        amount.value = "";
+        transferFee.value = "";
         description.value = "";
         file.value = null;
         existingAttachment.value = "";
@@ -388,6 +404,17 @@ const formattedAmount = computed({
     set: (val: string) => {
         const numericValue = Number(val.replace(/[^0-9]/g, ""));
         amount.value = numericValue.toString();
+    }
+});
+
+const formattedTransferFee = computed({
+    get: () => {
+        if (!transferFee.value) return "";
+        return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(transferFee.value));
+    },
+    set: (val: string) => {
+        const numericValue = Number(val.replace(/[^0-9]/g, ""));
+        transferFee.value = numericValue.toString();
     }
 });
 </script>
@@ -501,6 +528,14 @@ const formattedAmount = computed({
                         </Select>
                         <span v-if="errors.toWallet" class="text-xs text-red-500 font-medium">Dompet tujuan wajib
                             dipilih</span>
+                    </div>
+
+                    <div v-if="activeTab === 'transfer'" class="space-y-2">
+                        <Label>Biaya Admin (Opsional)</Label>
+                        <Input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" v-model="formattedTransferFee"
+                            class="bg-background"
+                            :disabled="isSubmitting" />
+                        <span class="text-[10px] text-muted-foreground">Biaya ini akan ditarik dari dompet asal (Expense baru).</span>
                     </div>
 
                     <div v-if="activeTab !== 'transfer'" class="space-y-2">

@@ -54,6 +54,7 @@ type TransferTransactionInput struct {
 	FromWalletID uint      `json:"from_wallet_id" binding:"required"`
 	ToWalletID   uint      `json:"to_wallet_id" binding:"required"`
 	Amount       float64   `json:"amount" binding:"required"`
+	TransferFee  float64   `json:"transfer_fee"` // Opsional
 	Description  string    `json:"description"`
 	Date         time.Time `json:"date" binding:"required"`
 }
@@ -371,13 +372,20 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 		return errors.New("source wallet not found")
 	}
 
+	// Validate sufficient balance including fee
+	totalRequired := input.Amount + input.TransferFee
+	if fromWallet.Balance < totalRequired {
+		tx.Rollback()
+		return errors.New("insufficient balance for transfer amount + fee")
+	}
+
 	toWallet, err := s.walletRepo.FindByID(input.ToWalletID, userID)
 	if err != nil {
 		tx.Rollback()
 		return errors.New("destination wallet not found")
 	}
 
-	// 2. Resolve Transfer Category
+	// 2. Resolve Transfer Category (Main Transfer)
 	transferCatID, err := s.getCategoryForTransfer(userID)
 	if err != nil {
 		// If fails to find/create, we can't proceed cleanly
@@ -385,7 +393,7 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 		return err
 	}
 
-	// 3. Create Outgoing Transaction
+	// 3. Create Outgoing Transaction (Review: Transfer Out)
 	expenseTx := &entity.Transaction{
 		UserID:      userID,
 		WalletID:    input.FromWalletID,
@@ -401,13 +409,10 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 		return err
 	}
 
+	// Deduct Main Amount
 	fromWallet.Balance -= input.Amount
-	if err := tx.Save(fromWallet).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// 4. Create Incoming Transaction
+	
+	// 4. Create Incoming Transaction (Review: Transfer In)
 	incomeTx := &entity.Transaction{
 		UserID:      userID,
 		WalletID:    input.ToWalletID,
@@ -437,6 +442,40 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 	}
 
 	toWallet.Balance += input.Amount
+	
+	// 5. Handle Transfer Fee (Transaction 3)
+	if input.TransferFee > 0 {
+		feeCatID, err := s.getCategoryForTransferFee(userID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		feeTx := &entity.Transaction{
+			UserID:      userID,
+			WalletID:    input.FromWalletID,
+			CategoryID:  feeCatID,
+			Amount:      input.TransferFee,
+			Type:        "expense", // Fee is an expense
+			Description: "Biaya Admin Transfer: " + input.Description,
+			Date:        input.Date,
+		}
+
+		if err := s.repo.WithTx(tx).Create(feeTx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Deduct Fee
+		fromWallet.Balance -= input.TransferFee
+	}
+
+	// Save Wallet Updates
+	if err := tx.Save(fromWallet).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if err := tx.Save(toWallet).Error; err != nil {
 		tx.Rollback()
 		return err
@@ -460,6 +499,21 @@ func (s *transactionService) getCategoryForTransfer(userID uint) (uint, error) {
 	
 	err := s.db.Where(entity.Category{UserID: userID, Type: "transfer"}).
 		Attrs(entity.Category{Name: "Transfer", Icon: "Em_Exchange", BudgetLimit: 0}).
+		FirstOrCreate(&cat).Error
+
+	if err != nil {
+		return 0, err
+	}
+	
+	return cat.ID, nil
+}
+
+// Helper to find or create "Biaya Admin" category
+func (s *transactionService) getCategoryForTransferFee(userID uint) (uint, error) {
+	var cat entity.Category
+	// Find or Create "Biaya Admin" of type expense
+	err := s.db.Where(entity.Category{UserID: userID, Type: "expense", Name: "Biaya Admin"}).
+		Attrs(entity.Category{Icon: "Em_MoneyWithWings", BudgetLimit: 0}).
 		FirstOrCreate(&cat).Error
 
 	if err != nil {

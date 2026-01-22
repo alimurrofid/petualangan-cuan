@@ -38,6 +38,7 @@ export interface TransferInput {
   from_wallet_id: number;
   to_wallet_id: number;
   amount: number;
+  transfer_fee?: number;
   description: string;
   date: string;
 }
