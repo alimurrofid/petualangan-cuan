@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref, computed, watch } from "vue";
 import { useWishlistStore, type WishlistItem } from "@/stores/wishlist";
 import { useCategoryStore } from "@/stores/category";
 import ManualTransactionDialog from "@/components/ManualTransactionDialog.vue";
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Pencil, ShoppingCart, CheckCircle, Clock, Flame, Zap } from "lucide-vue-next";
 import { useSwal } from "@/composables/useSwal";
 import { getEmoji, getIconComponent } from "@/lib/icons";
+import { parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/lib/utils";
 
 const wishlistStore = useWishlistStore();
 const categoryStore = useCategoryStore();
@@ -33,6 +34,7 @@ const form = ref({
     estimated_price: "",
     priority: "low" as "low" | "medium" | "high"
 });
+const estimatedPriceDisplay = ref("");
 
 // State for Buy Dialog
 const isBuyDialogOpen = ref(false);
@@ -45,6 +47,7 @@ const openAddDialog = () => {
     isEditing.value = false;
     editingId.value = null;
     form.value = { name: "", category_id: "", estimated_price: "", priority: "low" };
+    estimatedPriceDisplay.value = "";
     isDialogOpen.value = true;
 };
 
@@ -57,6 +60,7 @@ const openEditDialog = (item: WishlistItem) => {
         estimated_price: String(item.estimated_price),
         priority: item.priority
     };
+    estimatedPriceDisplay.value = formatCurrencyInput(item.estimated_price);
     isDialogOpen.value = true;
 };
 
@@ -104,18 +108,25 @@ const onTransactionSaved = () => {
 };
 
 // Formatting Helper
-const formatRp = (val: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
+const formatRp = (val: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 2 }).format(val);
 
-const formattedPrice = computed({
-    get: () => {
-        if (!form.value.estimated_price) return "";
-        return formatRp(Number(form.value.estimated_price));
-    },
-    set: (val: string) => {
-        const numericValue = Number(val.replace(/[^0-9]/g, ""));
-        form.value.estimated_price = numericValue.toString();
+
+
+// Sync Display -> Model
+watch(estimatedPriceDisplay, (val) => {
+    const formatted = formatCurrencyLive(val);
+    if (formatted !== val) {
+        estimatedPriceDisplay.value = formatted;
+        return;
     }
+    const num = parseCurrencyInput(val);
+    form.value.estimated_price = num.toString();
 });
+
+const onPriceBlur = () => {
+    const num = parseCurrencyInput(estimatedPriceDisplay.value);
+    if(num) estimatedPriceDisplay.value = formatCurrencyInput(num);
+};
 
 
 </script>
@@ -295,7 +306,7 @@ const formattedPrice = computed({
                     </div>
                     <div class="space-y-2">
                         <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Estimasi Harga</Label>
-                        <Input type="text" inputmode="numeric" pattern="[0-9]*" v-model="formattedPrice" placeholder="Rp 0" class="h-11 shadow-sm rounded-xl bg-background" />
+                        <Input type="text" inputmode="decimal" v-model="estimatedPriceDisplay" @blur="onPriceBlur" placeholder="Rp 0" class="h-11 shadow-sm rounded-xl bg-background" />
                     </div>
                     <div class="space-y-2">
                         <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Prioritas</Label>

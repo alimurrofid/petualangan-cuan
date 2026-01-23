@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, reactive } from "vue";
+import { ref, onMounted, computed, reactive, watch } from "vue";
 import { useDebtStore, type Debt, type CreateDebtInput, type UpdateDebtInput, type PayDebtInput } from "@/stores/debt";
 import { useWalletStore } from "@/stores/wallet";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Plus, ArrowUpRight, ArrowDownLeft, Pencil, Trash2, HandCoins, CircleFad
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { getEmoji, getIconComponent } from "@/lib/icons";
+import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/lib/utils";
 import Swal from "sweetalert2";
 import Detail from "./Detail.vue";
 
@@ -26,13 +27,7 @@ onMounted(async () => {
   ]);
 });
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(amount);
-};
+// Local formatCurrency removed
 
 // Summary Stats
 const totalDebt = computed(() => {
@@ -66,6 +61,10 @@ const isDetailOpen = ref(false);
 const activeTab = ref("debt"); // 'debt' or 'receivable'
 const selectedDebt = ref<Debt | null>(null);
 
+// Display Refs for loose binding
+const createAmountDisplay = ref("");
+const payAmountDisplay = ref("");
+
 // Forms
 const createForm = reactive<CreateDebtInput>({
   name: "",
@@ -86,22 +85,34 @@ const payForm = reactive<PayDebtInput>({
 const selectedCreateWalletObj = computed(() => walletStore.wallets.find(w => String(w.id) === String(createForm.wallet_id)));
 const selectedPayWalletObj = computed(() => walletStore.wallets.find(w => String(w.id) === String(payForm.wallet_id)));
 
-// Currency Formatter for Inputs
-const useCurrencyInput = (modelValue: { amount: number }) => {
-  return computed({
-    get: () => {
-      if (!modelValue.amount) return "";
-      return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(modelValue.amount);
-    },
-    set: (val: string) => {
-      const numericValue = Number(val.replace(/[^0-9]/g, ""));
-      modelValue.amount = numericValue;
-    }
-  });
+
+
+// Sync Create Amount
+watch(createAmountDisplay, (val) => {
+    const formatted = formatCurrencyLive(val);
+    if(formatted !== val) { createAmountDisplay.value = formatted; return; }
+    createForm.amount = parseCurrencyInput(val);
+});
+watch(() => createForm.amount, (val) => {
+    const currentParsed = parseCurrencyInput(createAmountDisplay.value);
+    if(Math.abs(currentParsed - val) > 0.001) createAmountDisplay.value = val ? formatCurrencyInput(val) : "";
+});
+const onCreateBlur = () => {
+    const num = parseCurrencyInput(createAmountDisplay.value);
+    if(num) createAmountDisplay.value = formatCurrencyInput(num);
 };
 
-const formattedCreateAmount = useCurrencyInput(createForm);
-const formattedPayAmount = useCurrencyInput(payForm);
+// Sync Pay Amount
+watch(payAmountDisplay, (val) => {
+    const formatted = formatCurrencyLive(val);
+    if(formatted !== val) { payAmountDisplay.value = formatted; return; }
+    payForm.amount = parseCurrencyInput(val);
+});
+const onPayBlur = () => {
+    const num = parseCurrencyInput(payAmountDisplay.value);
+    if(num) payAmountDisplay.value = formatCurrencyInput(num);
+};
+// Pay amount is usually initialized from remaining, so we need init watcher or manual init.
 
 // Proxy for Select
 const createWalletIdProxy = computed({
@@ -142,6 +153,7 @@ const openEditDialog = (item: Debt) => {
   createForm.type = item.type;
   createForm.name = item.name;
   createForm.amount = item.amount;
+  createAmountDisplay.value = formatCurrencyInput(item.amount);
   createForm.wallet_id = item.wallet_id;
   createForm.description = item.description;
 
@@ -166,6 +178,7 @@ const openEditDialog = (item: Debt) => {
 const openPayDialog = (debt: Debt) => {
   selectedDebt.value = debt;
   payForm.amount = debt.remaining;
+  payAmountDisplay.value = formatCurrencyInput(debt.remaining);
   payForm.wallet_id = debt.wallet_id || (walletStore.wallets.length > 0 ? walletStore.wallets[0]!.id : 0);
   payForm.note = "";
   isPayOpen.value = true;
@@ -464,8 +477,8 @@ const handleDelete = async (id: number) => {
             <Input v-model="createForm.name" placeholder="Contoh: Budi" class="h-11 shadow-sm rounded-xl bg-background" />
           </div>
           <div class="grid gap-2">
-            <Label>Nominal (Rp)</Label>
-            <Input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" v-model="formattedCreateAmount" class="h-11 shadow-sm rounded-xl bg-background" />
+            <Label>Nominal</Label>
+            <Input type="text" inputmode="decimal" placeholder="Rp 0" v-model="createAmountDisplay" @blur="onCreateBlur" class="h-11 shadow-sm rounded-xl bg-background" />
             <p v-if="isEditMode" class="text-[10px] font-medium text-yellow-600 px-1">
                 Perhatian: Mengubah nominal akan menyesuaikan ulang saldo dompet.
             </p>
@@ -533,8 +546,8 @@ const handleDelete = async (id: number) => {
              <div class="text-xl font-bold text-foreground">{{ selectedDebt ? formatCurrency(selectedDebt.remaining) : 0 }}</div>
           </div>
           <div class="grid gap-2">
-            <Label>Nominal Pembayaran (Rp)</Label>
-            <Input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" v-model="formattedPayAmount" class="h-11 shadow-sm rounded-xl bg-background" />
+            <Label>Nominal Pembayaran</Label>
+            <Input type="text" inputmode="decimal" placeholder="Rp 0" v-model="payAmountDisplay" @blur="onPayBlur" class="h-11 shadow-sm rounded-xl bg-background" />
           </div>
           <div class="grid gap-2">
             <Label>Dompet Sumber/Tujuan</Label>

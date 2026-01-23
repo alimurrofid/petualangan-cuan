@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useCategoryStore, type Category } from "@/stores/category";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { useSwal } from "@/composables/useSwal";
 
 import { emojiCategories, getEmoji, getIconComponent, categoryIcons } from "@/lib/icons";
 import { Plus, Pencil, Trash2, LayoutGrid, Save, TrendingUp, TrendingDown } from "lucide-vue-next";
+import { formatCurrencyInput, parseCurrencyInput, formatCurrencyLive } from "@/lib/utils";
 
 // Define the form structure (frontend representation)
 interface CategoryForm {
@@ -36,6 +37,7 @@ const form = ref<CategoryForm>({
   type: "expense",
   budgetLimit: 0,
 });
+const budgetLimitDisplay = ref("");
 
 const errors = ref({
   name: false,
@@ -57,6 +59,7 @@ const isSubmitting = ref(false);
 const openAdd = () => {
   isEditMode.value = false;
   form.value = { id: 0, name: "", icon: "", type: currentTab.value, budgetLimit: 0 };
+  budgetLimitDisplay.value = "";
   errors.value = { name: false, icon: false };
   isSubmitting.value = false;
   isDialogOpen.value = true;
@@ -72,6 +75,7 @@ const openEdit = (category: Category) => {
     // Note: Backend JSON for budget_limit -> category.budget_limit
     budgetLimit: category.budget_limit || 0,
   };
+  budgetLimitDisplay.value = category.budget_limit ? formatCurrencyInput(category.budget_limit) : "";
   errors.value = { name: false, icon: false };
   isSubmitting.value = false;
   isDialogOpen.value = true;
@@ -145,16 +149,21 @@ const getGradientIcon = (type: string) => {
         : 'bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 dark:from-emerald-900 dark:to-emerald-800 dark:text-emerald-100';
 };
 
-const formattedBudgetLimit = computed({
-  get: () => {
-    if (!form.value.budgetLimit) return "";
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(form.value.budgetLimit);
-  },
-  set: (val: string) => {
-    const numericValue = Number(val.replace(/[^0-9]/g, ""));
-    form.value.budgetLimit = numericValue;
-  }
+// Live Format for Budget Limit
+watch(budgetLimitDisplay, (val) => {
+    const formatted = formatCurrencyLive(val);
+    if (formatted !== val) {
+        budgetLimitDisplay.value = formatted;
+        return;
+    }
+    const num = parseCurrencyInput(val);
+    form.value.budgetLimit = num;
 });
+
+const onBudgetBlur = () => {
+    const num = parseCurrencyInput(budgetLimitDisplay.value);
+    if (num) budgetLimitDisplay.value = formatCurrencyInput(num);
+};
 </script>
 
 <template>
@@ -263,7 +272,7 @@ const formattedBudgetLimit = computed({
 
           <div v-if="form.type === 'expense'" class="grid gap-2">
             <Label class="text-sm font-semibold opacity-70">Target Pengeluaran (Rp)</Label>
-            <Input v-model="formattedBudgetLimit" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" class="h-11 bg-background shadow-sm" :disabled="isSubmitting" />
+            <Input v-model="budgetLimitDisplay" @blur="onBudgetBlur" type="text" inputmode="decimal" placeholder="Rp 0" class="h-11 bg-background shadow-sm" :disabled="isSubmitting" />
             <p class="text-[10px] text-muted-foreground">Isi 0 jika tidak ingin membatasi pengeluaran.</p>
           </div>
 

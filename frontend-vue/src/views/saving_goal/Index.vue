@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed} from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useSavingGoalStore } from "@/stores/saving_goal";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ManualTransactionDialog from "@/components/ManualTransactionDialog.vue";
 import Detail from "./Detail.vue";
 import { getEmoji, getIconComponent } from "@/lib/icons";
+import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/lib/utils";
 import { useSwal } from "@/composables/useSwal";
 
 const store = useSavingGoalStore();
@@ -31,6 +32,7 @@ const selectedGoal = ref<any>(null);
 // Form for New Goal
 const newGoalName = ref("");
 const newGoalTarget = ref("");
+const newGoalTargetDisplay = ref("");
 const newGoalDeadline = ref("");
 const newGoalCategory = ref("");
 
@@ -59,6 +61,7 @@ const handleCreate = async () => {
         isCreateOpen.value = false;
         newGoalName.value = "";
         newGoalTarget.value = "";
+        newGoalTargetDisplay.value = "";
         newGoalDeadline.value = "";
         newGoalCategory.value = "";
     }
@@ -75,6 +78,7 @@ const openCreateDialog = () => {
     editingId.value = null;
     newGoalName.value = "";
     newGoalTarget.value = "";
+    newGoalTargetDisplay.value = "";
     newGoalDeadline.value = "";
     newGoalCategory.value = "";
     isCreateOpen.value = true;
@@ -85,6 +89,7 @@ const openEditDialog = (goal: any) => {
     editingId.value = goal.id;
     newGoalName.value = goal.name;
     newGoalTarget.value = String(goal.target_amount);
+    newGoalTargetDisplay.value = formatCurrencyInput(goal.target_amount);
     newGoalCategory.value = goal.category_id ? String(goal.category_id) : "";
     if (goal.deadline) {
         try {
@@ -127,9 +132,7 @@ onMounted(() => {
     categoryStore.fetchCategories();
 });
 
-const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
-};
+// Local formatCurrency removed, using imported one
 
 const getProgress = (current: number, target: number) => {
     if (target === 0) return 0;
@@ -137,21 +140,23 @@ const getProgress = (current: number, target: number) => {
 };
 
 // Nominal Input Formatting
-const formattedTarget = computed({
-    get: () => {
-        if (!newGoalTarget.value) return "";
-        return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(newGoalTarget.value));
-    },
-    set: (val: string | number | undefined) => {
-        if (!val) {
-            newGoalTarget.value = "";
-            return;
-        }
-        const stringVal = String(val);
-        const numericValue = Number(stringVal.replace(/[^0-9]/g, ""));
-        newGoalTarget.value = numericValue.toString();
+
+
+// Sync Display -> Model
+watch(newGoalTargetDisplay, (val) => {
+    const formatted = formatCurrencyLive(val);
+    if (formatted !== val) {
+        newGoalTargetDisplay.value = formatted;
+        return;
     }
+    const num = parseCurrencyInput(val);
+    newGoalTarget.value = num.toString();
 });
+
+const onTargetBlur = () => {
+    const num = parseCurrencyInput(newGoalTargetDisplay.value);
+    if(num) newGoalTargetDisplay.value = formatCurrencyInput(num);
+};
 
 
 </script>
@@ -269,8 +274,8 @@ const formattedTarget = computed({
                         <Input v-model="newGoalName" placeholder="Misal: Beli Laptop Baru" class="h-11 shadow-sm rounded-xl bg-background" />
                     </div>
                     <div class="space-y-2">
-                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Target Nominal (Rp)</Label>
-                        <Input type="text" inputmode="numeric" pattern="[0-9]*" v-model="formattedTarget" placeholder="Rp 0" class="h-11 shadow-sm rounded-xl bg-background" />
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Target Nominal</Label>
+                        <Input type="text" inputmode="decimal" v-model="newGoalTargetDisplay" @blur="onTargetBlur" placeholder="Rp 0" class="h-11 shadow-sm rounded-xl bg-background" />
                     </div>
                     <div class="space-y-2">
                         <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Kategori</Label>

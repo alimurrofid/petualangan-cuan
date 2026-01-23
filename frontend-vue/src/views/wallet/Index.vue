@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useWalletStore } from "@/stores/wallet";
 import { useAuthStore } from "@/stores/auth";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { useSwal } from "@/composables/useSwal";
 
 
 import { emojiCategories, getEmoji, getIconComponent, walletIcons } from "@/lib/icons";
+import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/lib/utils";
 import { Plus, Pencil, Trash2, Save, Nfc } from "lucide-vue-next";
 
 const walletStore = useWalletStore();
@@ -31,6 +32,7 @@ const form = ref({
   icon: "",
   balance: 0,
 });
+const balanceDisplay = ref("");
 
 const errors = ref({
   name: false,
@@ -43,6 +45,32 @@ const totalBalance = computed(() => {
 
 
 
+// Sync Display -> Model
+watch(balanceDisplay, (val) => {
+    const formatted = formatCurrencyLive(val);
+    if (formatted !== val) {
+        balanceDisplay.value = formatted;
+        return;
+    }
+    const num = parseCurrencyInput(val);
+    form.value.balance = num;
+});
+// Sync Model -> Display (initial or external)
+watch(() => form.value.balance, (val) => {
+    const num = Number(val);
+    const currentParsed = parseCurrencyInput(balanceDisplay.value);
+    if (Math.abs(currentParsed - num) > 0.001) {
+       balanceDisplay.value = val ? formatCurrencyInput(val) : "";
+    }
+});
+
+const onBalanceBlur = () => {
+    const num = parseCurrencyInput(balanceDisplay.value);
+    if (num) balanceDisplay.value = formatCurrencyInput(num);
+};
+
+
+
 onMounted(() => {
   walletStore.fetchWallets();
 });
@@ -50,6 +78,7 @@ onMounted(() => {
 const openAdd = () => {
   isEditMode.value = false;
   form.value = { id: 0, name: "", type: "Cash", icon: "", balance: 0 };
+  balanceDisplay.value = "";
   errors.value = { name: false, icon: false };
   isSubmitting.value = false;
   isDialogOpen.value = true;
@@ -58,6 +87,7 @@ const openAdd = () => {
 const openEdit = (wallet: any) => {
   isEditMode.value = true;
   form.value = { ...wallet };
+  balanceDisplay.value = formatCurrencyInput(wallet.balance);
   errors.value = { name: false, icon: false };
   isSubmitting.value = false;
   isDialogOpen.value = true;
@@ -125,9 +155,7 @@ const handleDelete = async () => {
   }
 };
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
-};
+// Local formatCurrency removed
 
 const getCardGradient = (type: string) => {
     switch (type) {
@@ -242,6 +270,12 @@ const getCardGradient = (type: string) => {
                 <SelectItem value="E-Wallet">📱 E-Wallet (Dana/OVO)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div class="grid gap-2">
+            <Label class="text-sm font-semibold opacity-70">Saldo Awal</Label>
+            <Input type="text" inputmode="decimal" placeholder="Rp 0" v-model="balanceDisplay" @blur="onBalanceBlur"
+                :class="['h-11 bg-background shadow-sm']" :disabled="isSubmitting" />
           </div>
 
           <div class="grid gap-2 text-foreground">

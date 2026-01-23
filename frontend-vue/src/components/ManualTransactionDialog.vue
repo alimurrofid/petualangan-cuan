@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getEmoji, getIconComponent } from "@/lib/icons";
+import { parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/lib/utils";
 import { useSwal } from "@/composables/useSwal";
 
 const props = defineProps<{
@@ -42,9 +43,11 @@ const baseUrl = import.meta.env.VITE_API_BASE_URL;
 const activeTab = ref<"expense" | "income" | "transfer" | "saving">("expense");
 const date = ref(format(new Date(), "yyyy-MM-dd"));
 const amount = ref("");
+const amountDisplay = ref("");
 const selectedWallet = ref("");
 const toWallet = ref(""); // New field for transfer
 const transferFee = ref(""); // New field for transfer fee
+const transferFeeDisplay = ref("");
 const selectedCategory = ref("");
 const description = ref("");
 const file = ref<File | null>(null);
@@ -152,6 +155,7 @@ watch(() => props.transactionToEdit, (newVal) => {
         // Fix date format
         date.value = format(parseISO(newVal.date), 'yyyy-MM-dd');
         amount.value = newVal.amount.toString();
+        amountDisplay.value = formatCurrencyInput(newVal.amount);
         selectedWallet.value = String(newVal.wallet_id);
         selectedCategory.value = String(newVal.category_id);
         description.value = newVal.description;
@@ -162,7 +166,9 @@ watch(() => props.transactionToEdit, (newVal) => {
         activeTab.value = "expense";
         date.value = format(new Date(), "yyyy-MM-dd");
         amount.value = "";
+        amountDisplay.value = "";
         transferFee.value = "";
+        transferFeeDisplay.value = "";
         selectedWallet.value = "";
         toWallet.value = "";
         selectedCategory.value = "";
@@ -177,6 +183,7 @@ watch(() => props.transactionToEdit, (newVal) => {
 watch(() => props.initialData, (newVal) => {
     if (newVal && !props.transactionToEdit) {
         amount.value = newVal.amount?.toString() || "";
+        amountDisplay.value = newVal.amount ? formatCurrencyInput(newVal.amount) : "";
         selectedCategory.value = newVal.category_id?.toString() || "";
         description.value = newVal.description || "";
         activeTab.value = "expense"; // Wishlist is typically expense
@@ -381,7 +388,9 @@ const handleSave = async () => {
 
         // Reset form (keep date as today)
         amount.value = "";
+        amountDisplay.value = "";
         transferFee.value = "";
+        transferFeeDisplay.value = "";
         description.value = "";
         file.value = null;
         existingAttachment.value = "";
@@ -396,27 +405,69 @@ const handleSave = async () => {
 };
 
 // Currency Formatting Logic
-const formattedAmount = computed({
-    get: () => {
-        if (!amount.value) return "";
-        return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(amount.value));
-    },
-    set: (val: string) => {
-        const numericValue = Number(val.replace(/[^0-9]/g, ""));
-        amount.value = numericValue.toString();
+// Sync Display -> Model
+watch(amountDisplay, (val) => {
+    // Live Format
+    const formatted = formatCurrencyLive(val);
+    if (formatted !== val) {
+        amountDisplay.value = formatted;
+        // The change to amountDisplay will trigger this watch again immediately with the clean value
+         // But we need to update the model NOW for the clean value too? 
+         // logic: val="5000", formatted="5.000". Update display. Watch triggers again with "5.000".
+         // Next run: val="5.000". formatted="5.000". display no change.
+         // Proceed to update model.
+         return; 
+    }
+    
+    // Update Model
+    const num = parseCurrencyInput(val);
+    amount.value = num.toString();
+});
+
+// Sync Model -> Display (only if significant change i.e. external update)
+watch(amount, (val) => {
+    const num = Number(val);
+    const currentParsed = parseCurrencyInput(amountDisplay.value);
+    
+    // Only update display if the model value is significantly different from what's currently displayed
+    // This prevents loop when user is typing "5000" (model) vs "5.000" (display) which parse to same.
+    // Also protects against "5000,5" (model) vs "5.000,5" (display).
+    if (Math.abs(currentParsed - num) > 0.001) {
+        amountDisplay.value = val ? formatCurrencyInput(val) : "";
     }
 });
 
-const formattedTransferFee = computed({
-    get: () => {
-        if (!transferFee.value) return "";
-        return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(transferFee.value));
-    },
-    set: (val: string) => {
-        const numericValue = Number(val.replace(/[^0-9]/g, ""));
-        transferFee.value = numericValue.toString();
+watch(transferFeeDisplay, (val) => {
+     const formatted = formatCurrencyLive(val);
+    if (formatted !== val) {
+        transferFeeDisplay.value = formatted;
+        return;
+    }
+    const num = parseCurrencyInput(val);
+    transferFee.value = num.toString();
+});
+
+watch(transferFee, (val) => {
+    const num = Number(val);
+    const currentParsed = parseCurrencyInput(transferFeeDisplay.value);
+    if (Math.abs(currentParsed - num) > 0.001) {
+       transferFeeDisplay.value = val ? formatCurrencyInput(val) : "";
     }
 });
+
+const onAmountBlur = () => {
+    // Ensure final consistency on blur
+    const num = parseCurrencyInput(amountDisplay.value);
+    // formatCurrencyInput ensures "Rp" part is removed if we used `formatCurrency` but we are inputting manually.
+    // Actually formatCurrencyInput returns "10.000,00" (string). 
+    // formatCurrencyLive handles typing. onBlur just ensures cleaner look?
+    if (num) amountDisplay.value = formatCurrencyInput(num);
+};
+
+const onFeeBlur = () => {
+    const num = parseCurrencyInput(transferFeeDisplay.value);
+    if (num) transferFeeDisplay.value = formatCurrencyInput(num);
+};
 </script>
 
 <template>
@@ -462,10 +513,10 @@ const formattedTransferFee = computed({
                     </div>
 
                     <div class="space-y-2">
-                        <Label>Nominal (Rp)</Label>
-                        <Input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" v-model="formattedAmount"
-                            :class="['bg-background', errors.amount ? 'border-red-500 ring-1 ring-red-500' : '']"
-                            :disabled="isSubmitting" />
+                        <Label>Nominal</Label>
+                            <Input type="text" inputmode="decimal" placeholder="0" v-model="amountDisplay" @blur="onAmountBlur"
+                                :class="['bg-background', errors.amount ? 'border-red-500 ring-1 ring-red-500' : '']"
+                                :disabled="isSubmitting" />
                         <span v-if="errors.amount" class="text-xs text-red-500 font-medium">Nominal wajib diisi</span>
                     </div>
 
@@ -532,9 +583,9 @@ const formattedTransferFee = computed({
 
                     <div v-if="activeTab === 'transfer'" class="space-y-2">
                         <Label>Biaya Admin (Opsional)</Label>
-                        <Input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Rp 0" v-model="formattedTransferFee"
-                            class="bg-background"
-                            :disabled="isSubmitting" />
+                            <Input type="text" inputmode="decimal" placeholder="0" v-model="transferFeeDisplay" @blur="onFeeBlur"
+                                class="bg-background"
+                                :disabled="isSubmitting" />
                         <span class="text-[10px] text-muted-foreground">Biaya ini akan ditarik dari dompet asal (Expense baru).</span>
                     </div>
 
