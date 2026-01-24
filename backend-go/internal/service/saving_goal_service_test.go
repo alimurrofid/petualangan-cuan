@@ -218,3 +218,92 @@ func TestAddContribution(t *testing.T) {
 	
 	assert.Equal(t, 500.0, updatedGoal.CurrentAmount)
 }
+
+func TestFinishGoal_Success(t *testing.T) {
+	mockRepo := new(mock.SavingGoalRepositoryMock)
+	mockWalletRepo := new(mock.WalletRepositoryMock)
+	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+
+	svc := service.NewSavingGoalService(mockRepo, mockWalletRepo, nil, db)
+	userID := uint(1)
+	goalID := uint(1)
+
+	// Goal is achieved and not finished
+	existingGoal := &entity.SavingGoal{
+		ID: goalID, UserID: userID, IsAchieved: true, IsFinished: false,
+	}
+
+	mockRepo.On("FindByID", goalID, userID).Return(existingGoal, nil)
+	mockRepo.On("Update", testMock.MatchedBy(func(g *entity.SavingGoal) bool {
+		return g.ID == goalID && g.IsFinished == true
+	})).Return(nil)
+
+	err := svc.FinishGoal(userID, goalID)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestFinishGoal_Error_NotFound(t *testing.T) {
+	mockRepo := new(mock.SavingGoalRepositoryMock)
+	mockWalletRepo := new(mock.WalletRepositoryMock)
+	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+
+	svc := service.NewSavingGoalService(mockRepo, mockWalletRepo, nil, db)
+	userID := uint(1)
+	goalID := uint(1)
+
+	mockRepo.On("FindByID", goalID, userID).Return(nil, errors.New("not found"))
+
+	err := svc.FinishGoal(userID, goalID)
+
+	assert.Error(t, err)
+	assert.Equal(t, "goal not found", err.Error())
+	mockRepo.AssertExpectations(t)
+}
+
+func TestFinishGoal_Error_NotAchieved(t *testing.T) {
+	mockRepo := new(mock.SavingGoalRepositoryMock)
+	mockWalletRepo := new(mock.WalletRepositoryMock)
+	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+
+	svc := service.NewSavingGoalService(mockRepo, mockWalletRepo, nil, db)
+	userID := uint(1)
+	goalID := uint(1)
+
+	// Goal is NOT achieved
+	existingGoal := &entity.SavingGoal{
+		ID: goalID, UserID: userID, IsAchieved: false, IsFinished: false,
+	}
+
+	mockRepo.On("FindByID", goalID, userID).Return(existingGoal, nil)
+
+	err := svc.FinishGoal(userID, goalID)
+
+	assert.Error(t, err)
+	assert.Equal(t, "goal is not achieved yet", err.Error())
+	mockRepo.AssertExpectations(t)
+}
+
+func TestFinishGoal_Error_AlreadyFinished(t *testing.T) {
+	mockRepo := new(mock.SavingGoalRepositoryMock)
+	mockWalletRepo := new(mock.WalletRepositoryMock)
+	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+
+	svc := service.NewSavingGoalService(mockRepo, mockWalletRepo, nil, db)
+	userID := uint(1)
+	goalID := uint(1)
+
+	// Goal IS already finished
+	existingGoal := &entity.SavingGoal{
+		ID: goalID, UserID: userID, IsAchieved: true, IsFinished: true,
+	}
+
+	mockRepo.On("FindByID", goalID, userID).Return(existingGoal, nil)
+
+	err := svc.FinishGoal(userID, goalID)
+
+	assert.Error(t, err)
+	assert.Equal(t, "goal is already finished", err.Error())
+	mockRepo.AssertExpectations(t)
+}

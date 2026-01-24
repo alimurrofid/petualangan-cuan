@@ -13,6 +13,7 @@ type SavingGoal struct {
 	Category      Category  `gorm:"foreignKey:CategoryID" json:"category"`
 	Deadline      *time.Time `json:"deadline"` // Optional deadline
 	IsAchieved    bool      `gorm:"default:false" json:"is_achieved"`
+	IsFinished    bool      `gorm:"default:false" json:"is_finished"` // New field: if true, funds are released to available balance
 	Icon          string    `json:"icon"` // PiggyBank or Target icon
 	Contributions []SavingContribution `gorm:"foreignKey:GoalID" json:"contributions"`
 	CreatedAt     time.Time `json:"created_at"`

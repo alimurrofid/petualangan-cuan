@@ -5,7 +5,7 @@ import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Plus, PiggyBank, Target, Calendar, Pencil, Trash2, Eye } from "lucide-vue-next";
+import { Plus, PiggyBank, Target, Calendar, Pencil, Trash2, Eye, CheckCircle } from "lucide-vue-next";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -114,6 +114,27 @@ const handleDelete = async (id: number) => {
     if (confirmed) {
         const success = await store.deleteGoal(id);
         if (success) swal.success("Terhapus", "Target menabung berhasil dihapus");
+    }
+};
+
+const handleFinish = async (goal: any) => {
+    const result = await swal.fire({
+        title: "Selesaikan Target?",
+        text: "Dana yang terkumpul akan kembali tersedia sebagai saldo aktif di dompet Anda. Target akan ditandai sukses!",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Ya, Cairkan!",
+        cancelButtonText: "Batal",
+        confirmButtonColor: "#10b981", // Emerald-500
+        cancelButtonColor: "#64748b", // Slate-500
+    });
+
+    if (result.isConfirmed) {
+        const success = await store.finishGoal(goal.id);
+        if (success) {
+            swal.success("Selamat! 🎉", "Target tercapai dan dana berhasil dicairkan ke dompet.");
+             walletStore.fetchWallets(); // Real-time wallet update
+        }
     }
 };
 
@@ -236,11 +257,18 @@ const onTargetBlur = () => {
                     </div>
 
                     <div class="grid grid-cols-[1fr,auto] gap-2 pt-2">
+                        <!-- Button Actions Logic -->
+
                         <Button v-if="!goal.is_achieved" @click="openContribute(goal)" class="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-sm border-0 font-bold h-10 transition-all active:scale-95 text-xs" size="sm">
                             <Plus class="w-4 h-4 mr-2" /> Tabung
                         </Button>
-                        <Button v-else disabled class="w-full rounded-xl bg-muted text-muted-foreground border border-border h-10 text-xs font-bold" size="sm">
-                            Selesai 🎉
+                        
+                        <Button v-else-if="goal.is_achieved && !goal.is_finished" @click="handleFinish(goal)" class="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-500 text-white hover:from-blue-500 hover:to-indigo-400 shadow-sm border-0 font-bold h-10 transition-all active:scale-95 text-xs" size="sm">
+                            <CheckCircle class="w-4 h-4 mr-2" /> Selesaikan & Cairkan
+                        </Button>
+
+                        <Button v-else disabled class="w-full rounded-xl bg-muted text-muted-foreground border border-border h-10 text-xs font-bold ring-1 ring-inset ring-black/5" size="sm">
+                             Selesai 🎉
                         </Button>
 
                          <Button variant="outline" class="w-full rounded-xl bg-background border-input hover:bg-accent hover:text-accent-foreground font-bold h-10 text-xs transition-all active:scale-95 px-4" @click="openDetailDialog(goal)">

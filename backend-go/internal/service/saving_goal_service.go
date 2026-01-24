@@ -16,6 +16,7 @@ type SavingGoalService interface {
 	UpdateGoal(userID uint, goalID uint, input CreateGoalInput) (*entity.SavingGoal, error)
 	DeleteGoal(userID uint, goalID uint) error
 	DeleteContribution(userID uint, contributionID uint) error
+	FinishGoal(userID uint, goalID uint) error
 }
 
 type savingGoalService struct {
@@ -261,4 +262,22 @@ func (s *savingGoalService) DeleteContribution(userID uint, contributionID uint)
 	}
 
 	return nil
+}
+
+func (s *savingGoalService) FinishGoal(userID uint, goalID uint) error {
+	goal, err := s.repo.FindByID(goalID, userID)
+	if err != nil {
+		return errors.New("goal not found")
+	}
+
+	if !goal.IsAchieved {
+		return errors.New("goal is not achieved yet")
+	}
+
+	if goal.IsFinished {
+		return errors.New("goal is already finished")
+	}
+
+	goal.IsFinished = true
+	return s.repo.Update(goal)
 }

@@ -65,6 +65,11 @@ func (m *MockSavingGoalService) DeleteContribution(userID uint, contributionID u
 	return args.Error(0)
 }
 
+func (m *MockSavingGoalService) FinishGoal(userID uint, goalID uint) error {
+	args := m.Called(userID, goalID)
+	return args.Error(0)
+}
+
 // Handler Test Suite
 
 func TestGetGoals_Handler(t *testing.T) {
@@ -211,5 +216,39 @@ func TestAddContribution_Handler(t *testing.T) {
 	resp, _ := app.Test(req)
 
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+	mockService.AssertExpectations(t)
+}
+
+func TestFinishGoal_Handler_Success(t *testing.T) {
+	mockService := new(MockSavingGoalService)
+	h := handler.NewSavingGoalHandler(mockService)
+
+	app := fiber.New()
+	app.Put("/api/saving-goals/:id/finish", mockAuthMiddleware(1), h.FinishGoal)
+
+	goalID := 1
+	mockService.On("FinishGoal", uint(1), uint(goalID)).Return(nil)
+
+	req := httptest.NewRequest("PUT", "/api/saving-goals/"+strconv.Itoa(goalID)+"/finish", nil)
+	resp, _ := app.Test(req)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	mockService.AssertExpectations(t)
+}
+
+func TestFinishGoal_Handler_Error(t *testing.T) {
+	mockService := new(MockSavingGoalService)
+	h := handler.NewSavingGoalHandler(mockService)
+
+	app := fiber.New()
+	app.Put("/api/saving-goals/:id/finish", mockAuthMiddleware(1), h.FinishGoal)
+
+	goalID := 1
+	mockService.On("FinishGoal", uint(1), uint(goalID)).Return(errors.New("service error"))
+
+	req := httptest.NewRequest("PUT", "/api/saving-goals/"+strconv.Itoa(goalID)+"/finish", nil)
+	resp, _ := app.Test(req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	mockService.AssertExpectations(t)
 }

@@ -179,3 +179,28 @@ func (h *SavingGoalHandler) DeleteContribution(c *fiber.Ctx) error {
 
 	return c.Status(http.StatusOK).JSON(fiber.Map{"message": "Contribution deleted successfully"})
 }
+
+// FinishGoal godoc
+// @Summary Finish and cash out a saving goal
+// @Description Mark a saving goal as finished and release funds to available balance
+// @Tags saving_goals
+// @Accept json
+// @Produce json
+// @Param id path int true "Goal ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/saving-goals/{id}/finish [put]
+func (h *SavingGoalHandler) FinishGoal(c *fiber.Ctx) error {
+	userID := c.Locals("userID").(uint)
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid goal ID"})
+	}
+
+	if err := h.service.FinishGoal(userID, uint(id)); err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(http.StatusOK).JSON(fiber.Map{"message": "Saving goal finished and funds released successfully"})
+}

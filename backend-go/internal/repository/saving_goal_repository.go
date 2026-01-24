@@ -82,11 +82,12 @@ func (r *savingGoalRepository) AddContribution(contribution *entity.SavingContri
 func (r *savingGoalRepository) GetActiveContributions(walletID uint) (float64, error) {
 	var total float64
 	// Sum amount of all contributions where wallet_id = X
-	// In a more complex system, we might filter by Goal status.
-	// For "Petualangan Cuan", let's assume all contributions count.
-	err := r.db.Model(&entity.SavingContribution{}).
-		Where("wallet_id = ?", walletID).
-		Select("COALESCE(SUM(amount), 0)").
+	// Logic Update: Only count contributions for goals that are NOT finished.
+	// We need to join with SavingGoal table to check IsFinished status.
+	err := r.db.Table("saving_contributions").
+		Joins("JOIN saving_goals ON saving_goals.id = saving_contributions.goal_id").
+		Where("saving_contributions.wallet_id = ? AND saving_goals.is_finished = ?", walletID, false).
+		Select("COALESCE(SUM(saving_contributions.amount), 0)").
 		Scan(&total).Error
 	return total, err
 }

@@ -81,6 +81,18 @@ export const useSavingGoalStore = defineStore("savingGoal", () => {
         }
     };
 
+    const finishGoal = async (id: number) => {
+        try {
+            await api.put(`/api/saving-goals/${id}/finish`);
+            await fetchGoals();
+            return true;
+        } catch (error: any) {
+            console.error("Failed to finish saving goal", error);
+            swal.error("Gagal", error.response?.data?.error || "Gagal menyelesaikan target menabung");
+            return false;
+        }
+    };
+
     return {
         goals,
         isLoading,
@@ -89,6 +101,7 @@ export const useSavingGoalStore = defineStore("savingGoal", () => {
         addContribution,
         updateGoal,
         deleteGoal,
-        deleteContribution, // Export the new action
+        deleteContribution,
+        finishGoal,
     };
 });

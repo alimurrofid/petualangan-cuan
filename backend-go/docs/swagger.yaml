@@ -349,6 +349,9 @@ definitions:
         type: integer
       to_wallet_id:
         type: integer
+      transfer_fee:
+        description: Opsional
+        type: number
     required:
     - amount
     - date
@@ -928,6 +931,65 @@ paths:
             additionalProperties: true
             type: object
       summary: Add contribution to a saving goal
+      tags:
+      - saving_goals
+  /api/saving-goals/{id}/contributions/{contribution_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a saving contribution
+      parameters:
+      - description: Goal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Contribution ID
+        in: path
+        name: contribution_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a saving contribution
+      tags:
+      - saving_goals
+  /api/saving-goals/{id}/finish:
+    put:
+      consumes:
+      - application/json
+      description: Mark a saving goal as finished and release funds to available balance
+      parameters:
+      - description: Goal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Finish and cash out a saving goal
       tags:
       - saving_goals
   /api/transactions:

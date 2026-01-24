@@ -789,6 +789,93 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/saving-goals/{id}/contributions/{contribution_id}": {
+            "delete": {
+                "description": "Delete a saving contribution",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "saving_goals"
+                ],
+                "summary": "Delete a saving contribution",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Goal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Contribution ID",
+                        "name": "contribution_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/saving-goals/{id}/finish": {
+            "put": {
+                "description": "Mark a saving goal as finished and release funds to available balance",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "saving_goals"
+                ],
+                "summary": "Finish and cash out a saving goal",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Goal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/transactions": {
             "get": {
                 "description": "Get all transactions for the logged in user with pagination and filtering",
@@ -2548,6 +2635,10 @@ const docTemplate = `{
                 },
                 "to_wallet_id": {
                     "type": "integer"
+                },
+                "transfer_fee": {
+                    "description": "Opsional",
+                    "type": "number"
                 }
             }
         },
