@@ -13,12 +13,14 @@ type DashboardService interface {
 type dashboardService struct {
 	transactionRepo repository.TransactionRepository
 	walletRepo      repository.WalletRepository
+	savingGoalRepo  repository.SavingGoalRepository
 }
 
-func NewDashboardService(transactionRepo repository.TransactionRepository, walletRepo repository.WalletRepository) DashboardService {
+func NewDashboardService(transactionRepo repository.TransactionRepository, walletRepo repository.WalletRepository, savingGoalRepo repository.SavingGoalRepository) DashboardService {
 	return &dashboardService{
 		transactionRepo: transactionRepo,
 		walletRepo:      walletRepo,
+		savingGoalRepo:  savingGoalRepo,
 	}
 }
 
@@ -29,8 +31,19 @@ func (s *dashboardService) GetDashboardData(userID uint) (*entity.DashboardData,
 		return nil, err
 	}
 	var totalBalance float64
-	for _, w := range wallets {
-		totalBalance += w.Balance
+	var totalAvailableBalance float64
+
+	for i := range wallets {
+		// Calculate Active Contributions for each wallet
+		activeContributions, err := s.savingGoalRepo.GetActiveContributions(wallets[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		
+		wallets[i].AvailableBalance = wallets[i].Balance - activeContributions
+		
+		totalBalance += wallets[i].Balance
+		totalAvailableBalance += wallets[i].AvailableBalance
 	}
 
 	// 2. Dates for Current Month
@@ -77,8 +90,9 @@ func (s *dashboardService) GetDashboardData(userID uint) (*entity.DashboardData,
 	}
 
 	return &entity.DashboardData{
-		TotalBalance:       totalBalance,
-		TotalIncomeMonth:   totalIncomeMonth,
+		TotalBalance:          totalBalance,
+		TotalAvailableBalance: totalAvailableBalance,
+		TotalIncomeMonth:      totalIncomeMonth,
 		TotalExpenseMonth:  totalExpenseMonth,
 		Wallets:            wallets,
 		RecentTransactions: recentTransactions,

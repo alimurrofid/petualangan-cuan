@@ -39,8 +39,12 @@ const errors = ref({
   icon: false,
 });
 
-const totalBalance = computed(() => {
-    return wallets.value.reduce((sum: any, w: any) => sum + w.balance, 0);
+const totalOverall = computed(() => {
+    return wallets.value.reduce((sum: any, w: any) => sum + (w.balance || 0), 0);
+});
+
+const totalAvailable = computed(() => {
+    return wallets.value.reduce((sum: any, w: any) => sum + (w.available_balance || 0), 0);
 });
 
 
@@ -179,11 +183,20 @@ const getCardGradient = (type: string) => {
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div>
         <h2 class="text-3xl font-bold tracking-tight">Dompet Saya</h2>
-        <p class="text-muted-foreground mt-1">Total aset bersih Anda saat ini.</p>
-        <div class="mt-4 flex items-baseline gap-2">
-            <span class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
-                {{ formatCurrency(totalBalance) }}
-            </span>
+        <p class="text-muted-foreground mt-1">Total aset bersih Anda termasuk tabungan dan dana aktif.</p>
+        <div class="mt-4 space-y-1">
+            <div class="flex items-baseline gap-2">
+                 <span class="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Total Tersedia</span>
+            </div>
+            <div class="flex items-baseline gap-2">
+                <span class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
+                    {{ formatCurrency(totalAvailable) }}
+                </span>
+            </div>
+             <div class="flex items-center gap-2 text-muted-foreground/70 text-sm font-medium">
+                <span>Total Keseluruhan:</span>
+                <span class="font-mono text-foreground/80">{{ formatCurrency(totalOverall) }}</span>
+            </div>
         </div>
       </div>
       
@@ -225,8 +238,13 @@ const getCardGradient = (type: string) => {
             </div>
             
              <div class="space-y-1">
-                 <p class="text-xs font-semibold opacity-70 uppercase tracking-widest">Saldo Saat Ini</p>
-                 <p class="text-2xl font-mono font-bold tracking-tight">{{ formatCurrency(item.balance) }}</p>
+                 <p class="text-[10px] font-bold opacity-70 uppercase tracking-widest text-emerald-100">Saldo Tersedia</p>
+                 <p class="text-2xl font-mono font-bold tracking-tight filter drop-shadow-sm">{{ formatCurrency(item.available_balance ?? item.balance) }}</p>
+                 
+                 <div class="pt-2 mt-1 border-t border-white/10 flex items-center gap-1 opacity-80">
+                    <span class="text-[10px] uppercase font-medium">Total Saldo:</span>
+                    <span class="font-mono text-xs font-bold">{{ formatCurrency(item.balance) }}</span>
+                 </div>
              </div>
         </div>
 

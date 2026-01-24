@@ -238,12 +238,15 @@ const groupedRecentTransactions = computed(() => {
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none shadow-md">
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-sm font-medium text-white/90">Total Saldo</CardTitle>
+          <CardTitle class="text-sm font-medium text-white/90">Saldo Tersedia</CardTitle>
           <Wallet class="h-4 w-4 text-white/70" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold">{{ formatCurrency(data.total_balance) }}</div>
-          <p class="text-xs text-indigo-100/70 mt-1">Total aset saat ini</p>
+          <div class="text-2xl font-bold">{{ formatCurrency(data.total_available_balance) }}</div>
+          <div class="flex items-center gap-1 mt-1 text-xs text-indigo-100/70">
+              <span class="opacity-70">Saldo Keseluruhan:</span>
+              <span class="font-bold">{{ formatCurrency(data.total_balance) }}</span>
+          </div>
         </CardContent>
       </Card>
 
@@ -412,7 +415,14 @@ const groupedRecentTransactions = computed(() => {
                                  <p class="font-bold text-base truncate max-w-[140px]">{{ w.name }}</p>
                              </div>
                          </div>
-                         <p class="font-bold text-lg whitespace-nowrap drop-shadow-sm">{{ formatCurrency(w.balance) }}</p>
+                         <div class="text-right">
+                             <p class="text-[10px] font-medium opacity-80 uppercase tracking-widest">Saldo Tersedia</p>
+                             <p class="font-bold text-lg whitespace-nowrap drop-shadow-sm">{{ formatCurrency(w.available_balance ?? w.balance) }}</p>
+                             <div class="border-t border-white/20 mt-1 pt-1 opacity-90">
+                               <p class="text-[10px] font-medium opacity-80 uppercase tracking-widest">Total Saldo</p>
+                               <p class="font-bold text-xs">{{ formatCurrency(w.balance) }}</p>
+                             </div>
+                         </div>
                      </div>
                      <Button variant="outline" class="w-full text-xs h-8 rounded-xl" @click="$router.push('/wallet')">
                         Lihat Semua Dompet

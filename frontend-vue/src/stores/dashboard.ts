@@ -12,6 +12,7 @@ export interface MonthlyTrend {
 
 export interface DashboardData {
   total_balance: number;
+  total_available_balance: number;
   total_income_month: number;
   total_expense_month: number;
   wallets: Wallet[];

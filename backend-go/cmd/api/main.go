@@ -79,7 +79,7 @@ func main() {
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 
 	// Dashboard
-	dashboardSvc := service.NewDashboardService(repo, walletRepo)
+	dashboardSvc := service.NewDashboardService(repo, walletRepo, savingGoalRepo)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
 
 	// Debt
