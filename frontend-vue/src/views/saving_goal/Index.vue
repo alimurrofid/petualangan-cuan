@@ -308,10 +308,18 @@ const onTargetBlur = () => {
             </DialogContent>
         </Dialog>
 
-        <!-- Use ManualTransactionDialog for Contribution -->
+
         <ManualTransactionDialog 
-            :open="isContributeOpen" 
-            @update:open="isContributeOpen = $event"
+            v-if="isContributeOpen"
+            :open="true" 
+            @update:open="(val) => {
+                if (!val) {
+                    isContributeOpen = false;
+                    selectedGoalForContribution = null;
+                    store.fetchGoals();
+                    walletStore.fetchWallets();
+                }
+            }"
             @save="handleContributeClose"
             :savingGoalTarget="selectedGoalForContribution"
         />

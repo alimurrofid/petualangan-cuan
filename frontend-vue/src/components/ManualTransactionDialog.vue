@@ -40,6 +40,8 @@ const wishlistStore = useWishlistStore();
 const swal = useSwal();
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
+const isSubmitting = ref(false);
+
 const activeTab = ref<"expense" | "income" | "transfer" | "saving">("expense");
 const date = ref(format(new Date(), "yyyy-MM-dd"));
 const amount = ref("");
@@ -188,15 +190,34 @@ watch(() => props.initialData, (newVal) => {
         description.value = newVal.description || "";
         activeTab.value = "expense"; // Wishlist is typically expense
     }
+    
+    // Enforce Expense tab for Wishlist Buy
+    if (props.wishlistItemId) {
+        activeTab.value = "expense";
+    }
 }, { immediate: true });
 
 // Watch for Saving Goal Target
 watch(() => props.savingGoalTarget, (newVal) => {
+    // Don't react if we are currently submitting!
+    if (isSubmitting.value) {
+        return;
+    }
+    
     if (newVal) {
         activeTab.value = "saving";
         description.value = `Alokasi ke ${newVal.name}`;
         if (newVal.category_id) {
             selectedCategory.value = String(newVal.category_id);
+        }
+    } else {
+        // Reset if null, to avoid stale description
+        if (activeTab.value === 'saving') {
+            activeTab.value = "expense"; // Fallback to default
+            description.value = "";
+            selectedCategory.value = "";
+            amount.value = "";
+            amountDisplay.value = "";
         }
     }
 }, { immediate: true });
@@ -218,7 +239,11 @@ const selectedCategoryObj = computed(() => categoryStore.categories.find(c => St
 
 
 
-const isSubmitting = ref(false);
+watch(() => props.open, (newVal) => {
+    if (!newVal) {
+        resetForm();
+    }
+});
 
 const errors = ref({
     date: false,
@@ -304,9 +329,9 @@ const handleSave = async () => {
                 description: description.value
             });
             swal.toast({ icon: 'success', title: 'Berhasil menabung!' });
-            
-            emit("save", {});
             emit("update:open", false);
+            emit("save", {});
+            
             return;
         }
 
@@ -324,8 +349,6 @@ const handleSave = async () => {
                     // For transfer_out (Expense), the wallet is the Source (selectedWallet)
                     finalWalletId = Number(selectedWallet.value);
                 } else {
-                    // Fallback: If editing a non-transfer but tab is transfer, assume transfer_out (Source)
-                    // Fallback: If editing a non-transfer but tab is transfer, assume transfer_out (Source)
                     finalType = 'transfer_out';
                 }
             }
@@ -346,15 +369,6 @@ const handleSave = async () => {
             await transactionStore.updateTransaction(props.transactionToEdit.id, payload);
             swal.toast({ icon: 'success', title: 'Transaksi berhasil diperbarui' });
         } else if (activeTab.value === 'transfer') {
-            // Transfer doesn't support generic file upload in this simplified flow yet (as it creates 2 txs)
-            // We'll stick to JSON for transfer for now unless we refactor transfer endpoint to handle files
-            // The Plan didn't explicitly say Transfer endpoint handles files, only "Transaction".
-            // Assuming Transfer endpoint remains JSON for now or we update it too.
-            // Given constraint: "tambahkan field untuk upload file pada transaction" implies singular.
-            // Let's keep Transfer as JSON for now to avoid breaking it, OR check if transfer endpoint was updated.
-            // I only updated CreateTransaction and UpdateTransaction. TransferTransaction endpoint was NOT updated to multipart.
-            // So file upload is only for Expense/Income.
-
             await transactionStore.transfer({
                 date: format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"),
                 amount: Number(amount.value),
@@ -386,21 +400,31 @@ const handleSave = async () => {
             }
         }
 
-        // Reset form (keep date as today)
-        amount.value = "";
-        amountDisplay.value = "";
-        transferFee.value = "";
-        transferFeeDisplay.value = "";
-        description.value = "";
-        file.value = null;
-        existingAttachment.value = "";
-
-        emit("save", {});
         emit("update:open", false);
+        emit("save", {});
     } catch (error) {
+        console.error("Error in handleSave:", error);
         swal.error("Gagal", props.transactionToEdit ? "Gagal memperbarui transaksi" : "Gagal melakukan transaksi");
     } finally {
         isSubmitting.value = false;
+    }
+};
+
+const resetForm = () => {
+    amount.value = "";
+    amountDisplay.value = "";
+    transferFee.value = "";
+    transferFeeDisplay.value = "";
+    description.value = "";
+    file.value = null;
+    existingAttachment.value = "";
+
+    if (!props.savingGoalTarget && !props.transactionToEdit) {
+        activeTab.value = "expense";
+    }
+    
+    if (!props.savingGoalTarget) {
+         selectedCategory.value = "";
     }
 };
 
@@ -471,7 +495,8 @@ const onFeeBlur = () => {
 </script>
 
 <template>
-    <Dialog :open="open" @update:open="emit('update:open', $event)">
+    <!-- Parent controls visibility via v-if, so we just use props.open -->
+    <Dialog :open="props.open" @update:open="emit('update:open', $event)">
         <DialogContent class="max-w-md bg-card text-foreground" @interact-outside="swal.handleSwalInteractOutside">
             <DialogHeader>
                 <DialogTitle>{{ transactionToEdit ? 'Edit Transaksi' : 'Tambah Transaksi' }}</DialogTitle>
@@ -485,7 +510,7 @@ const onFeeBlur = () => {
             </div>
 
             <Tabs v-model="activeTab" class="w-full">
-                <TabsList class="grid w-full grid-cols-3 mb-4 h-auto p-1 bg-muted/60 rounded-xl" v-if="activeTab !== 'saving'">
+                <TabsList class="grid w-full grid-cols-3 mb-4 h-auto p-1 bg-muted/60 rounded-xl" v-if="activeTab !== 'saving' && !props.wishlistItemId">
                     <TabsTrigger value="expense"
                         class="rounded-lg py-2 data-[state=active]:bg-red-500 data-[state=active]:text-white dark:data-[state=active]:bg-red-600 dark:text-muted-foreground dark:data-[state=active]:text-white transition-all">
                         Pengeluaran</TabsTrigger>
@@ -499,6 +524,10 @@ const onFeeBlur = () => {
                 
                 <div v-if="activeTab === 'saving'" class="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 p-3 rounded-lg mb-4 text-center font-medium border border-emerald-200 dark:border-emerald-800">
                     Menabung untuk: {{ props.savingGoalTarget?.name }}
+                </div>
+
+                <div v-if="props.wishlistItemId" class="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 p-3 rounded-lg mb-4 text-center font-medium border border-red-200 dark:border-red-800">
+                    Pembelian Wishlist
                 </div>
 
                 <div class="space-y-4 py-2">

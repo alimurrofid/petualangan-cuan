@@ -360,11 +360,17 @@ const onPriceBlur = () => {
             </DialogContent>
         </Dialog>
 
-        <!-- Buy Dialog (ManualTransactionDialog Wrapper) -->
+
         <ManualTransactionDialog 
-            v-if="selectedItemToBuy"
-            :open="isBuyDialogOpen" 
-            @update:open="isBuyDialogOpen = $event"
+            v-if="selectedItemToBuy && isBuyDialogOpen"
+            :open="true" 
+            @update:open="(val) => {
+                if (!val) {
+                    isBuyDialogOpen = false;
+                    wishlistStore.fetchItems();
+                    selectedItemToBuy = null;
+                }
+            }"
             :initialData="{
                 amount: selectedItemToBuy.estimated_price,
                 category_id: selectedItemToBuy.category_id,

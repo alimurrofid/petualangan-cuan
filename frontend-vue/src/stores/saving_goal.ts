@@ -35,7 +35,6 @@ export const useSavingGoalStore = defineStore("savingGoal", () => {
     const addContribution = async (goalId: number, payload: any) => {
         try {
             await api.post(`/api/saving-goals/${goalId}/contributions`, payload);
-            await fetchGoals();
             return true;
         } catch (error: any) {
             console.error("Failed to add contribution", error);

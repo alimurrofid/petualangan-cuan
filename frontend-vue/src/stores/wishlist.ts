@@ -95,8 +95,6 @@ export const useWishlistStore = defineStore('wishlist', () => {
             await axios.patch(`${baseUrl}/api/wishlist/${id}/bought`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            await fetchItems();
-            // Toast is handled by the calling component usually, but we can add one here if needed
             return true;
         } catch (error) {
             console.error('Failed to mark as bought:', error);
