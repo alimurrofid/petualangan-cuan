@@ -6,6 +6,7 @@ import { id } from "date-fns/locale";
 import { useTransactionStore, type CategoryBreakdown } from "@/stores/transaction";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
+import { useAuthStore } from "@/stores/auth";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import { formatCurrency, formatCompactNumber } from "@/lib/utils";
 const transactionStore = useTransactionStore();
 const walletStore = useWalletStore();
 const categoryStore = useCategoryStore();
+const authStore = useAuthStore();
 
 type PeriodType = 'monthly' | 'weekly' | 'daily' | 'custom';
 
@@ -297,7 +299,7 @@ const handleExport = async () => {
                 </CardTitle>
             </CardHeader>
             <CardContent class="flex items-center justify-center p-6 bg-muted/10 h-full">
-                <div v-if="reportData.length > 0" class="w-full max-w-[350px]">
+                <div v-if="reportData.length > 0" class="w-full max-w-[350px]" :class="{ 'privacy-blur-charts': authStore.isPrivacyMode }">
                      <apexchart type="donut" width="100%" :options="chartOptions" :series="chartSeries" />
                 </div>
                 <div v-else class="text-center text-muted-foreground py-10">
@@ -347,11 +349,11 @@ const handleExport = async () => {
                             </div>
                         </div>
                         <div class="text-right ml-4">
-                             <p :class="['font-bold text-sm', item.type === 'expense' ? 'text-red-500' : 'text-emerald-600']">
+                             <p :class="['font-bold text-sm', item.type === 'expense' ? 'text-red-500' : 'text-emerald-600', { 'privacy-blur': authStore.isPrivacyMode }]">
                                 {{ formatCurrency(item.total_amount) }}
                              </p>
                              <div v-if="item.type === 'expense' && item.budget_limit > 0" class="flex flex-col items-end">
-                                <p class="text-[10px] text-muted-foreground">Budget: {{ formatCurrency(item.budget_limit) }}</p>
+                                <p class="text-[10px] text-muted-foreground">Budget: <span :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(item.budget_limit) }}</span></p>
                              </div>
                              <p v-else class="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">{{ item.type === 'expense' ? 'Pengeluaran' : '' }}</p>
                         </div>

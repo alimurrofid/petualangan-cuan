@@ -2,6 +2,7 @@
 import { onMounted, ref, computed, watch } from "vue";
 import { useWishlistStore, type WishlistItem } from "@/stores/wishlist";
 import { useCategoryStore } from "@/stores/category";
+import { useAuthStore } from "@/stores/auth";
 import ManualTransactionDialog from "@/components/ManualTransactionDialog.vue";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import { parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/l
 
 const wishlistStore = useWishlistStore();
 const categoryStore = useCategoryStore();
+const authStore = useAuthStore();
 const swal = useSwal();
 
 onMounted(() => {
@@ -200,7 +202,7 @@ const onPriceBlur = () => {
                     <CardContent class="space-y-4 pt-0">
                         <div class="p-4 rounded-xl bg-muted/50 border border-border mt-2">
                             <p class="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">Estimasi Harga</p>
-                            <div class="text-2xl font-mono font-bold tracking-tight text-foreground">
+                            <div class="text-2xl font-mono font-bold tracking-tight text-foreground" :class="{ 'privacy-blur': authStore.isPrivacyMode }">
                                 {{ formatRp(item.estimated_price) }}
                             </div>
                         </div>
@@ -254,7 +256,7 @@ const onPriceBlur = () => {
                     </div>
                     
                     <div class="relative z-10 flex justify-between items-center mt-auto p-3 bg-black/10 backdrop-blur-sm rounded-2xl border border-white/5">
-                         <div class="text-xl font-mono font-bold tracking-tight text-white/90">
+                         <div class="text-xl font-mono font-bold tracking-tight text-white/90" :class="{ 'privacy-blur': authStore.isPrivacyMode }">
                             {{ formatRp(item.estimated_price) }}
                         </div>
                         <span class="flex items-center gap-1 bg-white text-emerald-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm">

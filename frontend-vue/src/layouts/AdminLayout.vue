@@ -14,7 +14,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { User, CreditCard, LifeBuoy, Lock, LogOut } from "lucide-vue-next";
+import { User, CreditCard, LifeBuoy, Lock, LogOut, Eye, EyeOff } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 
@@ -39,7 +39,11 @@ const handleLogout = () => {
 
         <div class="flex-1"></div>
 
-        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-4">
+          <button @click="authStore.togglePrivacyMode()" class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors">
+            <EyeOff v-if="authStore.isPrivacyMode" class="h-4 w-4" />
+            <Eye v-else class="h-4 w-4" />
+          </button>
           <ModeToggle />
 
           <div class="w-px h-6 bg-border"></div>

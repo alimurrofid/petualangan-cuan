@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from "vue";
 import { useSavingGoalStore } from "@/stores/saving_goal";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
+import { useAuthStore } from "@/stores/auth";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Plus, PiggyBank, Target, Calendar, Pencil, Trash2, Eye, CheckCircle } from "lucide-vue-next";
@@ -20,6 +21,7 @@ import { useSwal } from "@/composables/useSwal";
 const store = useSavingGoalStore();
 const walletStore = useWalletStore(); // Ensure wallets are loaded for contribution
 const categoryStore = useCategoryStore();
+const authStore = useAuthStore();
 const swal = useSwal();
 const isCreateOpen = ref(false);
 const isContributeOpen = ref(false);
@@ -239,13 +241,13 @@ const onTargetBlur = () => {
                     <div class="space-y-2">
                         <div class="flex justify-between items-end">
                             <span class="text-xs text-muted-foreground font-medium uppercase tracking-widest">Terkumpul</span>
-                            <span class="font-mono text-2xl font-bold tracking-tight text-foreground">{{ formatCurrency(goal.current_amount) }}</span>
+                            <span class="font-mono text-2xl font-bold tracking-tight text-foreground" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(goal.current_amount) }}</span>
                         </div>
                         
                         <div class="space-y-1.5">
                             <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                 <span>Progress {{ Math.round(getProgress(goal.current_amount, goal.target_amount)) }}%</span>
-                                <span>Dari {{ formatCurrency(goal.target_amount) }}</span>
+                                <span>Dari <span :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(goal.target_amount) }}</span></span>
                             </div>
                             <!-- Standard Progress Bar -->
                             <div class="h-2 w-full bg-secondary rounded-full overflow-hidden">

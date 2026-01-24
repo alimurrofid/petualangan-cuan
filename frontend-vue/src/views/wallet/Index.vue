@@ -189,13 +189,13 @@ const getCardGradient = (type: string) => {
                  <span class="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Total Tersedia</span>
             </div>
             <div class="flex items-baseline gap-2">
-                <span class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
+                <span class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500" :class="{ 'privacy-blur': authStore.isPrivacyMode }">
                     {{ formatCurrency(totalAvailable) }}
                 </span>
             </div>
              <div class="flex items-center gap-2 text-muted-foreground/70 text-sm font-medium">
                 <span>Total Keseluruhan:</span>
-                <span class="font-mono text-foreground/80">{{ formatCurrency(totalOverall) }}</span>
+                <span class="font-mono text-foreground/80" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(totalOverall) }}</span>
             </div>
         </div>
       </div>
@@ -239,11 +239,11 @@ const getCardGradient = (type: string) => {
             
              <div class="space-y-1">
                  <p class="text-[10px] font-bold opacity-70 uppercase tracking-widest text-emerald-100">Saldo Tersedia</p>
-                 <p class="text-2xl font-mono font-bold tracking-tight filter drop-shadow-sm">{{ formatCurrency(item.available_balance ?? item.balance) }}</p>
+                 <p class="text-2xl font-mono font-bold tracking-tight filter drop-shadow-sm" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(item.available_balance ?? item.balance) }}</p>
                  
                  <div class="pt-2 mt-1 border-t border-white/10 flex items-center gap-1 opacity-80">
                     <span class="text-[10px] uppercase font-medium">Total Saldo:</span>
-                    <span class="font-mono text-xs font-bold">{{ formatCurrency(item.balance) }}</span>
+                    <span class="font-mono text-xs font-bold" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(item.balance) }}</span>
                  </div>
              </div>
         </div>

@@ -242,10 +242,10 @@ const groupedRecentTransactions = computed(() => {
           <Wallet class="h-4 w-4 text-white/70" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold">{{ formatCurrency(data.total_available_balance) }}</div>
+          <div class="text-2xl font-bold" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(data.total_available_balance) }}</div>
           <div class="flex items-center gap-1 mt-1 text-xs text-indigo-100/70">
               <span class="opacity-70">Saldo Keseluruhan:</span>
-              <span class="font-bold">{{ formatCurrency(data.total_balance) }}</span>
+              <span class="font-bold" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(data.total_balance) }}</span>
           </div>
         </CardContent>
       </Card>
@@ -258,7 +258,7 @@ const groupedRecentTransactions = computed(() => {
           </div>
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-emerald-600">{{ formatCurrency(data.total_income_month) }}</div>
+          <div class="text-2xl font-bold text-emerald-600" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(data.total_income_month) }}</div>
           <p class="text-xs text-muted-foreground mt-1">Bulan Ini</p>
         </CardContent>
       </Card>
@@ -271,7 +271,7 @@ const groupedRecentTransactions = computed(() => {
           </div>
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-rose-600">{{ formatCurrency(data.total_expense_month) }}</div>
+          <div class="text-2xl font-bold text-rose-600" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(data.total_expense_month) }}</div>
           <p class="text-xs text-muted-foreground mt-1">Bulan Ini</p>
         </CardContent>
       </Card>
@@ -322,7 +322,7 @@ const groupedRecentTransactions = computed(() => {
         </CardHeader>
         <CardContent class="flex items-center justify-center flex-col">
              <div v-if="chartSeriesDonut.length === 0" class="text-center py-10 text-muted-foreground text-sm">Belum ada data pengeluaran.</div>
-             <apexchart v-else type="donut" width="100%" :options="chartOptionsDonut" :series="chartSeriesDonut" />
+             <apexchart v-else type="donut" width="100%" :options="chartOptionsDonut" :series="chartSeriesDonut" :class="{ 'privacy-blur-charts': authStore.isPrivacyMode }" />
 
              <div v-if="budgetStatus.length > 0" class="w-full mt-6 space-y-3">
                  <p class="text-xs font-bold uppercase text-muted-foreground tracking-widest">Status Anggaran</p>
@@ -386,7 +386,7 @@ const groupedRecentTransactions = computed(() => {
                                  <span :class="['block font-bold text-sm', 
                                     t.type === 'income' ? 'text-emerald-600' : 
                                     t.type === 'expense' ? 'text-red-500' : 
-                                    'text-blue-600']">
+                                    'text-blue-600', { 'privacy-blur': authStore.isPrivacyMode }]">
                                     {{ (t.type === 'income' || t.type === 'transfer_in') ? '+' : '-' }} {{ formatCurrency(t.amount) }}
                                  </span>
                                  <span class="text-[10px] text-muted-foreground">{{ format(parseISO(t.date), 'HH:mm') }}</span>
@@ -417,10 +417,10 @@ const groupedRecentTransactions = computed(() => {
                          </div>
                          <div class="text-right">
                              <p class="text-[10px] font-medium opacity-80 uppercase tracking-widest">Saldo Tersedia</p>
-                             <p class="font-bold text-lg whitespace-nowrap drop-shadow-sm">{{ formatCurrency(w.available_balance ?? w.balance) }}</p>
+                             <p class="font-bold text-lg whitespace-nowrap drop-shadow-sm" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(w.available_balance ?? w.balance) }}</p>
                              <div class="border-t border-white/20 mt-1 pt-1 opacity-90">
                                <p class="text-[10px] font-medium opacity-80 uppercase tracking-widest">Total Saldo</p>
-                               <p class="font-bold text-xs">{{ formatCurrency(w.balance) }}</p>
+                               <p class="font-bold text-xs" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(w.balance) }}</p>
                              </div>
                          </div>
                      </div>

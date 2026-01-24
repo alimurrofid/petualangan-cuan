@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useAuthStore } from "@/stores/auth";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
@@ -17,6 +18,7 @@ const props = defineProps<{
 
 const emit = defineEmits(["update:open"]);
 const store = useSavingGoalStore();
+const authStore = useAuthStore();
 
 const handleDeleteContribution = async (contributionId: number) => {
     if (!props.goal) return;
@@ -104,7 +106,7 @@ const handleDeleteContribution = async (contributionId: number) => {
                           <TableCell class="text-sm text-muted-foreground">
                               {{ contribution.transaction?.description || '-' }}
                           </TableCell>
-                          <TableCell class="text-right font-medium">
+                          <TableCell class="text-right font-medium" :class="{ 'privacy-blur': authStore.isPrivacyMode }">
                               {{ formatCurrency(contribution.amount) }}
                           </TableCell>
                           <TableCell>

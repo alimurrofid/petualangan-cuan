@@ -6,6 +6,12 @@ import router from '@/router';
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('token') || '');
     const user = ref(JSON.parse(localStorage.getItem('user') || 'null'));
+    const isPrivacyMode = ref(localStorage.getItem('privacy_mode') === 'true');
+
+    const togglePrivacyMode = () => {
+        isPrivacyMode.value = !isPrivacyMode.value;
+        localStorage.setItem('privacy_mode', String(isPrivacyMode.value));
+    };
 
     const login = async (credentials: any) => {
         try {
@@ -75,5 +81,5 @@ export const useAuthStore = defineStore('auth', () => {
         }
     };
 
-    return { token, user, login, register, logout, updateProfile, changePassword, fetchUser };
+    return { token, user, isPrivacyMode, login, register, logout, updateProfile, changePassword, fetchUser, togglePrivacyMode };
 });

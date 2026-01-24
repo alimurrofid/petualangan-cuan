@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, reactive, watch } from "vue";
 import { useDebtStore, type Debt, type CreateDebtInput, type UpdateDebtInput, type PayDebtInput } from "@/stores/debt";
 import { useWalletStore } from "@/stores/wallet";
+import { useAuthStore } from "@/stores/auth";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import Detail from "./Detail.vue";
 
 const debtStore = useDebtStore();
 const walletStore = useWalletStore();
+const authStore = useAuthStore();
 
 onMounted(async () => {
   await Promise.all([
@@ -328,7 +330,7 @@ const handleDelete = async (id: number) => {
           <ArrowUpRight class="h-4 w-4 text-red-500" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-red-500">{{ formatCurrency(totalDebt) }}</div>
+          <div class="text-2xl font-bold text-red-500" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(totalDebt) }}</div>
           <p class="text-xs font-semibold text-muted-foreground mt-2 uppercase tracking-wide">Harus segera dibayar</p>
         </CardContent>
       </Card>
@@ -338,7 +340,7 @@ const handleDelete = async (id: number) => {
           <ArrowDownLeft class="h-4 w-4 text-emerald-500" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-emerald-500">{{ formatCurrency(totalReceivable) }}</div>
+          <div class="text-2xl font-bold text-emerald-500" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(totalReceivable) }}</div>
           <p class="text-xs font-semibold text-muted-foreground mt-2 uppercase tracking-wide">Akan segera diterima</p>
         </CardContent>
       </Card>
@@ -400,11 +402,11 @@ const handleDelete = async (id: number) => {
                                <span v-if="item.is_paid" class="text-emerald-600">Lunas</span>
                                <span v-else class="text-amber-600">Belum Lunas</span>
                            </div>
-                           <div class="text-2xl font-mono font-bold tracking-tight text-foreground">
-                              {{ formatCurrency(item.remaining) }}
+                           <div class="text-2xl font-mono font-bold tracking-tight text-foreground" :class="{ 'privacy-blur': authStore.isPrivacyMode }">
+                               {{ formatCurrency(item.remaining) }}
                            </div>
                            <div class="text-xs text-muted-foreground pt-2 border-t border-border/50 mt-2 flex justify-between">
-                              <span>Total Awal: {{ formatCurrency(item.amount) }}</span>
+                               <span>Total Awal: <span :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(item.amount) }}</span></span>
                            </div>
                       </div>
                       

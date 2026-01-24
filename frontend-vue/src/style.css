@@ -132,3 +132,15 @@
     @apply h-full w-full;
   }
 }
+
+.privacy-blur {
+  filter: blur(8px);
+  transition: filter 0.3s ease;
+  user-select: none;
+  pointer-events: none;
+}
+
+.privacy-blur-charts .apexcharts-datalabel-value {
+  filter: blur(8px);
+  transition: filter 0.3s ease;
+}

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { type Debt, useDebtStore } from "@/stores/debt";
+import { useAuthStore } from "@/stores/auth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,6 +19,7 @@ const props = defineProps<{
 const emit = defineEmits(["update:open"]);
 
 const debtStore = useDebtStore();
+const authStore = useAuthStore();
 
 const handleDeletePayment = async (paymentId: number) => {
   const result = await Swal.fire({
@@ -105,7 +107,7 @@ const handleDeletePayment = async (paymentId: number) => {
                           <TableCell class="text-sm text-muted-foreground">
                               {{ payment.note || '-' }}
                           </TableCell>
-                          <TableCell class="text-right font-medium">
+                          <TableCell class="text-right font-medium" :class="{ 'privacy-blur': authStore.isPrivacyMode }">
                               {{ formatCurrency(payment.amount) }}
                           </TableCell>
                            <TableCell>

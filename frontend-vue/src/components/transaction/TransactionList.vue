@@ -5,8 +5,11 @@ import { id } from "date-fns/locale";
 import { formatCurrency } from "@/lib/utils";
 import { getEmoji, getIconComponent } from "@/lib/icons";
 import { useTransactionStore } from "@/stores/transaction";
+import { useAuthStore } from "@/stores/auth";
 import { Search, Pencil, Trash2, Paperclip } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
+
+const authStore = useAuthStore();
 import { useSwal } from "@/composables/useSwal";
 
 const transactionStore = useTransactionStore();
@@ -134,7 +137,7 @@ const groupedTransactions = computed(() => {
                         <span :class="['block font-bold text-sm',
                             t.type === 'income' ? 'text-emerald-600' :
                                 t.type === 'expense' ? 'text-red-500' :
-                                    'text-blue-600']">
+                                    'text-blue-600', { 'privacy-blur': authStore.isPrivacyMode }]">
                             {{ (t.type === 'income' || t.type === 'transfer_in') ? '+' : '-' }} {{
                                 formatCurrency(t.amount) }}
                         </span>
