@@ -108,8 +108,8 @@ const groupedTransactions = computed(() => {
 
                 <div v-for="t in group.items" :key="t.id"
                     class="group relative flex items-center justify-between p-3 rounded-2xl hover:bg-muted/50 transition-all cursor-pointer border border-transparent hover:border-border">
-                    <div class="flex items-center gap-3">
-                        <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm transition-transform group-hover:scale-105',
+                    <div class="flex items-center gap-3 flex-1 min-w-0 mr-2">
+                        <div :class="['h-10 w-10 shrink-0 rounded-xl flex items-center justify-center text-lg shadow-sm transition-transform group-hover:scale-105',
                             t.type === 'expense' ? 'bg-red-50 text-red-500' :
                                 t.type === 'income' ? 'bg-emerald-50 text-emerald-600' :
                                     'bg-blue-50 text-blue-600']">
@@ -117,11 +117,11 @@ const groupedTransactions = computed(() => {
                                 getEmoji(t.category.icon) }}</span>
                             <component v-else :is="getIconComponent(t.category.icon, 'Circle')" class="h-5 w-5" />
                         </div>
-                        <div>
-                            <p class="font-bold text-sm truncate max-w-[120px]">{{ t.description || 'No Description' }}
+                        <div class="min-w-0 flex-1">
+                            <p class="font-bold text-sm truncate pb-0.5">{{ t.description || 'No Description' }}
                             </p>
-                            <div class="flex items-center gap-1">
-                                <p class="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                            <div class="flex items-center gap-1 min-w-0">
+                                <p class="text-[10px] text-muted-foreground font-medium flex items-center gap-1 truncate">
                                     {{ t.wallet.name }} • {{ t.category.name }}
                                 </p>
                                 <a v-if="t.attachment"
@@ -133,7 +133,7 @@ const groupedTransactions = computed(() => {
                             </div>
                         </div>
                     </div>
-                    <div class="text-right">
+                    <div class="text-right shrink-0">
                         <span :class="['block font-bold text-sm',
                             t.type === 'income' ? 'text-emerald-600' :
                                 t.type === 'expense' ? 'text-red-500' :

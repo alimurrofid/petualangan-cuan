@@ -468,8 +468,8 @@ const handleDelete = async (id: number) => {
         
         <Tabs v-model="activeTab" class="w-full mt-2" @update:modelValue="onTabChange">
           <TabsList class="grid w-full grid-cols-2 mb-4 h-auto p-1 bg-muted/60 rounded-xl">
-            <TabsTrigger value="debt" :disabled="isEditMode" class="rounded-lg py-2 data-[state=active]:bg-red-600 data-[state=active]:text-white dark:data-[state=active]:bg-red-600 dark:data-[state=active]:text-white hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-600 transition-colors disabled:opacity-50">Utang (Saya Berutang)</TabsTrigger>
-            <TabsTrigger value="receivable" :disabled="isEditMode" class="rounded-lg py-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-600 dark:data-[state=active]:text-white hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:text-emerald-600 transition-colors disabled:opacity-50">Piutang (Orang Berutang)</TabsTrigger>
+            <TabsTrigger value="debt" :disabled="isEditMode" class="rounded-lg py-2 h-auto whitespace-normal text-xs sm:text-sm data-[state=active]:bg-red-600 data-[state=active]:text-white dark:data-[state=active]:bg-red-600 dark:data-[state=active]:text-white hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-600 transition-colors disabled:opacity-50">Utang <span class="hidden sm:inline">(Saya Berutang)</span><span class="sm:hidden block text-[10px] opacity-80 font-normal">(Saya Berutang)</span></TabsTrigger>
+            <TabsTrigger value="receivable" :disabled="isEditMode" class="rounded-lg py-2 h-auto whitespace-normal text-xs sm:text-sm data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-600 dark:data-[state=active]:text-white hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:text-emerald-600 transition-colors disabled:opacity-50">Piutang <span class="hidden sm:inline">(Orang Berutang)</span><span class="sm:hidden block text-[10px] opacity-80 font-normal">(Orang Berutang)</span></TabsTrigger>
           </TabsList>
         </Tabs>
  

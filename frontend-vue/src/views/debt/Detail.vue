@@ -72,8 +72,8 @@ const handleDeletePayment = async (paymentId: number) => {
       </DialogHeader>
 
       <div v-if="debt" class="space-y-6 pt-4">
-          <!-- History Table -->
-          <div class="border rounded-2xl overflow-hidden shadow-sm bg-card">
+          <!-- Desktop Table View -->
+          <div class="hidden md:block border rounded-2xl overflow-hidden shadow-sm bg-card">
               <Table>
                   <TableHeader class="bg-muted/30">
                       <TableRow>
@@ -104,7 +104,7 @@ const handleDeletePayment = async (paymentId: number) => {
                                  <span>{{ payment.wallet.name }}</span>
                              </div>
                           </TableCell>
-                          <TableCell class="text-sm text-muted-foreground">
+                          <TableCell class="text-sm text-muted-foreground max-w-[150px] truncate">
                               {{ payment.note || '-' }}
                           </TableCell>
                           <TableCell class="text-right font-medium" :class="{ 'privacy-blur': authStore.isPrivacyMode }">
@@ -123,6 +123,43 @@ const handleDeletePayment = async (paymentId: number) => {
                       </TableRow>
                   </TableBody>
               </Table>
+          </div>
+
+          <!-- Mobile Card View -->
+          <div class="md:hidden space-y-4">
+               <div v-if="!debt.payments || debt.payments.length === 0" class="text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl">
+                    <AlertCircle class="h-8 w-8 opacity-20 mx-auto mb-2" />
+                    <p class="text-sm">Belum ada riwayat pembayaran.</p>
+               </div>
+               <div v-for="payment in debt.payments" :key="payment.id" class="bg-card border rounded-xl p-4 shadow-sm space-y-3">
+                   <div class="flex justify-between items-start">
+                       <div>
+                           <p class="text-xs font-bold text-muted-foreground">{{ format(new Date(payment.date), "d MMM yyyy", { locale: id }) }}</p>
+                           <p class="text-[10px] text-muted-foreground">{{ format(new Date(payment.date), "HH:mm", { locale: id }) }}</p>
+                       </div>
+                       <div class="text-right">
+                           <p class="font-bold text-base" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(payment.amount) }}</p>
+                       </div>
+                   </div>
+                   
+                   <div class="flex items-center gap-2 text-xs bg-muted/50 p-2 rounded-lg">
+                        <component v-if="getIconComponent(payment.wallet.icon)" :is="getIconComponent(payment.wallet.icon)" class="h-3.5 w-3.5 text-muted-foreground" />
+                        <span v-else>{{ getEmoji(payment.wallet.icon) || '💼' }}</span>
+                        <span class="font-medium">{{ payment.wallet.name }}</span>
+                   </div>
+
+                   <div class="flex justify-between items-center pt-1 border-t border-border/50">
+                       <p class="text-xs text-muted-foreground italic w-full truncate mr-2">{{ payment.note || 'Tanpa catatan' }}</p>
+                       <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            class="h-7 px-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md ml-auto"
+                            @click="handleDeletePayment(payment.id)"
+                        >
+                            <Trash2 class="h-3.5 w-3.5 mr-1" /> Hapus
+                        </Button>
+                   </div>
+               </div>
           </div>
       </div>
     </DialogContent>
