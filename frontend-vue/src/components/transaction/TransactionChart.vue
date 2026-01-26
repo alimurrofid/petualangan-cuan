@@ -65,7 +65,7 @@ const chartOptions = computed(() => {
     });
 
     return {
-        chart: { type: 'area', height: 300, toolbar: { show: false }, fontFamily: 'inherit', zoom: { enabled: false }, foreColor: '#94a3b8' },
+        chart: { type: 'area', height: '100%', toolbar: { show: false }, fontFamily: 'inherit', zoom: { enabled: false }, foreColor: '#94a3b8' },
         dataLabels: { enabled: false },
         stroke: { curve: 'smooth', width: 2 },
         fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] } },

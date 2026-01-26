@@ -213,7 +213,7 @@ watch(localSearch, (val) => {
               </CardTitle>
             </CardHeader>
             <CardContent class="flex-1 p-4 relative min-h-[250px] md:min-h-[300px]">
-              <TransactionChart :summaryData="transactionStore.calendarData" :periodType="periodType" />
+              <TransactionChart class="h-full w-full" :summaryData="transactionStore.calendarData" :periodType="periodType" />
             </CardContent>
           </Card>
 

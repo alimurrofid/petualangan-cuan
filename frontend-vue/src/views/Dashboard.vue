@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from "@/stores/auth";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useFinancialHealthStore } from "@/stores/financialHealth";
@@ -30,12 +30,17 @@ const dashboardStore = useDashboardStore();
 const healthStore = useFinancialHealthStore();
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
+const data = computed(() => dashboardStore.data);
+const isMounted = ref(false);
+
 onMounted(() => {
     dashboardStore.fetchDashboard();
     healthStore.fetchFinancialHealth();
+    // Delay slightly to ensure layout is calculated
+    setTimeout(() => {
+        isMounted.value = true;
+    }, 100);
 });
-
-const data = computed(() => dashboardStore.data);
 
 // Charts & Visuals
 const formatCurrency = (value: number) => {
@@ -75,6 +80,7 @@ const chartSeriesArea = computed(() => {
 const chartOptionsArea = computed(() => ({
   chart: {
     type: 'area',
+    height: '100%',
     toolbar: { show: false },
     zoom: { enabled: false },
     foreColor: '#94a3b8' 
@@ -303,15 +309,17 @@ const groupedRecentTransactions = computed(() => {
 
     <div class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-7">
       
-      <Card class="col-span-1 md:col-span-2 lg:col-span-4 bg-card shadow-sm rounded-3xl">
+      <Card class="col-span-1 md:col-span-2 lg:col-span-4 bg-card shadow-sm rounded-3xl flex flex-col">
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
               <TrendingUp class="h-4 w-4 text-primary" /> Tren Keuangan
           </CardTitle>
           <CardDescription>Perbandingan pemasukan dan pengeluaran 6 bulan terakhir.</CardDescription>
         </CardHeader>
-        <CardContent class="pl-0">
-            <apexchart type="area" height="300" :options="chartOptionsArea" :series="chartSeriesArea" />
+        <CardContent class="pl-0 flex-1 min-h-[300px] relative">
+            <div v-if="isMounted" class="absolute inset-0 w-full h-full">
+                <apexchart type="area" height="100%" width="100%" :options="chartOptionsArea" :series="chartSeriesArea" />
+            </div>
         </CardContent>
       </Card>
 
@@ -326,7 +334,7 @@ const groupedRecentTransactions = computed(() => {
 
              <div v-if="budgetStatus.length > 0" class="w-full mt-6 space-y-3">
                  <p class="text-xs font-bold uppercase text-muted-foreground tracking-widest">Status Anggaran</p>
-                 <div v-for="item in budgetStatus" :key="item.name" class="flex items-center justify-between text-sm">
+                 <div v-for="item in budgetStatus.slice(0, 3)" :key="item.name" class="flex items-center justify-between text-sm">
                      <span class="font-medium truncate max-w-[100px]">{{ item.name }}</span>
                      <div class="flex items-center gap-2 flex-1 mx-3">
                          <div class="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
@@ -338,6 +346,9 @@ const groupedRecentTransactions = computed(() => {
                      </span>
                  </div>
              </div>
+             <Button variant="outline" class="w-full mt-4 text-xs h-9 rounded-xl" @click="$router.push('/report')">
+                Lihat Semua Laporan
+             </Button>
         </CardContent>
       </Card>
 
@@ -404,7 +415,7 @@ const groupedRecentTransactions = computed(() => {
             </CardHeader>
             <CardContent>
                 <div class="grid grid-cols-1 gap-4">
-                     <div v-for="w in data.wallets" :key="w.id" :class="['p-4 rounded-xl border border-transparent shadow-md flex items-center justify-between w-full bg-gradient-to-br min-h-[100px] transition-all hover:scale-[1.02]', getWalletColorClass(w.type)]">
+                     <div v-for="w in data.wallets.slice(0, 3)" :key="w.id" :class="['p-4 rounded-xl border border-transparent shadow-md flex items-center justify-between w-full bg-gradient-to-br min-h-[100px] transition-all hover:scale-[1.02]', getWalletColorClass(w.type)]">
                          <div class="flex items-center gap-3 flex-1 min-w-0 mr-3">
                              <div class="h-10 w-10 shrink-0 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl shadow-sm">
                                   <span v-if="getEmoji(w.icon)" class="text-lg leading-none">{{ getEmoji(w.icon) }}</span>
