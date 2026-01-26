@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import { useSavingGoalStore } from "@/stores/saving_goal";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
@@ -181,6 +181,8 @@ const onTargetBlur = () => {
     if(num) newGoalTargetDisplay.value = formatCurrencyInput(num);
 };
 
+const activeGoals = computed(() => store.goals.filter(g => !g.is_finished));
+const finishedGoals = computed(() => store.goals.filter(g => g.is_finished));
 
 </script>
 
@@ -201,93 +203,157 @@ const onTargetBlur = () => {
             </Button>
         </div>
 
-        <!-- Goals Grid -->
-        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card 
-                v-for="goal in store.goals" 
-                :key="goal.id" 
-                class="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-emerald-200 dark:hover:border-emerald-900"
-            >
-                <CardHeader class="pb-2">
-                    <div class="flex justify-between items-start">
-                        <div class="space-y-1">
-                            <CardTitle class="flex items-center gap-2 text-xl font-bold tracking-tight">
-                                <div class="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400">
-                                    <PiggyBank v-if="!goal.is_achieved" class="w-5 h-5" />
-                                    <Target v-else class="w-5 h-5" />
+        <!-- Active Goals -->
+        <div class="space-y-4">
+             <div class="flex items-center gap-2">
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <Target class="h-5 w-5 text-muted-foreground" />
+                    Sedang Dikejar
+                </h3>
+                <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/50">{{ activeGoals.length }} item</span>
+            </div>
+
+            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Card 
+                    v-for="goal in activeGoals" 
+                    :key="goal.id" 
+                    class="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-emerald-200 dark:hover:border-emerald-900"
+                >
+                    <CardHeader class="pb-2">
+                        <div class="flex justify-between items-start">
+                            <div class="space-y-1">
+                                <CardTitle class="flex items-center gap-2 text-xl font-bold tracking-tight">
+                                    <div class="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400">
+                                        <PiggyBank v-if="!goal.is_achieved" class="w-5 h-5" />
+                                        <Target v-else class="w-5 h-5" />
+                                    </div>
+                                    {{ goal.name }}
+                                </CardTitle>
+                                <div v-if="goal.deadline" class="flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground pl-1">
+                                    <Calendar class="w-3 h-3" /> Target: {{ format(new Date(goal.deadline), 'dd MMM yyyy') }}
                                 </div>
-                                {{ goal.name }}
-                            </CardTitle>
-                            <div v-if="goal.deadline" class="flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground pl-1">
-                                <Calendar class="w-3 h-3" /> Target: {{ format(new Date(goal.deadline), 'dd MMM yyyy') }}
+                            </div>
+                            
+                            <div v-if="goal.is_achieved" class="px-3 py-1 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-full uppercase tracking-wider border border-emerald-200 dark:border-emerald-800">
+                                Tercapai
+                            </div>
+                            <div v-else class="flex gap-1">
+                                 <Button variant="ghost" size="icon" class="h-8 w-8 text-muted-foreground hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-800" @click="openEditDialog(goal)">
+                                    <Pencil class="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" class="h-8 w-8 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" @click="handleDelete(goal.id)">
+                                    <Trash2 class="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
-                        
-                        <div v-if="goal.is_achieved" class="px-3 py-1 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-full uppercase tracking-wider border border-emerald-200 dark:border-emerald-800">
-                            Tercapai
+                    </CardHeader>
+
+                    <CardContent class="space-y-4 pt-2">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-end">
+                                <span class="text-xs text-muted-foreground font-medium uppercase tracking-widest">Terkumpul</span>
+                                <span class="font-mono text-2xl font-bold tracking-tight text-foreground" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(goal.current_amount) }}</span>
+                            </div>
+                            
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                    <span>Progress {{ Math.round(getProgress(goal.current_amount, goal.target_amount)) }}%</span>
+                                    <span>Dari <span :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(goal.target_amount) }}</span></span>
+                                </div>
+                                <!-- Standard Progress Bar -->
+                                <div class="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                                    <div class="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out" 
+                                         :style="{ width: getProgress(goal.current_amount, goal.target_amount) + '%' }"
+                                    ></div>
+                                </div>
+                            </div>
                         </div>
-                        <div v-else class="flex gap-1">
-                             <Button variant="ghost" size="icon" class="h-8 w-8 text-muted-foreground hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-800" @click="openEditDialog(goal)">
-                                <Pencil class="h-4 w-4" />
+
+                        <div class="grid grid-cols-[1fr,auto] gap-2 pt-2">
+                            <!-- Button Actions Logic -->
+
+                            <Button v-if="!goal.is_achieved" @click="openContribute(goal)" class="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-sm border-0 font-bold h-10 transition-all active:scale-95 text-xs" size="sm">
+                                <Plus class="w-4 h-4 mr-2" /> Tabung
                             </Button>
+                            
+                            <Button v-else-if="goal.is_achieved && !goal.is_finished" @click="handleFinish(goal)" class="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-500 text-white hover:from-blue-500 hover:to-indigo-400 shadow-sm border-0 font-bold h-10 transition-all active:scale-95 text-xs" size="sm">
+                                <CheckCircle class="w-4 h-4 mr-2" /> Selesaikan & Cairkan
+                            </Button>
+
+                            <Button v-else disabled class="w-full rounded-xl bg-muted text-muted-foreground border border-border h-10 text-xs font-bold ring-1 ring-inset ring-black/5" size="sm">
+                                 Selesai 🎉
+                            </Button>
+
+                             <Button variant="outline" class="w-full rounded-xl bg-background border-input hover:bg-accent hover:text-accent-foreground font-bold h-10 text-xs transition-all active:scale-95 px-4" @click="openDetailDialog(goal)">
+                                 <Eye class="mr-2 h-4 w-4" /> Detail
+                             </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <!-- Empty State -->
+                <div v-if="activeGoals.length === 0" class="col-span-full text-center py-20 text-muted-foreground border-2 border-dashed border-muted rounded-3xl bg-muted/10 h-80 flex flex-col items-center justify-center">
+                    <div class="h-16 w-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                        <PiggyBank class="h-8 w-8 opacity-40" />
+                    </div>
+                    <p class="font-medium text-lg">Belum ada target aktif.</p>
+                    <p class="text-sm opacity-70">Buat target baru untuk mulai menabung.</p>
+                    <Button @click="openCreateDialog()" variant="link" class="mt-2 text-emerald-600">Tambah Baru</Button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Finished Section -->
+        <div v-if="finishedGoals.length > 0" class="space-y-4 pt-8 border-t border-border">
+             <div class="flex items-center gap-2">
+                <h3 class="text-base font-bold flex items-center gap-2 uppercase tracking-widest text-emerald-600">
+                    <CheckCircle class="h-5 w-5" />
+                    Tercapai
+                </h3>
+                <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">{{ finishedGoals.length }} item</span>
+            </div>
+
+            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                 <Card 
+                    v-for="goal in finishedGoals" 
+                    :key="goal.id" 
+                    class="group relative overflow-hidden transition-all duration-300 hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-900 opacity-75 hover:opacity-100"
+                >
+                    <CardHeader class="pb-2">
+                        <div class="flex justify-between items-start">
+                            <div class="space-y-1">
+                                <CardTitle class="text-xl font-bold tracking-tight text-muted-foreground flex items-center gap-2">
+                                     <div class="p-1.5 bg-emerald-100 dark:bg-emerald-500/20 rounded-md text-emerald-600 dark:text-emerald-400">
+                                        <CheckCircle class="w-4 h-4" />
+                                    </div>
+                                    <span class="line-through decoration-muted-foreground/50">{{ goal.name }}</span>
+                                </CardTitle>
+                                <div class="flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground pl-1">
+                                   <Calendar class="w-3 h-3" /> Selesai
+                                </div>
+                            </div>
                             <Button variant="ghost" size="icon" class="h-8 w-8 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" @click="handleDelete(goal.id)">
                                 <Trash2 class="h-4 w-4" />
                             </Button>
                         </div>
-                    </div>
-                </CardHeader>
-
-                <CardContent class="space-y-4 pt-2">
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-end">
-                            <span class="text-xs text-muted-foreground font-medium uppercase tracking-widest">Terkumpul</span>
-                            <span class="font-mono text-2xl font-bold tracking-tight text-foreground" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(goal.current_amount) }}</span>
+                    </CardHeader>
+                    
+                    <CardContent class="space-y-4 pt-2">
+                        <div class="p-4 rounded-xl bg-muted/30 border border-border space-y-1">
+                           <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                               <span>Target Tercapai</span>
+                               <span class="text-emerald-600 font-bold">100%</span>
+                           </div>
+                           <div class="text-2xl font-mono font-bold tracking-tight text-muted-foreground" :class="{ 'privacy-blur': authStore.isPrivacyMode }">
+                               {{ formatCurrency(goal.target_amount) }}
+                           </div>
                         </div>
-                        
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                <span>Progress {{ Math.round(getProgress(goal.current_amount, goal.target_amount)) }}%</span>
-                                <span>Dari <span :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(goal.target_amount) }}</span></span>
-                            </div>
-                            <!-- Standard Progress Bar -->
-                            <div class="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                <div class="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out" 
-                                     :style="{ width: getProgress(goal.current_amount, goal.target_amount) + '%' }"
-                                ></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-[1fr,auto] gap-2 pt-2">
-                        <!-- Button Actions Logic -->
-
-                        <Button v-if="!goal.is_achieved" @click="openContribute(goal)" class="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-sm border-0 font-bold h-10 transition-all active:scale-95 text-xs" size="sm">
-                            <Plus class="w-4 h-4 mr-2" /> Tabung
-                        </Button>
-                        
-                        <Button v-else-if="goal.is_achieved && !goal.is_finished" @click="handleFinish(goal)" class="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-500 text-white hover:from-blue-500 hover:to-indigo-400 shadow-sm border-0 font-bold h-10 transition-all active:scale-95 text-xs" size="sm">
-                            <CheckCircle class="w-4 h-4 mr-2" /> Selesaikan & Cairkan
-                        </Button>
-
-                        <Button v-else disabled class="w-full rounded-xl bg-muted text-muted-foreground border border-border h-10 text-xs font-bold ring-1 ring-inset ring-black/5" size="sm">
-                             Selesai 🎉
-                        </Button>
 
                          <Button variant="outline" class="w-full rounded-xl bg-background border-input hover:bg-accent hover:text-accent-foreground font-bold h-10 text-xs transition-all active:scale-95 px-4" @click="openDetailDialog(goal)">
                              <Eye class="mr-2 h-4 w-4" /> Detail
                          </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <!-- Empty State -->
-            <div v-if="store.goals.length === 0 && !store.isLoading" class="col-span-full text-center py-12">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 mb-4">
-                    <PiggyBank class="w-8 h-8 text-emerald-600" />
-                </div>
-                <h3 class="text-lg font-medium">Belum ada target menabung</h3>
-                <p class="text-muted-foreground mt-2 max-w-sm mx-auto">Mulai buat target impianmu sekarang, cicil sedikit demi sedikit lama-lama menjadi bukit!</p>
-                <Button @click="openCreateDialog()" class="mt-4" variant="outline">Buat Target Pertama</Button>
+                    </CardContent>
+                </Card>
             </div>
         </div>
 

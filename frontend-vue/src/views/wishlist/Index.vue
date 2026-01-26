@@ -213,10 +213,13 @@ const onPriceBlur = () => {
                     </CardContent>
                 </Card>
                 
-                <div v-if="activeItems.length === 0" class="col-span-full text-center py-20 text-muted-foreground border-2 border-dashed border-muted rounded-3xl bg-muted/10">
-                    <Clock class="h-16 w-16 mx-auto mb-4 opacity-20" />
-                    <p class="font-medium text-lg">Belum ada keinginan yang dicatat.</p>
-                    <p class="text-sm opacity-70">Tekan tombol tambah untuk mulai mencatat.</p>
+                <div v-if="activeItems.length === 0" class="col-span-full text-center py-20 text-muted-foreground border-2 border-dashed border-muted rounded-3xl bg-muted/10 h-80 flex flex-col items-center justify-center">
+                    <div class="h-16 w-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                        <Clock class="h-8 w-8 opacity-40" />
+                    </div>
+                    <p class="font-medium text-lg">Belum ada keinginan aktif.</p>
+                    <p class="text-sm opacity-70">Mulai catat wishlist impianmu sekarang.</p>
+                    <Button @click="openAddDialog()" variant="link" class="mt-2 text-emerald-600">Tambah Baru</Button>
                 </div>
             </div>
         </div>
@@ -230,40 +233,44 @@ const onPriceBlur = () => {
             </div>
             
             <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                 <div 
+                 <Card 
                     v-for="item in boughtItems" 
                     :key="item.id" 
-                    class="relative rounded-3xl p-6 flex flex-col justify-between shadow-xl group overflow-hidden text-white bg-gradient-to-br from-emerald-600 to-teal-600 opacity-90 hover:opacity-100 transition-all duration-300 hover:-translate-y-2"
+                    class="group relative overflow-hidden transition-all duration-300 hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-900 opacity-75 hover:opacity-100"
                 >
-                    <!-- Ornaments -->
-                    <div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                    <div class="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full blur-2xl -ml-10 -mb-10 pointer-events-none"></div>
-
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-start mb-6">
+                    <CardHeader class="pb-3">
+                        <div class="flex justify-between items-start">
                             <div class="space-y-1">
-                                <h3 class="text-xl font-bold tracking-tight line-through decoration-white/50 text-white/50">{{ item.name }}</h3>
-                                <div class="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-widest text-white/50 pl-1">
+                                <CardTitle class="text-xl font-bold tracking-tight text-muted-foreground flex items-center gap-2">
+                                     <div class="p-1.5 bg-emerald-100 dark:bg-emerald-500/20 rounded-md text-emerald-600 dark:text-emerald-400">
+                                        <CheckCircle class="w-4 h-4" />
+                                    </div>
+                                    <span class="line-through decoration-muted-foreground/50">{{ item.name }}</span>
+                                </CardTitle>
+                                <div class="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground pl-1">
                                     <component v-if="item.category && getIconComponent(item.category.icon)" :is="getIconComponent(item.category.icon)" class="h-3 w-3" />
                                     <span v-else-if="item.category">{{ getEmoji(item.category.icon) || '📦' }}</span>
                                     <span>{{ item.category?.name }}</span>
                                 </div>
                             </div>
-                            <Button variant="ghost" size="icon" class="h-8 w-8 p-0 hover:bg-white/20 rounded-full text-white/70 hover:text-white" @click="handleDelete(item.id)">
+                            <Button variant="ghost" size="icon" class="h-8 w-8 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" @click="handleDelete(item.id)">
                                 <Trash2 class="h-4 w-4" />
                             </Button>
                         </div>
-                    </div>
+                    </CardHeader>
                     
-                    <div class="relative z-10 flex justify-between items-center mt-auto p-3 bg-black/10 backdrop-blur-sm rounded-2xl border border-white/5">
-                         <div class="text-xl font-mono font-bold tracking-tight text-white/90" :class="{ 'privacy-blur': authStore.isPrivacyMode }">
-                            {{ formatRp(item.estimated_price) }}
+                    <CardContent class="space-y-4 pt-0">
+                         <div class="p-4 rounded-xl bg-muted/30 border border-border space-y-1 mt-2">
+                             <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                   <span>Estimasi Harga</span>
+                                   <span class="text-emerald-600 flex items-center gap-1"><CheckCircle class="w-3 h-3" /> Terbeli</span>
+                               </div>
+                            <div class="text-2xl font-mono font-bold tracking-tight text-muted-foreground" :class="{ 'privacy-blur': authStore.isPrivacyMode }">
+                                {{ formatRp(item.estimated_price) }}
+                            </div>
                         </div>
-                        <span class="flex items-center gap-1 bg-white text-emerald-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm">
-                            <CheckCircle class="w-3 h-3" /> Terbeli
-                        </span>
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
 
