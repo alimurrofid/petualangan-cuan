@@ -403,19 +403,19 @@ const groupedRecentTransactions = computed(() => {
                 <CardDescription>Status saldo saat ini.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <div v-for="w in data.wallets" :key="w.id" :class="['p-4 rounded-xl border border-transparent shadow-md flex items-center justify-between w-full bg-gradient-to-br min-h-[100px]', getWalletColorClass(w.type)]">
-                         <div class="flex items-center gap-3">
+                <div class="grid grid-cols-1 gap-4">
+                     <div v-for="w in data.wallets" :key="w.id" :class="['p-4 rounded-xl border border-transparent shadow-md flex items-center justify-between w-full bg-gradient-to-br min-h-[100px] transition-all hover:scale-[1.02]', getWalletColorClass(w.type)]">
+                         <div class="flex items-center gap-3 flex-1 min-w-0 mr-3">
                              <div class="h-10 w-10 shrink-0 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl shadow-sm">
                                   <span v-if="getEmoji(w.icon)" class="text-lg leading-none">{{ getEmoji(w.icon) }}</span>
                                   <component v-else :is="getIconComponent(w.icon || 'Wallet')" class="h-5 w-5 text-white" />
                              </div>
                              <div class="min-w-0">
                                  <p class="text-[10px] font-bold opacity-80 uppercase tracking-wide truncate">{{ w.type }}</p>
-                                 <p class="font-bold text-sm truncate max-w-[100px] sm:max-w-[120px]">{{ w.name }}</p>
+                                 <p class="font-bold text-sm truncate">{{ w.name }}</p>
                              </div>
                          </div>
-                         <div class="text-right pl-2">
+                         <div class="text-right shrink-0">
                              <p class="text-[10px] font-medium opacity-80 uppercase tracking-widest whitespace-nowrap">Saldo Tersedia</p>
                              <p class="font-bold text-base whitespace-nowrap drop-shadow-sm" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(w.available_balance ?? w.balance) }}</p>
                              <div class="border-t border-white/20 mt-1 pt-1 opacity-90">
