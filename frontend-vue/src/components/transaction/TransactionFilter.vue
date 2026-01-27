@@ -2,7 +2,8 @@
 import { ref, watch } from 'vue';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-vue-next";
+import MultiSelect from "@/components/ui/multi-select/MultiSelect.vue";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X } from "lucide-vue-next";
 import DateRangePicker from "@/components/DateRangePicker.vue";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
@@ -11,16 +12,16 @@ const props = defineProps<{
     periodType: string,
     startDate: Date,
     endDate: Date,
-    walletId: string,
-    categoryId: string,
+    walletIds: string[],
+    categoryIds: string[],
     formattedDateRange: string
 }>();
 
 const emit = defineEmits([
     'update:periodType', 
-    'update:walletId', 
-    'update:categoryId', 
-    'navigateDate', 
+    'update:walletIds', 
+    'update:categoryIds', 
+    'navigateDate',  
     'update:dateRange',
     'export'
 ]);
@@ -78,28 +79,37 @@ watch(() => props.periodType, (val) => {
                 </SelectContent>
             </Select>
 
-            <Select :modelValue="walletId" @update:modelValue="(val) => $emit('update:walletId', val)">
-                <SelectTrigger class="w-full md:w-[140px] h-9 rounded-xl text-xs font-semibold">
-                    <SelectValue placeholder="Semua Dompet" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Semua Dompet</SelectItem>
-                    <SelectItem v-for="w in walletStore.wallets" :key="w.id" :value="String(w.id)">{{ w.name }}</SelectItem>
-                </SelectContent>
-            </Select>
 
-            <Select :modelValue="categoryId" @update:modelValue="(val) => $emit('update:categoryId', val)">
-                <SelectTrigger class="w-full md:w-[140px] h-9 rounded-xl text-xs font-semibold">
-                    <SelectValue placeholder="Semua Kategori" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Semua Kategori</SelectItem>
-                    <SelectItem v-for="c in categoryStore.categories" :key="c.id" :value="String(c.id)">{{ c.name }}</SelectItem>
-                </SelectContent>
-            </Select>
+            <MultiSelect 
+                :modelValue="walletIds" 
+                :options="walletStore.wallets.map(w => ({ value: String(w.id), label: w.name, icon: w.icon }))"
+                placeholder="Semua Dompet"
+                countLabel="Dompet"
+                @update:modelValue="(val) => $emit('update:walletIds', val)"
+                class="w-full md:w-[200px]"
+            />
+
+            <MultiSelect 
+                :modelValue="categoryIds" 
+                :options="categoryStore.categories.map(c => ({ value: String(c.id), label: c.name, icon: c.icon }))"
+                placeholder="Semua Kategori"
+                countLabel="Kategori"
+                @update:modelValue="(val) => $emit('update:categoryIds', val)"
+                 class="w-full md:w-[200px]"
+            />
             
 
 
+            <Button 
+                v-if="walletIds.length > 0 || categoryIds.length > 0"
+                variant="ghost" 
+                size="sm"
+                @click="$emit('update:walletIds', []); $emit('update:categoryIds', [])"
+                class="h-9 px-3 text-xs text-muted-foreground hover:text-foreground gap-1"
+            >
+                <X class="h-3.5 w-3.5" />
+                Reset
+            </Button>
         </div>
     </div>
 

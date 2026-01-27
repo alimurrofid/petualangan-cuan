@@ -14,7 +14,7 @@ type TransactionRepository interface {
 	Update(transaction *entity.Transaction) error
 	Delete(id uint, userID uint) error
 	FindSummaryByDateRange(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error)
-	GetCategoryBreakdown(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error)
+	GetCategoryBreakdown(userID uint, startDate, endDate string, walletIDs []uint, filterType *string) ([]entity.CategoryBreakdown, error)
 	GetMonthlyTrend(userID uint, startDate, endDate string) ([]entity.MonthlyTrend, error)
 	GetRecentTransactions(userID uint, limit int) ([]entity.Transaction, error)
 	// Used for transactions, we need access to DB transaction object
@@ -46,10 +46,15 @@ func (r *transactionRepository) FindAll(userID uint, params entity.TransactionFi
 	if params.StartDate != "" && params.EndDate != "" {
 		query = query.Where("transactions.date BETWEEN ? AND ?", params.StartDate, params.EndDate)
 	}
-	if params.WalletID != 0 {
+	if len(params.WalletIDs) > 0 {
+		query = query.Where("transactions.wallet_id IN ?", params.WalletIDs)
+	} else if params.WalletID != 0 {
 		query = query.Where("transactions.wallet_id = ?", params.WalletID)
 	}
-	if params.CategoryID != 0 {
+
+	if len(params.CategoryIDs) > 0 {
+		query = query.Where("transactions.category_id IN ?", params.CategoryIDs)
+	} else if params.CategoryID != 0 {
 		query = query.Where("transactions.category_id = ?", params.CategoryID)
 	}
 	if params.Search != "" {
@@ -139,7 +144,7 @@ func (r *transactionRepository) FindSummaryByDateRange(userID uint, startDate, e
 	return results, err
 }
 
-func (r *transactionRepository) GetCategoryBreakdown(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error) {
+func (r *transactionRepository) GetCategoryBreakdown(userID uint, startDate, endDate string, walletIDs []uint, filterType *string) ([]entity.CategoryBreakdown, error) {
 	results := make([]entity.CategoryBreakdown, 0)
 
 	query := r.db.Table("transactions as t").
@@ -147,8 +152,8 @@ func (r *transactionRepository) GetCategoryBreakdown(userID uint, startDate, end
 		Joins("JOIN categories c ON c.id = t.category_id").
 		Where("t.user_id = ? AND t.date BETWEEN ? AND ?", userID, startDate, endDate)
 
-	if walletID != nil {
-		query = query.Where("t.wallet_id = ?", *walletID)
+	if len(walletIDs) > 0 {
+		query = query.Where("t.wallet_id IN ?", walletIDs)
 	}
 
 	if filterType != nil && *filterType != "all" {

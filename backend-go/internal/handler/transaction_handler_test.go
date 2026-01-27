@@ -73,8 +73,8 @@ func (m *MockTransactionService) GetCalendarData(userID uint, startDate, endDate
 	return args.Get(0).([]entity.TransactionSummary), args.Error(1)
 }
 
-func (m *MockTransactionService) GetReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error) {
-	args := m.Called(userID, startDate, endDate, walletID, filterType)
+func (m *MockTransactionService) GetReport(userID uint, startDate, endDate string, walletIDs []uint, filterType *string) ([]entity.CategoryBreakdown, error) {
+	args := m.Called(userID, startDate, endDate, walletIDs, filterType)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -89,8 +89,8 @@ func (m *MockTransactionService) ExportTransactions(userID uint, params entity.T
 	return args.Get(0).(*bytes.Buffer), args.Error(1)
 }
 
-func (m *MockTransactionService) ExportReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) (*bytes.Buffer, error) {
-	args := m.Called(userID, startDate, endDate, walletID, filterType)
+func (m *MockTransactionService) ExportReport(userID uint, startDate, endDate string, walletIDs []uint, filterType *string) (*bytes.Buffer, error) {
+	args := m.Called(userID, startDate, endDate, walletIDs, filterType)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -233,7 +233,7 @@ func TestGetReport(t *testing.T) {
 	endDate := "2023-01-31"
 	
 	mockData := []entity.CategoryBreakdown{}
-	mockService.On("GetReport", uint(1), startDate, endDate, (*uint)(nil), (*string)(nil)).Return(mockData, nil)
+	mockService.On("GetReport", uint(1), startDate, endDate, []uint(nil), (*string)(nil)).Return(mockData, nil)
 
 	req := httptest.NewRequest("GET", "/transactions/report?start_date=2023-01-01&end_date=2023-01-31", nil)
 	resp, _ := app.Test(req)
@@ -256,9 +256,7 @@ func TestGetReport_WithFilters(t *testing.T) {
 	
 	mockData := []entity.CategoryBreakdown{}
 
-	mockService.On("GetReport", uint(1), startDate, endDate, mock.MatchedBy(func(id *uint) bool {
-		return id != nil && *id == walletID
-	}), mock.MatchedBy(func(ft *string) bool {
+	mockService.On("GetReport", uint(1), startDate, endDate, []uint{walletID}, mock.MatchedBy(func(ft *string) bool {
 		return ft != nil && *ft == filterType
 	})).Return(mockData, nil)
 

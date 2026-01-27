@@ -11,10 +11,11 @@ import { useAuthStore } from "@/stores/auth";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MultiSelect from "@/components/ui/multi-select/MultiSelect.vue";
 import DateRangePicker from "@/components/DateRangePicker.vue";
 
 
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, PieChart, Download } from "lucide-vue-next";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, PieChart, Download, X } from "lucide-vue-next";
 import { getEmoji, getIconComponent } from "@/lib/icons";
 import { formatCurrency, formatCompactNumber } from "@/lib/utils";
 
@@ -25,7 +26,7 @@ const authStore = useAuthStore();
 
 type PeriodType = 'monthly' | 'weekly' | 'daily' | 'custom';
 
-const filterWallet = ref<string>("all");
+const filterWalletIds = ref<string[]>([]);
 const filterType = ref<string>("all"); // Default to all as requested
 const periodType = ref<PeriodType>('monthly');
 const selectedDate = ref(new Date());
@@ -98,13 +99,13 @@ const fetchReportData = async () => {
     await transactionStore.fetchReport(
         startDateStr, 
         endDateStr, 
-        filterWallet.value === 'all' ? undefined : Number(filterWallet.value), 
+        filterWalletIds.value,
         filterType.value === 'all' ? undefined : filterType.value
     );
 };
 
 // Watch for changes in filters to re-fetch
-watch([dateRange, filterWallet, filterType], () => {
+watch([dateRange, filterWalletIds, filterType], () => {
     fetchReportData();
 }, { deep: true });
 
@@ -113,17 +114,17 @@ const reportData = computed(() => transactionStore.reportData);
 
 // Charts & Visuals
 const totalAmount = computed(() => {
-    return reportData.value.reduce((sum, item) => sum + item.total_amount, 0);
+    return reportData.value.reduce((sum: number, item: CategoryBreakdown) => sum + item.total_amount, 0);
 });
 
 const chartSeries = computed(() => {
-    return reportData.value.map(item => item.total_amount);
+    return reportData.value.map((item: CategoryBreakdown) => item.total_amount);
 });
 
 const chartOptions = computed(() => {
     return {
         chart: { type: 'donut', fontFamily: 'inherit', foreColor: '#94a3b8' },
-        labels: reportData.value.map(item => item.category_name),
+        labels: reportData.value.map((item: CategoryBreakdown) => item.category_name),
         colors: ['#10b981', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1'], 
         plotOptions: {
             pie: {
@@ -188,7 +189,7 @@ const handleExport = async () => {
         const startDateStr = format(start, 'yyyy-MM-dd HH:mm:ss');
         const endDateStr = format(end, 'yyyy-MM-dd HH:mm:ss');
         
-        const blob = await transactionStore.exportReport(startDateStr, endDateStr, filterWallet.value, filterType.value);
+        const blob = await transactionStore.exportReport(startDateStr, endDateStr, filterWalletIds.value, filterType.value);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -204,12 +205,7 @@ const handleExport = async () => {
 </script>
 
 <template>
-  <div class="flex-1 space-y-6 pt-2" v-if="transactionStore.isLoading">
-      <div class="flex items-center justify-center min-h-[400px]">
-          <p class="text-muted-foreground animate-pulse">Memuat data laporan...</p>
-      </div>
-  </div>
-  <div class="flex-1 space-y-6 pt-2 text-foreground" v-else>
+  <div class="flex-1 space-y-6 pt-2 text-foreground">
     <div class="flex flex-col gap-2">
       <h2 class="text-3xl font-bold tracking-tight">Laporan Keuangan</h2>
       <p class="text-sm text-muted-foreground">Analisis pengeluaran dan pemasukan per kategori.</p>
@@ -253,15 +249,14 @@ const handleExport = async () => {
             </Select>
 
             
-            <Select v-model="filterWallet">
-                <SelectTrigger class="w-full md:w-[140px] h-9 rounded-xl text-xs font-semibold">
-                    <SelectValue placeholder="Semua Dompet" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Semua Dompet</SelectItem>
-                    <SelectItem v-for="w in walletStore.wallets" :key="w.id" :value="String(w.id)">{{ w.name }}</SelectItem>
-                </SelectContent>
-            </Select>
+            <MultiSelect
+                :modelValue="filterWalletIds"
+                :options="walletStore.wallets.map(w => ({ value: String(w.id), label: w.name, icon: w.icon }))"
+                placeholder="Semua Dompet"
+                countLabel="Dompet"
+                @update:modelValue="(val) => filterWalletIds = val"
+                class="w-full md:w-[200px]"
+            />
             
             <Select v-model="filterType">
                 <SelectTrigger class="w-full md:w-[120px] h-9 rounded-xl text-xs font-semibold">
@@ -273,6 +268,17 @@ const handleExport = async () => {
                     <SelectItem value="expense">Pengeluaran</SelectItem>
                 </SelectContent>
             </Select>
+
+            <Button 
+                v-if="filterWalletIds.length > 0 || filterType !== 'all'"
+                variant="ghost" 
+                size="sm"
+                @click="filterWalletIds = []; filterType = 'all'"
+                class="h-9 px-3 text-xs text-muted-foreground hover:text-foreground gap-1"
+            >
+                <X class="h-3.5 w-3.5" />
+                Reset
+            </Button>
 
         </div>
     </div>
@@ -289,78 +295,88 @@ const handleExport = async () => {
     </div>
 
     <!-- Content -->
-    <div class="grid lg:grid-cols-3 gap-6">
-        <!-- Chart -->
-        <Card class="bg-card border-border shadow-sm flex flex-col rounded-3xl overflow-hidden min-h-[400px]">
-             <!-- We give it a fixed key to force re-render if needed, but apexchart handles reactivity usually -->
-            <CardHeader class="pb-2 border-b border-border/50">
-                <CardTitle class="text-base font-bold flex items-center gap-2">
-                    <PieChart class="h-4 w-4" /> Distribusi Kategori
-                </CardTitle>
-            </CardHeader>
-            <CardContent class="flex items-center justify-center p-6 bg-muted/10 h-full">
-                <div v-if="reportData.length > 0" class="w-full max-w-[350px]" :class="{ 'privacy-blur-charts': authStore.isPrivacyMode }">
-                     <apexchart type="donut" width="100%" :options="chartOptions" :series="chartSeries" />
-                </div>
-                <div v-else class="text-center text-muted-foreground py-10">
-                    <PieChart class="h-12 w-12 mx-auto mb-3 opacity-20" />
-                    <p>Tidak ada data untuk periode ini.</p>
-                </div>
-            </CardContent>
-        </Card>
+    <div class="relative min-h-[400px]">
+        <!-- Loading Overlay -->
+        <div v-if="transactionStore.isLoading" class="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-[1px] rounded-3xl transition-all duration-300">
+             <div class="flex flex-col items-center gap-2 bg-background/80 p-4 rounded-2xl shadow-sm border border-border/50">
+                 <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                 <p class="text-xs font-medium text-muted-foreground animate-pulse">Memperbarui...</p>
+             </div>
+        </div>
 
-        <!-- Category List -->
-        <Card class="lg:col-span-2 bg-card border-border shadow-sm flex flex-col rounded-3xl overflow-hidden">
-            <CardHeader class="pb-3 border-b border-border/50">
-                <div class="flex items-center justify-between">
-                    <CardTitle class="text-base font-bold">Rincian Kategori</CardTitle>
-                    <Button variant="outline" size="sm" @click="handleExport" class="h-8 rounded-xl border-border shadow-sm hover:bg-muted/50 gap-2 text-xs" title="Export Excel">
-                        <Download class="h-3.5 w-3.5 text-muted-foreground" />
-                        <span class="text-xs font-semibold text-muted-foreground">Export</span>
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent class="p-0 custom-scrollbar overflow-y-auto max-h-[500px]">
-                 <div v-if="reportData.length === 0" class="p-8 text-center text-muted-foreground">
-                    <p>Tidak ada transaksi.</p>
-                </div>
-                <div v-else class="divide-y divide-border">
-                    <div v-for="(item, index) in reportData" :key="index" class="p-4 hover:bg-muted/30 transition-colors flex items-center justify-between group">
-                        <div class="flex items-center gap-4 flex-1">
-                             <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm', 
-                                  item.type === 'expense' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600']">
-                                  <span v-if="getEmoji(item.category_icon)" class="text-lg leading-none">{{ getEmoji(item.category_icon) }}</span>
-                                  <component v-else :is="getIconComponent(item.category_icon)" class="h-5 w-5" />
-                            </div>
-                            <div class="flex-1 max-w-md">
-                                <div class="flex justify-between items-center mb-1">
-                                    <p class="font-bold text-sm">{{ item.category_name }}</p>
-                                    <span v-if="item.is_over_budget" class="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full animate-pulse">OVER BUDGET</span>
+        <div class="grid lg:grid-cols-3 gap-6">
+            <!-- Chart -->
+            <Card class="bg-card border-border shadow-sm flex flex-col rounded-3xl overflow-hidden min-h-[400px]">
+                 <!-- We give it a fixed key to force re-render if needed, but apexchart handles reactivity usually -->
+                <CardHeader class="pb-2 border-b border-border/50">
+                    <CardTitle class="text-base font-bold flex items-center gap-2">
+                        <PieChart class="h-4 w-4" /> Distribusi Kategori
+                    </CardTitle>
+                </CardHeader>
+                <CardContent class="flex items-center justify-center p-6 bg-muted/10 h-full">
+                    <div v-if="reportData.length > 0" class="w-full max-w-[350px]" :class="{ 'privacy-blur-charts': authStore.isPrivacyMode }">
+                         <apexchart type="donut" width="100%" :options="chartOptions" :series="chartSeries" />
+                    </div>
+                    <div v-else class="text-center text-muted-foreground py-10">
+                        <PieChart class="h-12 w-12 mx-auto mb-3 opacity-20" />
+                        <p>Tidak ada data untuk periode ini.</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <!-- Category List -->
+            <Card class="lg:col-span-2 bg-card border-border shadow-sm flex flex-col rounded-3xl overflow-hidden">
+                <CardHeader class="pb-3 border-b border-border/50">
+                    <div class="flex items-center justify-between">
+                        <CardTitle class="text-base font-bold">Rincian Kategori</CardTitle>
+                        <Button variant="outline" size="sm" @click="handleExport" class="h-8 rounded-xl border-border shadow-sm hover:bg-muted/50 gap-2 text-xs" title="Export Excel">
+                            <Download class="h-3.5 w-3.5 text-muted-foreground" />
+                            <span class="text-xs font-semibold text-muted-foreground">Export</span>
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent class="p-0 custom-scrollbar overflow-y-auto max-h-[500px]">
+                     <div v-if="reportData.length === 0" class="p-8 text-center text-muted-foreground">
+                        <p>Tidak ada transaksi.</p>
+                    </div>
+                    <div v-else class="divide-y divide-border">
+                        <div v-for="(item, index) in reportData" :key="index" class="p-4 hover:bg-muted/30 transition-colors flex items-center justify-between group">
+                            <div class="flex items-center gap-4 flex-1">
+                                 <div :class="['h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm', 
+                                      item.type === 'expense' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600']">
+                                      <span v-if="getEmoji(item.category_icon)" class="text-lg leading-none">{{ getEmoji(item.category_icon) }}</span>
+                                      <component v-else :is="getIconComponent(item.category_icon)" class="h-5 w-5" />
                                 </div>
-                                <div v-if="item.type === 'expense'" class="flex items-center gap-2">
-                                    <div class="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
-                                        <div class="h-full rounded-full" 
-                                            :class="getProgressColor(item)" 
-                                            :style="{ width: `${getProgressBarWidth(item)}%` }">
-                                        </div>
+                                <div class="flex-1 max-w-md">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <p class="font-bold text-sm">{{ item.category_name }}</p>
+                                        <span v-if="item.is_over_budget" class="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full animate-pulse">OVER BUDGET</span>
                                     </div>
-                                    <span class="text-[10px] text-muted-foreground font-medium w-8 text-right">{{ getDisplayPercentage(item) }}%</span>
+                                    <div v-if="item.type === 'expense'" class="flex items-center gap-2">
+                                        <div class="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
+                                            <div class="h-full rounded-full" 
+                                                :class="getProgressColor(item)" 
+                                                :style="{ width: `${getProgressBarWidth(item)}%` }">
+                                            </div>
+                                        </div>
+                                        <span class="text-[10px] text-muted-foreground font-medium w-8 text-right">{{ getDisplayPercentage(item) }}%</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="text-right ml-4">
-                             <p :class="['font-bold text-sm', item.type === 'expense' ? 'text-red-500' : 'text-emerald-600', { 'privacy-blur': authStore.isPrivacyMode }]">
-                                {{ formatCurrency(item.total_amount) }}
-                             </p>
-                             <div v-if="item.type === 'expense' && item.budget_limit > 0" class="flex flex-col items-end">
-                                <p class="text-[10px] text-muted-foreground">Budget: <span :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(item.budget_limit) }}</span></p>
-                             </div>
-                             <p v-else class="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">{{ item.type === 'expense' ? 'Pengeluaran' : '' }}</p>
+                            <div class="text-right ml-4">
+                                 <p :class="['font-bold text-sm', item.type === 'expense' ? 'text-red-500' : 'text-emerald-600', { 'privacy-blur': authStore.isPrivacyMode }]">
+                                    {{ formatCurrency(item.total_amount) }}
+                                 </p>
+                                 <div v-if="item.type === 'expense' && item.budget_limit > 0" class="flex flex-col items-end">
+                                    <p class="text-[10px] text-muted-foreground">Budget: <span :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(item.budget_limit) }}</span></p>
+                                 </div>
+                                 <p v-else class="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">{{ item.type === 'expense' ? 'Pengeluaran' : '' }}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+        </div>
     </div>
   </div>
 </template>

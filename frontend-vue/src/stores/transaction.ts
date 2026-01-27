@@ -64,8 +64,8 @@ export interface TransactionFilterParams {
   limit?: number;
   start_date?: string;
   end_date?: string;
-  wallet_id?: number | string;
-  category_id?: number | string;
+  wallet_id?: number | string | string[];
+  category_id?: number | string | string[];
   search?: string;
   type?: string;
 }
@@ -74,13 +74,15 @@ export interface PaginationMeta {
   total: number;
   page: number;
   limit: number;
+  last_page: number;
 }
 
 export const useTransactionStore = defineStore('transaction', () => {
   const transactions = ref<Transaction[]>([]);
-  const paginationMeta = ref<PaginationMeta>({ total: 0, page: 1, limit: 10 });
+  const paginationMeta = ref<PaginationMeta>({ total: 0, page: 1, limit: 10, last_page: 1 });
 
   const reportData = ref<CategoryBreakdown[]>([]);
+  const calendarData = ref<TransactionSummary[]>([]);
   const calendarTransactions = ref<Transaction[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
@@ -91,8 +93,8 @@ export const useTransactionStore = defineStore('transaction', () => {
     limit: 10,
     start_date: '',
     end_date: '',
-    wallet_id: 'all',
-    category_id: 'all',
+    wallet_id: [],
+    category_id: [],
     search: '',
     type: ''
   });
@@ -114,8 +116,23 @@ export const useTransactionStore = defineStore('transaction', () => {
       if (finalParams.limit) queryParams.append('limit', finalParams.limit.toString());
       if (finalParams.start_date) queryParams.append('start_date', finalParams.start_date);
       if (finalParams.end_date) queryParams.append('end_date', finalParams.end_date);
-      if (finalParams.wallet_id && finalParams.wallet_id !== 'all') queryParams.append('wallet_id', finalParams.wallet_id.toString());
-      if (finalParams.category_id && finalParams.category_id !== 'all') queryParams.append('category_id', finalParams.category_id.toString());
+      
+      if (finalParams.wallet_id) {
+          if (Array.isArray(finalParams.wallet_id) && finalParams.wallet_id.length > 0) {
+              finalParams.wallet_id.forEach(id => queryParams.append('wallet_ids[]', id.toString()));
+          } else if (!Array.isArray(finalParams.wallet_id) && finalParams.wallet_id !== 'all') {
+               queryParams.append('wallet_id', finalParams.wallet_id.toString());
+          }
+      }
+
+      if (finalParams.category_id) {
+          if (Array.isArray(finalParams.category_id) && finalParams.category_id.length > 0) {
+              finalParams.category_id.forEach(id => queryParams.append('category_ids[]', id.toString()));
+          } else if (!Array.isArray(finalParams.category_id) && finalParams.category_id !== 'all') {
+               queryParams.append('category_id', finalParams.category_id.toString());
+          }
+      }
+      
       if (finalParams.search) queryParams.append('search', finalParams.search);
       if (finalParams.type) queryParams.append('type', finalParams.type);
 
@@ -129,6 +146,7 @@ export const useTransactionStore = defineStore('transaction', () => {
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Failed to fetch transactions';
       console.error(err);
+      return null; // Return null on error to avoid breaking Promise.all
     } finally {
       isLoading.value = false;
     }
@@ -145,15 +163,24 @@ export const useTransactionStore = defineStore('transaction', () => {
   };
 
 
-  const fetchReport = async (startDate: string, endDate: string, walletId?: number, type?: string) => {
+  const fetchReport = async (startDate: string, endDate: string, walletId?: number | string | string[], type?: string) => {
     isLoading.value = true;
     error.value = null;
     try {
-        let url = `/api/transactions/report?start_date=${startDate}&end_date=${endDate}`;
-        if (walletId) url += `&wallet_id=${walletId}`;
-        if (type) url += `&type=${type}`;
+        const queryParams = new URLSearchParams();
+        queryParams.append('start_date', startDate);
+        queryParams.append('end_date', endDate);
+        
+        if (walletId) {
+             if (Array.isArray(walletId) && walletId.length > 0) {
+                 walletId.forEach(id => queryParams.append('wallet_ids[]', id.toString()));
+             } else if (!Array.isArray(walletId) && walletId !== 'all') {
+                  queryParams.append('wallet_id', walletId.toString());
+             }
+        }
+        if (type && type !== 'all') queryParams.append('type', type);
 
-        const response = await api.get(url);
+        const response = await api.get(`/api/transactions/report?${queryParams.toString()}`);
         if (response.data.status === 'success') {
           reportData.value = response.data.data;
           return reportData.value;
@@ -300,8 +327,6 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   };
 
-  const calendarData = ref<TransactionSummary[]>([]);
-
   const fetchCalendarData = async (startDate?: string, endDate?: string, walletId?: number | string, categoryId?: number | string, search?: string) => {
     isLoading.value = true;
     try {
@@ -361,8 +386,23 @@ export const useTransactionStore = defineStore('transaction', () => {
         const queryParams = new URLSearchParams();
         if (finalParams.start_date) queryParams.append('start_date', finalParams.start_date);
         if (finalParams.end_date) queryParams.append('end_date', finalParams.end_date);
-        if (finalParams.wallet_id && finalParams.wallet_id !== 'all') queryParams.append('wallet_id', finalParams.wallet_id.toString());
-        if (finalParams.category_id && finalParams.category_id !== 'all') queryParams.append('category_id', finalParams.category_id.toString());
+        
+        if (finalParams.wallet_id) {
+          if (Array.isArray(finalParams.wallet_id) && finalParams.wallet_id.length > 0) {
+              finalParams.wallet_id.forEach(id => queryParams.append('wallet_ids[]', id.toString()));
+          } else if (!Array.isArray(finalParams.wallet_id) && finalParams.wallet_id !== 'all') {
+               queryParams.append('wallet_id', finalParams.wallet_id.toString());
+          }
+        }
+
+        if (finalParams.category_id) {
+            if (Array.isArray(finalParams.category_id) && finalParams.category_id.length > 0) {
+                finalParams.category_id.forEach(id => queryParams.append('category_ids[]', id.toString()));
+            } else if (!Array.isArray(finalParams.category_id) && finalParams.category_id !== 'all') {
+                queryParams.append('category_id', finalParams.category_id.toString());
+            }
+        }
+
         if (finalParams.search) queryParams.append('search', finalParams.search);
         if (finalParams.type) queryParams.append('type', finalParams.type);
 
@@ -376,13 +416,22 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   };
 
-  const exportReport = async (startDate: string, endDate: string, walletId?: number | string, type?: string) => {
+  const exportReport = async (startDate: string, endDate: string, walletId?: number | string | string[], type?: string) => {
     try {
-        let url = `/api/transactions/report/export?start_date=${startDate}&end_date=${endDate}`;
-        if (walletId && walletId !== 'all') url += `&wallet_id=${walletId}`;
-        if (type && type !== 'all') url += `&type=${type}`;
+        const queryParams = new URLSearchParams();
+        queryParams.append('start_date', startDate);
+        queryParams.append('end_date', endDate);
+        
+        if (walletId) {
+             if (Array.isArray(walletId) && walletId.length > 0) {
+                 walletId.forEach(id => queryParams.append('wallet_ids[]', id.toString()));
+             } else if (!Array.isArray(walletId) && walletId !== 'all') {
+                  queryParams.append('wallet_id', walletId.toString());
+             }
+        }
+        if (type && type !== 'all') queryParams.append('type', type);
 
-        const response = await api.get(url, { responseType: 'blob' });
+        const response = await api.get(`/api/transactions/report/export?${queryParams.toString()}`, { responseType: 'blob' });
         return response.data;
     } catch (err) {
         console.error("Failed to export report", err);

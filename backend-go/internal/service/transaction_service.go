@@ -21,9 +21,9 @@ type TransactionService interface {
 	DeleteTransaction(id uint, userID uint) error
 	TransferTransaction(userID uint, input TransferTransactionInput) error
 	GetCalendarData(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error)
-	GetReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error)
+	GetReport(userID uint, startDate, endDate string, walletIDs []uint, filterType *string) ([]entity.CategoryBreakdown, error)
 	ExportTransactions(userID uint, params entity.TransactionFilterParams) (*bytes.Buffer, error)
-	ExportReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) (*bytes.Buffer, error)
+	ExportReport(userID uint, startDate, endDate string, walletIDs []uint, filterType *string) (*bytes.Buffer, error)
 }
 
 type transactionService struct {
@@ -544,8 +544,8 @@ func (s *transactionService) GetCalendarData(userID uint, startDate, endDate str
 	return s.repo.FindSummaryByDateRange(userID, startDate, endDate, walletID, categoryID, search)
 }
 
-func (s *transactionService) GetReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) ([]entity.CategoryBreakdown, error) {
-	return s.repo.GetCategoryBreakdown(userID, startDate, endDate, walletID, filterType)
+func (s *transactionService) GetReport(userID uint, startDate, endDate string, walletIDs []uint, filterType *string) ([]entity.CategoryBreakdown, error) {
+	return s.repo.GetCategoryBreakdown(userID, startDate, endDate, walletIDs, filterType)
 }
 
 func (s *transactionService) ExportTransactions(userID uint, params entity.TransactionFilterParams) (*bytes.Buffer, error) {
@@ -607,8 +607,8 @@ func (s *transactionService) ExportTransactions(userID uint, params entity.Trans
 	return f.WriteToBuffer()
 }
 
-func (s *transactionService) ExportReport(userID uint, startDate, endDate string, walletID *uint, filterType *string) (*bytes.Buffer, error) {
-	data, err := s.GetReport(userID, startDate, endDate, walletID, filterType)
+func (s *transactionService) ExportReport(userID uint, startDate, endDate string, walletIDs []uint, filterType *string) (*bytes.Buffer, error) {
+	data, err := s.GetReport(userID, startDate, endDate, walletIDs, filterType)
 	if err != nil {
 		return nil, err
 	}

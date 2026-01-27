@@ -193,6 +193,10 @@ func TestAddContribution(t *testing.T) {
 	}
 	
 	mockRepo.On("FindByID", goalID, userID).Return(mockGoal, nil)
+    
+    // Fix: Add missing WalletRepo expectations
+    mockWalletRepo.On("WithTx", testMock.Anything).Return(mockWalletRepo)
+    mockWalletRepo.On("FindByID", walletID, userID).Return(&entity.Wallet{ID: walletID, UserID: userID, Balance: 5000}, nil)
 	
 	// Execute
 	contribution, err := svc.AddContribution(userID, goalID, input)

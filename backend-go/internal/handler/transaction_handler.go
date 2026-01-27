@@ -146,15 +146,26 @@ func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 	walletID, _ := strconv.Atoi(c.Query("wallet_id", "0"))
 	categoryID, _ := strconv.Atoi(c.Query("category_id", "0"))
 
+	// Parse multi-select arrays
+	// c.QueryParser is robust for array params like wallet_ids[]
+	type FilterQuery struct {
+		WalletIDs   []uint `query:"wallet_ids"`
+		CategoryIDs []uint `query:"category_ids"`
+	}
+	var filterQuery FilterQuery
+	c.QueryParser(&filterQuery)
+
 	params := entity.TransactionFilterParams{
-		Page:       page,
-		Limit:      limit,
-		StartDate:  startDate,
-		EndDate:    endDate,
-		Search:     search,
-		Type:       transType,
-		WalletID:   uint(walletID),
-		CategoryID: uint(categoryID),
+		Page:        page,
+		Limit:       limit,
+		StartDate:   startDate,
+		EndDate:     endDate,
+		Search:      search,
+		Type:        transType,
+		WalletID:    uint(walletID),
+		WalletIDs:   filterQuery.WalletIDs,
+		CategoryID:  uint(categoryID),
+		CategoryIDs: filterQuery.CategoryIDs,
 	}
 
 	transactions, total, err := h.service.GetTransactions(userID, params)
@@ -401,12 +412,24 @@ func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
 		})
 	}
 
-	var walletID *uint
-	if walletIDStr != "" && walletIDStr != "all" {
+	// Support both single wallet_id and array wallet_ids
+	var walletIDs []uint
+	
+	// Check array param
+	type FilterQuery struct {
+		WalletIDs []uint `query:"wallet_ids"`
+	}
+	var filterQuery FilterQuery
+	c.QueryParser(&filterQuery)
+	if len(filterQuery.WalletIDs) > 0 {
+		walletIDs = filterQuery.WalletIDs
+	}
+
+	// Fallback to single param if array empty
+	if len(walletIDs) == 0 && walletIDStr != "" && walletIDStr != "all" {
 		id, err := strconv.ParseUint(walletIDStr, 10, 32)
 		if err == nil {
-			uid := uint(id)
-			walletID = &uid
+			walletIDs = append(walletIDs, uint(id))
 		}
 	}
 
@@ -415,7 +438,7 @@ func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
 		fType = &filterType
 	}
 
-	report, err := h.service.GetReport(userID, startDate, endDate, walletID, fType)
+	report, err := h.service.GetReport(userID, startDate, endDate, walletIDs, fType)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -461,6 +484,16 @@ func (h *transactionHandler) ExportTransactions(c *fiber.Ctx) error {
 		// Limit 0 is set in service
 	}
 
+	// Support array params for Export too if needed, keeping mostly backward compat for now but updated entities support it
+	type FilterQuery struct {
+		WalletIDs   []uint `query:"wallet_ids"`
+		CategoryIDs []uint `query:"category_ids"`
+	}
+	var filterQuery FilterQuery
+	c.QueryParser(&filterQuery)
+	params.WalletIDs = filterQuery.WalletIDs
+	params.CategoryIDs = filterQuery.CategoryIDs
+
 	buffer, err := h.service.ExportTransactions(userID, params)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -497,12 +530,19 @@ func (h *transactionHandler) ExportReport(c *fiber.Ctx) error {
 		})
 	}
 
-	var walletID *uint
-	if walletIDStr != "" && walletIDStr != "all" {
-		id, err := strconv.ParseUint(walletIDStr, 10, 32)
-		if err == nil {
-			uid := uint(id)
-			walletID = &uid
+	var walletIDs []uint
+	type FilterQuery struct {
+		WalletIDs []uint `query:"wallet_ids"`
+	}
+	var filterQuery FilterQuery
+	c.QueryParser(&filterQuery)
+	if len(filterQuery.WalletIDs) > 0 {
+		walletIDs = filterQuery.WalletIDs
+	}
+	
+	if len(walletIDs) == 0 && walletIDStr != "" && walletIDStr != "all" {
+		if id, err := strconv.ParseUint(walletIDStr, 10, 32); err == nil {
+			walletIDs = append(walletIDs, uint(id))
 		}
 	}
 
@@ -511,7 +551,7 @@ func (h *transactionHandler) ExportReport(c *fiber.Ctx) error {
 		fType = &filterType
 	}
 
-	buffer, err := h.service.ExportReport(userID, startDate, endDate, walletID, fType)
+	buffer, err := h.service.ExportReport(userID, startDate, endDate, walletIDs, fType)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),

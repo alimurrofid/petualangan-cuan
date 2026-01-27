@@ -30,8 +30,8 @@ const customDateRange = ref({
   end: new Date()
 });
 
-const filterWallet = ref<string>("all");
-const filterCategory = ref<string>("all");
+const filterWallet = ref<string[]>([]);
+const filterCategory = ref<string[]>([]);
 const searchQuery = ref("");
 
 // Data States
@@ -194,8 +194,8 @@ watch(localSearch, (val) => {
         <!-- Toolbar -->
         <TransactionFilter 
             v-model:periodType="periodType" 
-            v-model:walletId="filterWallet"
-            v-model:categoryId="filterCategory" 
+            v-model:walletIds="filterWallet"
+            v-model:categoryIds="filterCategory" 
             :startDate="customDateRange.start"
             :endDate="customDateRange.end" 
             :formattedDateRange="formattedDateRange" 

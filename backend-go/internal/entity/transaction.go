@@ -29,14 +29,16 @@ type TransactionSummary struct {
 }
 
 type TransactionFilterParams struct {
-	Page       int
-	Limit      int
-	StartDate  string
-	EndDate    string
-	WalletID   uint
-	CategoryID uint
-	Search     string
-	Type       string
+	Page        int
+	Limit       int
+	StartDate   string
+	EndDate     string
+	WalletID    uint
+	WalletIDs   []uint
+	CategoryID  uint
+	CategoryIDs []uint
+	Search      string
+	Type        string
 }
 
 type TransactionTrend struct {
