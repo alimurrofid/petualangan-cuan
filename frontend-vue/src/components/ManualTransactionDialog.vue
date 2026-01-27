@@ -402,8 +402,16 @@ const handleSave = async () => {
 
         emit("update:open", false);
         emit("save", {});
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error in handleSave:", error);
+        
+        // If the error is insufficient balance, the store has already shown a specific Swal.
+        // We should not overwrite it with a generic error.
+        const errMsg = error.response?.data?.error || "";
+        if (errMsg.toLowerCase().includes('insufficient')) {
+            return;
+        }
+
         swal.error("Gagal", props.transactionToEdit ? "Gagal memperbarui transaksi" : "Gagal melakukan transaksi");
     } finally {
         isSubmitting.value = false;

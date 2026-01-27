@@ -244,10 +244,14 @@ const handleCreate = async () => {
     isCreateOpen.value = false;
   } catch (e: any) {
     console.error(e);
+    const errMsg = e.response?.data?.error || 'Terjadi kesalahan saat menyimpan data';
+    if (errMsg.toLowerCase().includes('insufficient')) {
+        return; // Handled by store
+    }
     Swal.fire({
       icon: 'error',
       title: 'Gagal',
-      text: e.response?.data?.error || 'Terjadi kesalahan saat menyimpan data',
+      text: errMsg,
     });
   }
 };
@@ -271,10 +275,14 @@ const handlePay = async () => {
     });
   } catch (e: any) {
     console.error(e);
+    const errMsg = e.response?.data?.error || 'Terjadi kesalahan saat memproses pembayaran';
+    if (errMsg.toLowerCase().includes('insufficient')) {
+        return; // Handled by store
+    }
     Swal.fire({
       icon: 'error',
       title: 'Gagal',
-      text: e.response?.data?.error || 'Terjadi kesalahan saat memproses pembayaran',
+      text: errMsg,
     });
   }
 };

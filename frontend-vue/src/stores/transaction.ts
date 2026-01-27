@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import api from '@/lib/api';
 import { useWalletStore } from './wallet';
+import Swal from 'sweetalert2';
 
 export interface Transaction {
   id: number;
@@ -176,9 +177,33 @@ export const useTransactionStore = defineStore('transaction', () => {
       // Refresh transactions and wallets (balance changed)
       await refreshData();
       await walletStore.fetchWallets();
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Transaksi berhasil dibuat',
+        timer: 1500,
+        showConfirmButton: false
+      });
+
       return response.data;
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Failed to create transaction';
+      const errMsg = err.response?.data?.error || 'Failed to create transaction';
+      error.value = errMsg;
+      
+      if (errMsg.toLowerCase().includes('insufficient')) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: 'Saldo wallet tidak mencukupi!'
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: errMsg
+        });
+      }
       throw err;
     } finally {
       isLoading.value = false;
@@ -193,9 +218,33 @@ export const useTransactionStore = defineStore('transaction', () => {
       const response = await api.put(`/api/transactions/${id}`, input);
       await refreshData();
       await walletStore.fetchWallets();
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Transaksi berhasil diperbarui',
+        timer: 1500,
+        showConfirmButton: false
+      });
+
       return response.data;
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Failed to update transaction';
+      const errMsg = err.response?.data?.error || 'Failed to update transaction';
+      error.value = errMsg;
+
+      if (errMsg.toLowerCase().includes('insufficient')) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: 'Saldo wallet tidak mencukupi!'
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: errMsg
+        });
+      }
       throw err;
     } finally {
       isLoading.value = false;
@@ -229,7 +278,22 @@ export const useTransactionStore = defineStore('transaction', () => {
       await refreshData();
       await walletStore.fetchWallets();
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Failed to delete transaction';
+      const errMsg = err.response?.data?.error || 'Failed to delete transaction';
+      error.value = errMsg;
+
+      if (errMsg.toLowerCase().includes('insufficient')) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: 'Saldo wallet tidak mencukupi!'
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: errMsg
+        });
+      }
       throw err;
     } finally {
       isLoading.value = false;

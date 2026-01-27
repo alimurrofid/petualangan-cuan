@@ -105,7 +105,8 @@ func (s *transactionService) CreateTransaction(userID uint, input CreateTransact
 			wallet.Balance += input.Amount
 		case "expense":
 			if wallet.Balance < input.Amount {
-				// Optional: Allow negative balance or return error?
+				tx.Rollback()
+				return nil, errors.New("insufficient wallet balance")
 			}
 			wallet.Balance -= input.Amount
 		}
@@ -167,6 +168,10 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 
 	switch t.Type {
 	case "income", "transfer_in":
+		if oldWallet.Balance < t.Amount {
+			tx.Rollback()
+			return nil, errors.New("insufficient wallet balance to revert income")
+		}
 		oldWallet.Balance -= t.Amount
 	case "expense", "transfer_out":
 		oldWallet.Balance += t.Amount
@@ -209,6 +214,10 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 	case "income", "transfer_in":
 		newWallet.Balance += input.Amount
 	case "expense", "transfer_out":
+		if newWallet.Balance < input.Amount {
+			tx.Rollback()
+			return nil, errors.New("insufficient wallet balance")
+		}
 		newWallet.Balance -= input.Amount
 	case "saving_allocation":
 		// Do nothing
@@ -299,10 +308,18 @@ func (s *transactionService) DeleteTransaction(id uint, userID uint) error {
 	// 3. Revert Balance
 	switch t.Type {
 	case "income":
+		if w.Balance < t.Amount {
+			tx.Rollback()
+			return errors.New("insufficient wallet balance to revert income")
+		}
 		w.Balance -= t.Amount
 	case "expense":
 		w.Balance += t.Amount
 	case "transfer_in":
+		if w.Balance < t.Amount {
+			tx.Rollback()
+			return errors.New("insufficient wallet balance to revert transfer")
+		}
 		w.Balance -= t.Amount
 	case "transfer_out":
 		w.Balance += t.Amount

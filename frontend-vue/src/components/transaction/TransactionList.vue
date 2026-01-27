@@ -22,10 +22,18 @@ const emit = defineEmits<{
 }>();
 
 const handleDelete = async (t: any) => {
+    let title = 'Hapus Transaksi?';
+    let text = `Apakah Anda yakin ingin menghapus transaksi "${t.description}" senilai ${formatCurrency(t.amount)}?`;
+    let icon = 'warning';
+
+    if (t.type === 'income') {
+        text = "Menghapus Pemasukan akan mengurangi saldo Anda. Pastikan saldo cukup!";
+    }
+
     const result = await swal.fire({
-        title: 'Hapus Transaksi?',
-        text: `Apakah Anda yakin ingin menghapus transaksi "${t.description}" senilai ${formatCurrency(t.amount)}?`,
-        icon: 'warning',
+        title: title,
+        text: text,
+        icon: icon as 'warning',
         showCancelButton: true,
         confirmButtonColor: '#EF4444',
         cancelButtonColor: '#CBD5E1',
@@ -40,7 +48,13 @@ const handleDelete = async (t: any) => {
                 icon: 'success',
                 title: 'Transaksi berhasil dihapus'
             });
-        } catch (error) {
+        } catch (error: any) {
+            const errMsg = error.response?.data?.error || "";
+            // If insufficient balance, store handles it with Swal.fire
+            if (errMsg.toLowerCase().includes('insufficient')) {
+                return;
+            }
+            
             swal.toast({
                 icon: 'error',
                 title: 'Gagal menghapus transaksi'

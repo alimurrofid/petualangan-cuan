@@ -49,6 +49,10 @@ func (s *debtService) UpdateDebt(id uint, userID uint, input UpdateDebtInput) (*
 	}
 
 	if debt.Type == entity.DebtTypePayable {
+		if oldWallet.Balance < debt.Amount {
+			tx.Rollback()
+			return nil, errors.New("insufficient wallet balance to revert debt creation")
+		}
 		oldWallet.Balance -= debt.Amount
 	} else {
 		oldWallet.Balance += debt.Amount
@@ -68,6 +72,10 @@ func (s *debtService) UpdateDebt(id uint, userID uint, input UpdateDebtInput) (*
 	if debt.Type == entity.DebtTypePayable {
 		newWallet.Balance += input.Amount
 	} else {
+		if newWallet.Balance < input.Amount {
+			tx.Rollback()
+			return nil, errors.New("insufficient wallet balance")
+		}
 		newWallet.Balance -= input.Amount
 	}
 
@@ -188,6 +196,10 @@ func (s *debtService) CreateDebt(userID uint, input CreateDebtInput) (*entity.De
 	} else {
 		transactionType = "expense"
 		categoryName = "Piutang"
+		if wallet.Balance < input.Amount {
+			tx.Rollback()
+			return nil, errors.New("insufficient wallet balance")
+		}
 		wallet.Balance -= input.Amount
 	}
 
@@ -287,6 +299,10 @@ func (s *debtService) PayDebt(id uint, userID uint, input PayDebtInput) (*entity
 	if debt.Type == entity.DebtTypePayable {
 		transactionType = "expense"
 		categoryName = "Bayar Utang"
+		if wallet.Balance < input.Amount {
+			tx.Rollback()
+			return nil, errors.New("insufficient wallet balance")
+		}
 		wallet.Balance -= input.Amount
 	} else {
 		transactionType = "income"
@@ -384,6 +400,10 @@ func (s *debtService) DeleteDebt(id uint, userID uint) error {
 	}
 
 	if debt.Type == entity.DebtTypePayable {
+		if wallet.Balance < debt.Remaining {
+			tx.Rollback()
+			return errors.New("insufficient wallet balance to delete debt")
+		}
 		wallet.Balance -= debt.Remaining
 	} else {
 		wallet.Balance += debt.Remaining
@@ -447,6 +467,10 @@ func (s *debtService) DeletePayment(id uint, userID uint) error {
 	if payment.Debt.Type == entity.DebtTypePayable {
 		wallet.Balance += payment.Amount
 	} else {
+		if wallet.Balance < payment.Amount {
+			tx.Rollback()
+			return errors.New("insufficient wallet balance to revert receivable payment")
+		}
 		wallet.Balance -= payment.Amount
 	}
 

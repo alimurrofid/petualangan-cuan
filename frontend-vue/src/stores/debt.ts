@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import api from '@/lib/api';
 import { useWalletStore } from './wallet';
 import { useTransactionStore } from './transaction';
+import Swal from 'sweetalert2';
 
 export interface DebtPayment {
   id: number;
@@ -99,9 +100,33 @@ export const useDebtStore = defineStore('debt', () => {
       await fetchDebts();
       await walletStore.fetchWallets(); // Update balance
       await transactionStore.fetchTransactions(); // Update history
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Data hutang/piutang berhasil dibuat',
+        timer: 1500,
+        showConfirmButton: false
+      });
+
       return response.data;
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Failed to create debt';
+      const errMsg = err.response?.data?.error || 'Failed to create debt';
+      error.value = errMsg;
+      
+      if (errMsg.toLowerCase().includes('insufficient')) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: 'Saldo wallet tidak mencukupi!'
+        });
+      } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: errMsg
+        });
+      }
       throw err;
     } finally {
       isLoading.value = false;
@@ -114,9 +139,33 @@ export const useDebtStore = defineStore('debt', () => {
     try {
       const response = await api.put(`/api/debts/${id}`, input);
       await fetchDebts();
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Data berhasil diperbarui',
+        timer: 1500,
+        showConfirmButton: false
+      });
+
       return response.data;
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Failed to update debt';
+      const errMsg = err.response?.data?.error || 'Failed to update debt';
+      error.value = errMsg;
+
+      if (errMsg.toLowerCase().includes('insufficient')) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: 'Saldo wallet tidak mencukupi!'
+        });
+      } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: errMsg
+        });
+      }
       throw err;
     } finally {
       isLoading.value = false;
@@ -133,9 +182,33 @@ export const useDebtStore = defineStore('debt', () => {
       await fetchDebts();
       await walletStore.fetchWallets();
       await transactionStore.fetchTransactions();
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Pembayaran berhasil',
+        timer: 1500,
+        showConfirmButton: false
+      });
+
       return response.data;
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Failed to pay debt';
+      const errMsg = err.response?.data?.error || 'Failed to pay debt';
+      error.value = errMsg;
+
+      if (errMsg.toLowerCase().includes('insufficient')) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: 'Saldo wallet tidak mencukupi!'
+        });
+      } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: errMsg
+        });
+      }
       throw err;
     } finally {
       isLoading.value = false;

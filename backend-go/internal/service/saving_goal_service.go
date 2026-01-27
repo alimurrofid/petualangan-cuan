@@ -86,6 +86,17 @@ func (s *savingGoalService) AddContribution(userID uint, goalID uint, input Cont
 		return nil, errors.New("goal not found")
 	}
 
+	wallet, err := s.walletRepo.WithTx(tx).FindByID(input.WalletID, userID)
+	if err != nil {
+		tx.Rollback()
+		return nil, errors.New("wallet not found")
+	}
+
+	if wallet.Balance < input.Amount {
+		tx.Rollback()
+		return nil, errors.New("insufficient wallet balance")
+	}
+
 	// 2. Create "Virtual" Transaction (Saving Allocation)
 	// We need a special category for saving allocation usually, or we just leave it null/default?
 	// It's better to have a system category "Savings" or similar, or just manage it here.
