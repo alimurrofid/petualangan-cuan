@@ -21,20 +21,20 @@ type MockUserService struct {
 	mock.Mock
 }
 
-func (m *MockUserService) Register(input service.RegisterInput) (*entity.User, string, error) {
+func (m *MockUserService) Register(input service.RegisterInput) (*entity.User, string, string, error) {
 	args := m.Called(input)
 	if args.Get(0) == nil {
-		return nil, args.String(1), args.Error(2)
+		return nil, args.String(1), args.String(2), args.Error(3)
 	}
-	return args.Get(0).(*entity.User), args.String(1), args.Error(2)
+	return args.Get(0).(*entity.User), args.String(1), args.String(2), args.Error(3)
 }
 
-func (m *MockUserService) Login(input service.LoginInput) (*entity.User, string, error) {
+func (m *MockUserService) Login(input service.LoginInput) (*entity.User, string, string, error) {
 	args := m.Called(input)
 	if args.Get(0) == nil {
-		return nil, args.String(1), args.Error(2)
+		return nil, args.String(1), args.String(2), args.Error(3)
 	}
-	return args.Get(0).(*entity.User), args.String(1), args.Error(2)
+	return args.Get(0).(*entity.User), args.String(1), args.String(2), args.Error(3)
 }
 
 func (m *MockUserService) Logout(token string) error {
@@ -55,12 +55,17 @@ func (m *MockUserService) ChangePassword(id uint, input service.ChangePasswordIn
 	return args.Error(0)
 }
 
-func (m *MockUserService) LoginOrRegisterGoogle(email string, name string, googleID string) (*entity.User, string, error) {
+func (m *MockUserService) LoginOrRegisterGoogle(email string, name string, googleID string) (*entity.User, string, string, error) {
 	args := m.Called(email, name, googleID)
 	if args.Get(0) == nil {
-		return nil, args.String(1), args.Error(2)
+		return nil, args.String(1), args.String(2), args.Error(3)
 	}
-	return args.Get(0).(*entity.User), args.String(1), args.Error(2)
+	return args.Get(0).(*entity.User), args.String(1), args.String(2), args.Error(3)
+}
+
+func (m *MockUserService) RefreshToken(refreshToken string) (string, string, error) {
+	args := m.Called(refreshToken)
+	return args.String(0), args.String(1), args.Error(2)
 }
 
 func (m *MockUserService) GetProfile(id uint) (*entity.User, error) {
@@ -86,7 +91,7 @@ func TestRegisterHandler(t *testing.T) {
 	body, _ := json.Marshal(input)
 
 	mockUser := &entity.User{Name: "Test User", Email: "test@example.com"}
-	mockService.On("Register", input).Return(mockUser, "mock_token", nil)
+	mockService.On("Register", input).Return(mockUser, "mock_token", "mock_refresh_token", nil)
 
 	req := httptest.NewRequest("POST", "/auth/register", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -110,7 +115,7 @@ func TestLoginHandler(t *testing.T) {
 	body, _ := json.Marshal(input)
 
 	mockUser := &entity.User{Name: "Test User", Email: "test@example.com"}
-	mockService.On("Login", input).Return(mockUser, "mock_token", nil)
+	mockService.On("Login", input).Return(mockUser, "mock_token", "mock_refresh_token", nil)
 
 	req := httptest.NewRequest("POST", "/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -133,7 +138,7 @@ func TestLoginHandler_InvalidCredentials(t *testing.T) {
 	}
 	body, _ := json.Marshal(input)
 
-	mockService.On("Login", input).Return(nil, "", errors.New("invalid credentials"))
+	mockService.On("Login", input).Return(nil, "", "", errors.New("invalid credentials"))
 
 	req := httptest.NewRequest("POST", "/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

@@ -30,8 +30,9 @@ func TestRegister(t *testing.T) {
 	}
 
 	mockRepo.On("Create", testifyMock.AnythingOfType("*entity.User")).Return(nil)
+	mockRepo.On("Update", testifyMock.AnythingOfType("*entity.User")).Return(nil)
 
-	user, token, err := userService.Register(input)
+	user, token, _, err := userService.Register(input)
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, token)
@@ -55,13 +56,14 @@ func TestLogin(t *testing.T) {
 	}
 
 	mockRepo.On("FindByEmail", "test@example.com").Return(user, nil)
+	mockRepo.On("Update", testifyMock.AnythingOfType("*entity.User")).Return(nil)
 
 	input := service.LoginInput{
 		Email:    "test@example.com",
 		Password: "password123",
 	}
 
-	userRes, token, err := userService.Login(input)
+	userRes, token, _, err := userService.Login(input)
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, token)
@@ -91,7 +93,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 		Password: "wrongpassword",
 	}
 
-	userRes, token, err := userService.Login(input)
+	userRes, token, _, err := userService.Login(input)
 
 	assert.Error(t, err)
 	assert.Empty(t, token)
@@ -111,7 +113,7 @@ func TestLogin_UserNotFound(t *testing.T) {
 		Password: "password123",
 	}
 
-	userRes, token, err := userService.Login(input)
+	userRes, token, _, err := userService.Login(input)
 
 	assert.Error(t, err)
 	assert.Empty(t, token)

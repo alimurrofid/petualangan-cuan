@@ -121,6 +121,7 @@ func main() {
 	auth := api.Group("/auth")
 	auth.Post("/register", userHandler.Register)
 	auth.Post("/login", userHandler.Login)
+	auth.Post("/refresh", userHandler.RefreshToken)
 	auth.Post("/logout", userHandler.Logout)
 	auth.Get("/google", userHandler.GoogleLogin)
 	auth.Get("/google/callback", userHandler.GoogleCallback)

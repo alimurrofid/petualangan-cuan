@@ -18,10 +18,10 @@ func getSecretKey() []byte {
 	return []byte(secret)
 }
 
-func GenerateToken(userID uint) (string, error) {
+func GenerateToken(userID uint, expiry time.Duration) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 72).Unix(),
+		"exp":     time.Now().Add(expiry).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
