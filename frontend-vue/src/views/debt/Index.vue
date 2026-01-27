@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ArrowUpRight, ArrowDownLeft, Pencil, Trash2, HandCoins, CircleFadingArrowUp, Eye, Calendar } from "lucide-vue-next";
+import SearchableSelect from "@/components/ui/searchable-select/SearchableSelect.vue";
+import { Plus, ArrowUpRight, ArrowDownLeft, Pencil, Trash2, HandCoins, CircleFadingArrowUp, Eye, Calendar, CheckCircle } from "lucide-vue-next";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { getEmoji, getIconComponent } from "@/lib/icons";
@@ -90,8 +91,11 @@ const payForm = reactive<PayDebtInput>({
 });
 
 // Helper for Wallet Selection
-const selectedCreateWalletObj = computed(() => walletStore.wallets.find(w => String(w.id) === String(createForm.wallet_id)));
-const selectedPayWalletObj = computed(() => walletStore.wallets.find(w => String(w.id) === String(payForm.wallet_id)));
+const walletOptions = computed(() => walletStore.wallets.map(w => ({
+    value: String(w.id),
+    label: w.name,
+    icon: w.icon
+})));
 
 
 
@@ -560,25 +564,19 @@ const handleDelete = async (id: number) => {
           </div>
           <div class="grid gap-2">
             <Label>Dompet Terkait</Label>
-            <Select v-model="createWalletIdProxy">
-              <SelectTrigger class="w-full h-11 rounded-xl bg-background shadow-sm">
-                  <div v-if="selectedCreateWalletObj" class="flex items-center gap-2">
-                      <component v-if="getIconComponent(selectedCreateWalletObj.icon)" :is="getIconComponent(selectedCreateWalletObj.icon)" class="h-4 w-4 text-muted-foreground" />
-                      <span v-else class="text-xs">{{ getEmoji(selectedCreateWalletObj.icon) || '💼' }}</span>
-                      <span>{{ selectedCreateWalletObj.name }}</span>
-                  </div>
-                  <SelectValue v-else placeholder="Pilih Dompet" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="wallet in walletStore.wallets" :key="wallet.id" :value="String(wallet.id)">
-                   <div class="flex items-center gap-2">
-                      <component v-if="getIconComponent(wallet.icon)" :is="getIconComponent(wallet.icon)" class="h-4 w-4" />
-                      <span v-else class="text-xs">{{ getEmoji(wallet.icon) || '💼' }}</span>
-                      <span>{{ wallet.name }}</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+                v-model="createWalletIdProxy"
+                :options="walletOptions"
+                placeholder="Pilih Dompet"
+            >
+                <template #option="{ option }">
+                    <div class="flex items-center gap-2">
+                        <component v-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)" class="h-4 w-4 shrink-0" />
+                        <span v-else class="text-xs shrink-0">{{ getEmoji(option.icon) || '💼' }}</span>
+                        <span>{{ option.label }}</span>
+                    </div>
+                </template>
+            </SearchableSelect>
             <p v-if="!isEditMode" class="text-[10px] font-bold uppercase tracking-widest mt-1 px-1">
                <span v-if="createForm.type === 'debt'" class="text-emerald-600 flex items-center gap-1">
                  <ArrowDownLeft class="h-3 w-3" /> Saldo Dompet Bertambah (Income)
@@ -626,25 +624,19 @@ const handleDelete = async (id: number) => {
           </div>
           <div class="grid gap-2">
             <Label>Dompet Sumber/Tujuan</Label>
-             <Select v-model="payWalletIdProxy">
-              <SelectTrigger class="w-full h-11 rounded-xl bg-background shadow-sm">
-                  <div v-if="selectedPayWalletObj" class="flex items-center gap-2">
-                      <component v-if="getIconComponent(selectedPayWalletObj.icon)" :is="getIconComponent(selectedPayWalletObj.icon)" class="h-4 w-4 text-muted-foreground" />
-                      <span v-else class="text-xs">{{ getEmoji(selectedPayWalletObj.icon) || '💼' }}</span>
-                      <span>{{ selectedPayWalletObj.name }}</span>
-                  </div>
-                  <SelectValue v-else placeholder="Pilih Dompet" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="wallet in walletStore.wallets" :key="wallet.id" :value="String(wallet.id)">
-                   <div class="flex items-center gap-2">
-                      <component v-if="getIconComponent(wallet.icon)" :is="getIconComponent(wallet.icon)" class="h-4 w-4" />
-                      <span v-else class="text-xs">{{ getEmoji(wallet.icon) || '💼' }}</span>
-                      <span>{{ wallet.name }}</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+             <SearchableSelect
+               v-model="payWalletIdProxy"
+               :options="walletOptions"
+               placeholder="Pilih Dompet"
+             >
+                 <template #option="{ option }">
+                    <div class="flex items-center gap-2">
+                       <component v-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)" class="h-4 w-4 shrink-0" />
+                       <span v-else class="text-xs shrink-0">{{ getEmoji(option.icon) || '💼' }}</span>
+                       <span>{{ option.label }}</span>
+                   </div>
+                 </template>
+             </SearchableSelect>
             <p class="text-[10px] font-bold uppercase tracking-widest mt-1 px-1">
                <span v-if="selectedDebt?.type === 'debt'" class="text-red-600 flex items-center gap-1">
                  <ArrowUpRight class="h-3 w-3" /> Saldo Dompet Berkurang (Expense)

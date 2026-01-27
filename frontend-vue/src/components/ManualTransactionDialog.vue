@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SearchableSelect from "@/components/ui/searchable-select/SearchableSelect.vue";
 import { getEmoji, getIconComponent } from "@/lib/icons";
 import { parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/lib/utils";
 import { useSwal } from "@/composables/useSwal";
@@ -230,10 +230,20 @@ const filteredCategories = computed(() => {
     return categoryStore.categories.filter(c => c.type === activeTab.value);
 });
 
-// Helpers to get selected objects for display
-const selectedWalletObj = computed(() => walletStore.wallets.find(w => String(w.id) === selectedWallet.value));
-const toWalletObj = computed(() => walletStore.wallets.find(w => String(w.id) === toWallet.value));
-const selectedCategoryObj = computed(() => categoryStore.categories.find(c => String(c.id) === selectedCategory.value));
+// Option Computeds
+const walletOptions = computed(() => walletStore.wallets.map(w => ({
+    value: String(w.id),
+    label: w.name,
+    icon: w.icon,
+    balance: w.balance,
+    available_balance: w.available_balance
+})));
+
+const categoryOptions = computed(() => filteredCategories.value.map(c => ({
+    value: String(c.id),
+    label: c.name,
+    icon: c.icon
+})));
 
 // Utils for icon rendering
 
@@ -559,61 +569,54 @@ const onFeeBlur = () => {
 
                     <div class="space-y-2">
                         <Label>{{ activeTab === 'transfer' ? 'Dari Dompet' : 'Dompet' }}</Label>
-                        <Select v-model="selectedWallet" :disabled="isSubmitting">
-                            <SelectTrigger
-                                :class="['w-full bg-background', errors.wallet ? 'border-red-500 ring-1 ring-red-500' : '']">
-                                <div v-if="selectedWalletObj" class="flex items-center gap-2">
-                                    <component v-if="getIconComponent(selectedWalletObj.icon)"
-                                        :is="getIconComponent(selectedWalletObj.icon)" class="h-4 w-4" />
-                                    <span v-else class="text-xs">{{ getEmoji(selectedWalletObj.icon) || '💼' }}</span>
-                                    <span>{{ selectedWalletObj.name }}</span>
-                                </div>
-                                <SelectValue v-else placeholder="Pilih Dompet" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem v-for="w in walletStore.wallets" :key="w.id" :value="String(w.id)">
-                                    <div class="flex items-center gap-2 justify-between w-full">
-                                        <div class="flex items-center gap-2">
-                                            <component v-if="getIconComponent(w.icon)" :is="getIconComponent(w.icon)"
-                                                class="h-4 w-4" />
-                                            <span v-else class="text-xs">{{ getEmoji(w.icon) || '💼' }}</span>
-                                            <span>{{ w.name }}</span>
-                                        </div>
-                                        <div v-if="w.available_balance !== undefined && w.available_balance !== w.balance" class="text-xs text-muted-foreground">
-                                            (Tersedia: {{ new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(w.available_balance) }})
-                                        </div>
+                        <SearchableSelect
+                            v-model="selectedWallet"
+                            :options="walletOptions"
+                            :disabled="isSubmitting"
+                            :error="errors.wallet"
+                            placeholder="Pilih Dompet"
+                        >
+                            <template #option="{ option }">
+                                <div class="flex items-center gap-2 justify-between w-full">
+                                    <div class="flex items-center gap-2">
+                                        <component v-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)"
+                                            class="h-4 w-4 shrink-0" />
+                                        <span v-else class="text-xs shrink-0">{{ getEmoji(option.icon) || '💼' }}</span>
+                                        <span>{{ option.label }}</span>
                                     </div>
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                                    <div v-if="option.available_balance !== undefined && option.available_balance !== option.balance" class="text-xs text-muted-foreground whitespace-nowrap">
+                                        (Tersedia: {{ new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(option.available_balance) }})
+                                    </div>
+                                </div>
+                            </template>
+                        </SearchableSelect>
                         <span v-if="errors.wallet" class="text-xs text-red-500 font-medium">{{ activeTab === 'transfer'
                             ? 'Dompet asal' : 'Dompet' }} wajib dipilih</span>
                     </div>
 
                     <div v-if="activeTab === 'transfer'" class="space-y-2">
                         <Label>Ke Dompet</Label>
-                        <Select v-model="toWallet" :disabled="isSubmitting">
-                            <SelectTrigger
-                                :class="['w-full bg-background', errors.toWallet ? 'border-red-500 ring-1 ring-red-500' : '']">
-                                <div v-if="toWalletObj" class="flex items-center gap-2">
-                                    <component v-if="getIconComponent(toWalletObj.icon)"
-                                        :is="getIconComponent(toWalletObj.icon)" class="h-4 w-4" />
-                                    <span v-else class="text-xs">{{ getEmoji(toWalletObj.icon) || '💼' }}</span>
-                                    <span>{{ toWalletObj.name }}</span>
-                                </div>
-                                <SelectValue v-else placeholder="Pilih Dompet Tujuan" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem v-for="w in walletStore.wallets" :key="w.id" :value="String(w.id)">
+                        <SearchableSelect
+                            v-model="toWallet"
+                            :options="walletOptions"
+                            :disabled="isSubmitting"
+                            :error="errors.toWallet"
+                            placeholder="Pilih Dompet Tujuan"
+                        >
+                             <template #option="{ option }">
+                                <div class="flex items-center gap-2 justify-between w-full">
                                     <div class="flex items-center gap-2">
-                                        <component v-if="getIconComponent(w.icon)" :is="getIconComponent(w.icon)"
-                                            class="h-4 w-4" />
-                                        <span v-else class="text-xs">{{ getEmoji(w.icon) || '💼' }}</span>
-                                        <span>{{ w.name }}</span>
+                                        <component v-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)"
+                                            class="h-4 w-4 shrink-0" />
+                                        <span v-else class="text-xs shrink-0">{{ getEmoji(option.icon) || '💼' }}</span>
+                                        <span>{{ option.label }}</span>
                                     </div>
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                                    <div v-if="option.available_balance !== undefined && option.available_balance !== option.balance" class="text-xs text-muted-foreground whitespace-nowrap">
+                                        (Tersedia: {{ new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(option.available_balance) }})
+                                    </div>
+                                </div>
+                            </template>
+                        </SearchableSelect>
                         <span v-if="errors.toWallet" class="text-xs text-red-500 font-medium">Dompet tujuan wajib
                             dipilih</span>
                     </div>
@@ -628,29 +631,22 @@ const onFeeBlur = () => {
 
                     <div v-if="activeTab !== 'transfer'" class="space-y-2">
                         <Label>Kategori</Label>
-                        <Select v-model="selectedCategory" :disabled="isSubmitting || activeTab === 'saving'">
-                            <SelectTrigger
-                                :class="['w-full bg-background', errors.category ? 'border-red-500 ring-1 ring-red-500' : '']">
-                                <div v-if="selectedCategoryObj" class="flex items-center gap-2">
-                                    <component v-if="getIconComponent(selectedCategoryObj.icon)"
-                                        :is="getIconComponent(selectedCategoryObj.icon)" class="h-4 w-4" />
-                                    <span v-else>{{ getEmoji(selectedCategoryObj.icon) || selectedCategoryObj.icon
-                                        }}</span>
-                                    <span>{{ selectedCategoryObj.name }}</span>
+                        <SearchableSelect
+                            v-model="selectedCategory"
+                            :options="categoryOptions"
+                            :disabled="isSubmitting || activeTab === 'saving'"
+                            :error="errors.category"
+                            placeholder="Pilih Kategori"
+                        >
+                            <template #option="{ option }">
+                                <div class="flex items-center gap-2">
+                                    <component v-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)"
+                                        class="h-4 w-4 shrink-0" />
+                                    <span v-else>{{ getEmoji(option.icon) || option.icon }}</span>
+                                    <span>{{ option.label }}</span>
                                 </div>
-                                <SelectValue v-else placeholder="Pilih Kategori" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem v-for="c in filteredCategories" :key="c.id" :value="String(c.id)">
-                                    <div class="flex items-center gap-2">
-                                        <component v-if="getIconComponent(c.icon)" :is="getIconComponent(c.icon)"
-                                            class="h-4 w-4" />
-                                        <span v-else>{{ getEmoji(c.icon) || c.icon }}</span>
-                                        <span>{{ c.name }}</span>
-                                    </div>
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                            </template>
+                        </SearchableSelect>
                         <span v-if="errors.category" class="text-xs text-red-500 font-medium">Kategori wajib
                             dipilih</span>
                     </div>

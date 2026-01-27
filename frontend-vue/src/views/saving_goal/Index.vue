@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SearchableSelect from "@/components/ui/searchable-select/SearchableSelect.vue";
 import ManualTransactionDialog from "@/components/ManualTransactionDialog.vue";
 import Detail from "./Detail.vue";
 import { getEmoji, getIconComponent } from "@/lib/icons";
@@ -183,6 +183,12 @@ const onTargetBlur = () => {
 
 const activeGoals = computed(() => store.goals.filter(g => !g.is_finished));
 const finishedGoals = computed(() => store.goals.filter(g => g.is_finished));
+
+const categoryOptions = computed(() => categoryStore.categories.filter(c => c.type === 'expense').map(c => ({
+    value: String(c.id),
+    label: c.name,
+    icon: c.icon
+})));
 
 </script>
 
@@ -375,20 +381,19 @@ const finishedGoals = computed(() => store.goals.filter(g => g.is_finished));
                     </div>
                     <div class="space-y-2">
                         <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Kategori</Label>
-                        <Select v-model="newGoalCategory">
-                            <SelectTrigger class="w-full h-11 rounded-xl bg-background shadow-sm">
-                                <SelectValue placeholder="Pilih Kategori" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem v-for="c in categoryStore.categories.filter(c => c.type === 'expense')" :key="c.id" :value="String(c.id)">
-                                    <div class="flex items-center gap-2">
-                                        <component v-if="getIconComponent(c.icon)" :is="getIconComponent(c.icon)" class="h-4 w-4" />
-                                        <span v-else>{{ getEmoji(c.icon) || c.icon }}</span>
-                                        <span>{{ c.name }}</span>
-                                    </div>
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            v-model="newGoalCategory"
+                            :options="categoryOptions"
+                            placeholder="Pilih Kategori"
+                        >
+                            <template #option="{ option }">
+                                <div class="flex items-center gap-2">
+                                    <component v-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)" class="h-4 w-4 shrink-0" />
+                                    <span v-else class="text-xs shrink-0">{{ getEmoji(option.icon) || option.icon }}</span>
+                                    <span>{{ option.label }}</span>
+                                </div>
+                            </template>
+                        </SearchableSelect>
                     </div>
                     <div class="space-y-2">
                         <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Batas Waktu (Opsional)</Label>
