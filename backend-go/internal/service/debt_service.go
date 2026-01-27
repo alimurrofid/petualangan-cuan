@@ -88,6 +88,7 @@ func (s *debtService) UpdateDebt(id uint, userID uint, input UpdateDebtInput) (*
 	debt.Description = input.Description
 	debt.DueDate = input.DueDate
 	debt.WalletID = input.WalletID
+	debt.Wallet = *newWallet
 	debt.Amount = input.Amount
 	debt.Remaining = input.Amount - paidAmount
 

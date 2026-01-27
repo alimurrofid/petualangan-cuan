@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SearchableSelect from "@/components/ui/searchable-select/SearchableSelect.vue";
-import { Plus, ArrowUpRight, ArrowDownLeft, Pencil, Trash2, HandCoins, CircleFadingArrowUp, Eye, Calendar, CheckCircle } from "lucide-vue-next";
+import MultiSelect from "@/components/ui/multi-select/MultiSelect.vue";
+import { Plus, ArrowUpRight, ArrowDownLeft, Pencil, Trash2, HandCoins, CircleFadingArrowUp, Eye, Calendar, CheckCircle, X } from "lucide-vue-next";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { getEmoji, getIconComponent } from "@/lib/icons";
@@ -43,6 +44,7 @@ const totalReceivable = computed(() => {
 
 // Filter & List Logic
 const filterType = ref<'all' | 'debt' | 'receivable'>('all');
+const filterWallet = ref<string[]>([]);
 
 const allItems = computed(() => {
     return [...debtStore.debts, ...debtStore.receivables].sort((a, b) => {
@@ -54,6 +56,9 @@ const filteredItems = computed(() => {
     let items = allItems.value;
     if (filterType.value !== 'all') {
         items = items.filter(item => item.type === filterType.value);
+    }
+    if (filterWallet.value.length > 0) {
+        items = items.filter(item => filterWallet.value.includes(String(item.wallet_id)));
     }
     return items;
 });
@@ -96,6 +101,13 @@ const walletOptions = computed(() => walletStore.wallets.map(w => ({
     label: w.name,
     icon: w.icon
 })));
+
+const hasActiveFilters = computed(() => filterType.value !== 'all' || filterWallet.value.length > 0);
+
+const resetFilters = () => {
+    filterType.value = 'all';
+    filterWallet.value = [];
+};
 
 
 
@@ -367,17 +379,35 @@ const handleDelete = async (id: number) => {
     <!-- Main Content -->
     <div class="space-y-6">
           <div class="px-1 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-             <div class="flex items-center gap-2 w-full sm:w-auto">
+             <div class="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+                <MultiSelect
+                    v-model="filterWallet"
+                    :options="walletOptions"
+                    placeholder="Semua Dompet"
+                    count-label="Dompet"
+                    class="w-full sm:w-[200px]"
+                />
+
                 <Select v-model="filterType">
                     <SelectTrigger class="w-full sm:w-[180px] h-11 rounded-xl shadow-sm bg-background">
                         <SelectValue placeholder="Filter Tipe" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Semua</SelectItem>
+                        <SelectItem value="all">Semua Tipe</SelectItem>
                         <SelectItem value="debt">Utang (Payable)</SelectItem>
                         <SelectItem value="receivable">Piutang (Receivable)</SelectItem>
                     </SelectContent>
                 </Select>
+
+                <Button 
+                    v-if="hasActiveFilters"
+                    variant="ghost" 
+                    class="h-11 px-4 rounded-xl text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 gap-2"
+                    @click="resetFilters"
+                >
+                    <X class="h-4 w-4" />
+                    Reset
+                </Button>
              </div>
           </div>
 
