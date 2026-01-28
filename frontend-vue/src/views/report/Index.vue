@@ -36,6 +36,7 @@ const customDateRange = ref({
 });
 
 const showDatePicker = ref(false);
+const isInitialLoading = ref(true);
 
 watch(periodType, (val) => {
   showDatePicker.value = val === 'custom';
@@ -47,7 +48,8 @@ onMounted(async () => {
         walletStore.fetchWallets(),
         categoryStore.fetchCategories()
     ]);
-    fetchReportData();
+    await fetchReportData();
+    isInitialLoading.value = false;
 });
 
 const dateRange = computed(() => {
@@ -297,11 +299,10 @@ const handleExport = async () => {
     <!-- Content -->
     <div class="relative min-h-[400px]">
         <!-- Loading Overlay -->
-        <div v-if="transactionStore.isLoading" class="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-[1px] rounded-3xl transition-all duration-300">
-             <div class="flex flex-col items-center gap-2 bg-background/80 p-4 rounded-2xl shadow-sm border border-border/50">
-                 <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                 <p class="text-xs font-medium text-muted-foreground animate-pulse">Memperbarui...</p>
-             </div>
+        <div class="flex-1 space-y-6 pt-2" v-if="isInitialLoading">
+            <div class="flex items-center justify-center min-h-[400px]">
+                <p class="text-muted-foreground animate-pulse">Memuat data Laporan...</p>
+            </div>
         </div>
 
         <div class="grid lg:grid-cols-3 gap-6">
