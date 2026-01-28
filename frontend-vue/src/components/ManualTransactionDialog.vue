@@ -684,7 +684,8 @@ const onFeeBlur = () => {
                     :disabled="isSubmitting || isProcessingFile">Batal</Button>
                 <Button @click="handleSave"
                     class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400"
-                    :disabled="isSubmitting || isProcessingFile">
+                    :disabled="isSubmitting || isProcessingFile"
+                    :loading="isSubmitting || isProcessingFile">
                     {{ isProcessingFile ? 'Memproses...' : (transactionToEdit ? 'Simpan Perubahan' : 'Simpan') }}
                 </Button>
             </DialogFooter>

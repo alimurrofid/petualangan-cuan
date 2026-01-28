@@ -310,7 +310,7 @@ const onBudgetBlur = () => {
           <Button v-if="isEditMode" variant="ghost" type="button" class="text-red-500 hover:text-red-600 hover:bg-red-50 gap-2 px-4" @click="handleDelete" :disabled="isSubmitting"> <Trash2 class="w-4 h-4" /> Hapus </Button>
           <div class="flex gap-2 ml-auto">
             <Button variant="outline" type="button" @click="isDialogOpen = false" :disabled="isSubmitting">Batal</Button>
-            <Button @click="handleSave" type="button" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 px-6 shadow-md hover:bg-foreground/90" :disabled="isSubmitting">
+            <Button @click="handleSave" type="button" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 px-6 shadow-md hover:bg-foreground/90" :disabled="isSubmitting" :loading="isSubmitting">
               <template v-if="isEditMode"> <Pencil class="w-4 h-4 mr-2" /> Simpan </template>
               <template v-else> <Save class="w-4 h-4 mr-2" /> Buat </template>
             </Button>

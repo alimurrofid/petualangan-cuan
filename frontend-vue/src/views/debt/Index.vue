@@ -74,6 +74,7 @@ const isPayOpen = ref(false);
 const isDetailOpen = ref(false);
 const activeTab = ref("debt"); // 'debt' or 'receivable'
 const selectedDebt = ref<Debt | null>(null);
+const isSubmitting = ref(false);
 
 // Display Refs for loose binding
 const createAmountDisplay = ref("");
@@ -214,6 +215,7 @@ const openDetailDialog = (debt: Debt) => {
 };
 
 const handleCreate = async () => {
+  isSubmitting.value = true;
   try {
     const payload: any = { ...createForm };
     payload.amount = Number(payload.amount);
@@ -269,11 +271,14 @@ const handleCreate = async () => {
       title: 'Gagal',
       text: errMsg,
     });
+  } finally {
+      isSubmitting.value = false;
   }
 };
 
 const handlePay = async () => {
   if (!selectedDebt.value) return;
+  isSubmitting.value = true;
   try {
      const payload = { ...payForm };
      payload.amount = Number(payload.amount);
@@ -300,6 +305,8 @@ const handlePay = async () => {
       title: 'Gagal',
       text: errMsg,
     });
+  } finally {
+      isSubmitting.value = false;
   }
 };
 
@@ -627,7 +634,8 @@ const handleDelete = async (id: number) => {
         </div>
         <DialogFooter class="gap-2">
           <Button variant="outline" @click="isCreateOpen = false" class="rounded-xl h-10 px-6">Batal</Button>
-          <Button @click="handleCreate" :class="createForm.type === 'debt' ? 'bg-red-600 hover:bg-red-700' : 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 font-bold'" class="rounded-xl h-10 px-6 text-white shadow-md">
+          <Button @click="handleCreate" :class="createForm.type === 'debt' ? 'bg-red-600 hover:bg-red-700' : 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 font-bold'" class="rounded-xl h-10 px-6 text-white shadow-md"
+            :disabled="isSubmitting" :loading="isSubmitting">
             {{ isEditMode ? 'Simpan Perubahan' : 'Simpan' }}
           </Button>
         </DialogFooter>
@@ -683,7 +691,8 @@ const handleDelete = async (id: number) => {
         </div>
         <DialogFooter class="gap-2">
           <Button variant="outline" @click="isPayOpen = false" class="rounded-xl h-10 px-6">Batal</Button>
-          <Button @click="handlePay" :class="selectedDebt?.type === 'debt' ? 'bg-red-600 hover:bg-red-700' : 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 font-bold'" class="rounded-xl h-10 px-6 text-white shadow-md">Proses</Button>
+          <Button @click="handlePay" :class="selectedDebt?.type === 'debt' ? 'bg-red-600 hover:bg-red-700' : 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 font-bold'" class="rounded-xl h-10 px-6 text-white shadow-md"
+            :disabled="isSubmitting" :loading="isSubmitting">Proses</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

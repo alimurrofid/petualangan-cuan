@@ -38,6 +38,7 @@ const form = ref({
     priority: "low" as "low" | "medium" | "high"
 });
 const estimatedPriceDisplay = ref("");
+const isSubmitting = ref(false);
 
 // State for Buy Dialog
 const isBuyDialogOpen = ref(false);
@@ -73,22 +74,27 @@ const handleSave = async () => {
         return;
     }
 
-    const payload = {
-        name: form.value.name,
-        category_id: Number(form.value.category_id),
-        estimated_price: Number(form.value.estimated_price),
-        priority: form.value.priority
-    };
+    isSubmitting.value = true;
+    try {
+        const payload = {
+            name: form.value.name,
+            category_id: Number(form.value.category_id),
+            estimated_price: Number(form.value.estimated_price),
+            priority: form.value.priority
+        };
 
-    let success = false;
-    if (isEditing.value && editingId.value) {
-        success = await wishlistStore.updateItem(editingId.value, payload);
-    } else {
-        success = await wishlistStore.createItem(payload);
-    }
+        let success = false;
+        if (isEditing.value && editingId.value) {
+            success = await wishlistStore.updateItem(editingId.value, payload);
+        } else {
+            success = await wishlistStore.createItem(payload);
+        }
 
-    if (success) {
-        isDialogOpen.value = false;
+        if (success) {
+            isDialogOpen.value = false;
+        }
+    } finally {
+        isSubmitting.value = false;
     }
 };
 
@@ -356,7 +362,8 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
                 </div>
                 <DialogFooter class="gap-2">
                     <Button variant="outline" @click="isDialogOpen = false" class="rounded-xl h-10 px-6">Batal</Button>
-                    <Button @click="handleSave" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md rounded-xl h-10 px-6 font-bold">
+                    <Button @click="handleSave" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md rounded-xl h-10 px-6 font-bold"
+                        :disabled="isSubmitting" :loading="isSubmitting">
                         {{ isEditing ? 'Simpan Perubahan' : 'Simpan' }}
                     </Button>
                 </DialogFooter>

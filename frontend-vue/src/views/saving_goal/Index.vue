@@ -30,6 +30,7 @@ const isEditing = ref(false);
 const editingId = ref<number | null>(null);
 const selectedGoalForContribution = ref<any>(null);
 const selectedGoal = ref<any>(null);
+const isSubmitting = ref(false);
 
 // Form for New Goal
 const newGoalName = ref("");
@@ -42,30 +43,35 @@ const newGoalCategory = ref("");
 const handleCreate = async () => {
     if (!newGoalName.value || !newGoalTarget.value || !newGoalCategory.value) return;
 
-    const payload = {
-        name: newGoalName.value,
-        target_amount: Number(newGoalTarget.value),
-        category_id: newGoalCategory.value ? Number(newGoalCategory.value) : undefined,
-        deadline: newGoalDeadline.value ? new Date(newGoalDeadline.value).toISOString() : null,
-        icon: "PiggyBank"
-    };
+    isSubmitting.value = true;
+    try {
+        const payload = {
+            name: newGoalName.value,
+            target_amount: Number(newGoalTarget.value),
+            category_id: newGoalCategory.value ? Number(newGoalCategory.value) : undefined,
+            deadline: newGoalDeadline.value ? new Date(newGoalDeadline.value).toISOString() : null,
+            icon: "PiggyBank"
+        };
 
-    let success = false;
-    if (isEditing.value && editingId.value) {
-        success = await store.updateGoal(editingId.value, payload);
-        if (success) swal.success("Berhasil", "Target menabung berhasil diperbarui");
-    } else {
-        success = await store.createGoal(payload);
-        if (success) swal.success("Berhasil", "Target menabung berhasil dibuat");
-    }
+        let success = false;
+        if (isEditing.value && editingId.value) {
+            success = await store.updateGoal(editingId.value, payload);
+            if (success) swal.success("Berhasil", "Target menabung berhasil diperbarui");
+        } else {
+            success = await store.createGoal(payload);
+            if (success) swal.success("Berhasil", "Target menabung berhasil dibuat");
+        }
 
-    if (success) {
-        isCreateOpen.value = false;
-        newGoalName.value = "";
-        newGoalTarget.value = "";
-        newGoalTargetDisplay.value = "";
-        newGoalDeadline.value = "";
-        newGoalCategory.value = "";
+        if (success) {
+            isCreateOpen.value = false;
+            newGoalName.value = "";
+            newGoalTarget.value = "";
+            newGoalTargetDisplay.value = "";
+            newGoalDeadline.value = "";
+            newGoalCategory.value = "";
+        }
+    } finally {
+        isSubmitting.value = false;
     }
 };
 
@@ -402,7 +408,8 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
                 </div>
                 <DialogFooter class="gap-2">
                     <Button variant="outline" @click="isCreateOpen = false" class="rounded-xl h-10 px-6">Batal</Button>
-                    <Button @click="handleCreate" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md rounded-xl h-10 px-6 font-bold">
+                    <Button @click="handleCreate" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-md rounded-xl h-10 px-6 font-bold"
+                        :disabled="isSubmitting" :loading="isSubmitting">
                         {{ isEditing ? "Simpan Perubahan" : "Buat Target" }}
                     </Button>
                 </DialogFooter>
