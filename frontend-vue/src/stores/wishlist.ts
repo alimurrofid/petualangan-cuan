@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useSwal } from '@/composables/useSwal';
 
 export interface WishlistItem {
@@ -23,16 +23,12 @@ export interface WishlistItem {
 export const useWishlistStore = defineStore('wishlist', () => {
     const items = ref<WishlistItem[]>([]);
     const isLoading = ref(false);
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
     const swal = useSwal();
 
     const fetchItems = async () => {
         isLoading.value = true;
         try {
-            const token = localStorage.getItem('token');
-            const response = await axios.get(`${baseUrl}/api/wishlist`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.get('/api/wishlist');
             items.value = response.data;
         } catch (error) {
             console.error('Failed to fetch wishlist items:', error);
@@ -43,10 +39,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
 
     const createItem = async (data: Partial<WishlistItem>) => {
         try {
-            const token = localStorage.getItem('token');
-            await axios.post(`${baseUrl}/api/wishlist`, data, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.post('/api/wishlist', data);
             await fetchItems();
             swal.toast({ icon: 'success', title: 'Item wishlist berhasil ditambahkan' });
             return true;
@@ -58,10 +51,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
 
     const updateItem = async (id: number, data: Partial<WishlistItem>) => {
         try {
-            const token = localStorage.getItem('token');
-            await axios.put(`${baseUrl}/api/wishlist/${id}`, data, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put(`/api/wishlist/${id}`, data);
             await fetchItems();
             swal.toast({ icon: 'success', title: 'Item wishlist berhasil diperbarui' });
             return true;
@@ -76,10 +66,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
         if (!confirmed) return false;
 
         try {
-            const token = localStorage.getItem('token');
-            await axios.delete(`${baseUrl}/api/wishlist/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/api/wishlist/${id}`);
             await fetchItems();
             swal.toast({ icon: 'success', title: 'Item wishlist berhasil dihapus' });
             return true;
@@ -91,10 +78,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
 
     const markAsBought = async (id: number) => {
         try {
-            const token = localStorage.getItem('token');
-            await axios.patch(`${baseUrl}/api/wishlist/${id}/bought`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.patch(`/api/wishlist/${id}/bought`, {});
             return true;
         } catch (error) {
             console.error('Failed to mark as bought:', error);
