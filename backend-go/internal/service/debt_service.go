@@ -224,7 +224,7 @@ func (s *debtService) CreateDebt(userID uint, input CreateDebtInput) (*entity.De
 		CategoryID:  cat.ID,
 		Amount:      input.Amount,
 		Type:        transactionType,
-		Description: "Debt/Receivable: " + input.Name + " - " + input.Description,
+		Description: input.Name + " " + input.Description,
 		Date:        time.Now(),
 	}
 
@@ -325,11 +325,9 @@ func (s *debtService) PayDebt(id uint, userID uint, input PayDebtInput) (*entity
 		return nil, err
 	}
 
-    description := "Payment for: " + debt.Name
+    description := debt.Name
     if input.Note != "" {
-        description += " - " + input.Note
-    } else {
-        description += " (" + debt.Description + ")"
+        description += " " + input.Note
     }
 
 	transaction := &entity.Transaction{
