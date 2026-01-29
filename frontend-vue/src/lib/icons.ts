@@ -185,6 +185,10 @@ export const categoryIcons: IconItem[] = [
   // Keuangan Lanjutan
   { name: "Send", icon: (LucideIcons as any).Send, label: "Transfer" },
   { name: "Target", icon: (LucideIcons as any).Target, label: "Target Tabungan" },
+  { name: "BanknoteArrowDown", icon: (LucideIcons as any).BanknoteArrowDown, label: "Utang" },
+  { name: "BanknoteArrowUp", icon: (LucideIcons as any).BanknoteArrowUp, label: "Piutang" },
+  { name: "CircleFadingArrowUp", icon: (LucideIcons as any).CircleFadingArrowUp, label: "Bayar Utang" },
+  { name: "HandCoins", icon: (LucideIcons as any).HandCoins, label: "Terima Piutang" },
   { name: "RefreshCcw", icon: (LucideIcons as any).RefreshCcw, label: "Refund" },
   { name: "AlertTriangle", icon: (LucideIcons as any).AlertTriangle, label: "Denda" },
   { name: "HelpCircle", icon: (LucideIcons as any).HelpCircle, label: "Lain-lain" },

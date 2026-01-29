@@ -190,13 +190,17 @@ func (s *debtService) CreateDebt(userID uint, input CreateDebtInput) (*entity.De
 
 	var transactionType string
 	var categoryName string
+	var categoryIcon string
+
 	if input.Type == string(entity.DebtTypePayable) {
 		transactionType = "income"
 		categoryName = "Utang"
+		categoryIcon = "BanknoteArrowDown"
 		wallet.Balance += input.Amount
 	} else {
 		transactionType = "expense"
 		categoryName = "Piutang"
+		categoryIcon = "BanknoteArrowUp"
 		if wallet.Balance < input.Amount {
 			tx.Rollback()
 			return nil, errors.New("insufficient wallet balance")
@@ -206,7 +210,7 @@ func (s *debtService) CreateDebt(userID uint, input CreateDebtInput) (*entity.De
 
 	var cat entity.Category
 	err = tx.Where(entity.Category{UserID: userID, Name: categoryName, Type: transactionType}).
-		Attrs(entity.Category{Icon: "Em_MoneyBag", BudgetLimit: 0}).
+		Attrs(entity.Category{Icon: categoryIcon, BudgetLimit: 0}).
 		FirstOrCreate(&cat).Error
 	if err != nil {
 		tx.Rollback()
@@ -296,10 +300,12 @@ func (s *debtService) PayDebt(id uint, userID uint, input PayDebtInput) (*entity
 
 	var transactionType string
 	var categoryName string
+	var categoryIcon string
 
 	if debt.Type == entity.DebtTypePayable {
 		transactionType = "expense"
 		categoryName = "Bayar Utang"
+		categoryIcon = "CircleFadingArrowUp"
 		if wallet.Balance < input.Amount {
 			tx.Rollback()
 			return nil, errors.New("insufficient wallet balance")
@@ -308,12 +314,13 @@ func (s *debtService) PayDebt(id uint, userID uint, input PayDebtInput) (*entity
 	} else {
 		transactionType = "income"
 		categoryName = "Terima Piutang"
+		categoryIcon = "HandCoins"
 		wallet.Balance += input.Amount
 	}
 
 	var cat entity.Category
 	err = tx.Where(entity.Category{UserID: userID, Name: categoryName, Type: transactionType}).
-		Attrs(entity.Category{Icon: "Em_MoneyBag", BudgetLimit: 0}).
+		Attrs(entity.Category{Icon: categoryIcon, BudgetLimit: 0}).
 		FirstOrCreate(&cat).Error
 	if err != nil {
 		tx.Rollback()
