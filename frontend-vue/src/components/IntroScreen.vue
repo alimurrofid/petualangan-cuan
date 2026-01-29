@@ -47,7 +47,7 @@ onMounted(() => {
 <template>
   <div
     v-if="showComponent"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-emerald-950 px-6 sm:px-12 text-orange-50 transition-all duration-1000 ease-in-out"
+    class="fixed inset-0 z-[9999] flex items-center justify-center bg-emerald-950 px-6 sm:px-12 text-orange-50 transition-all duration-1000 ease-in-out"
     style="clip-path: circle(150% at 100% 0);"
     :class="{ 'intro-exit': isExiting }"
   >
