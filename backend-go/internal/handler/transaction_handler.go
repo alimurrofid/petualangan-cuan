@@ -3,6 +3,7 @@ package handler
 import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/service"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -100,9 +101,9 @@ func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
 	// Handle File
 	fileHeader, err := c.FormFile("attachment")
 	if err == nil {
-		path, err := processAndSaveImage(fileHeader)
+		path, err := processAndSaveFile(fileHeader)
 		if err != nil {
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to process image: " + err.Error()})
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to process file: " + err.Error()})
 		}
 		input.Attachment = path
 	}
@@ -268,9 +269,9 @@ func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 	// Handle File
 	fileHeader, err := c.FormFile("attachment")
 	if err == nil {
-		path, err := processAndSaveImage(fileHeader)
+		path, err := processAndSaveFile(fileHeader)
 		if err != nil {
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to process image: " + err.Error()})
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to process file: " + err.Error()})
 		}
 		input.Attachment = path
 	}
@@ -570,68 +571,100 @@ func (h *transactionHandler) WebhookReceiver(c *fiber.Ctx) error {
 	})
 }
 
-// Helper to process and save image
-func processAndSaveImage(fileHeader *multipart.FileHeader) (string, error) {
-	file, err := fileHeader.Open()
-	if err != nil {
-		return "", err
+// Helper to process and save file (image, audio, or other)
+func processAndSaveFile(fileHeader *multipart.FileHeader) (string, error) {
+	contentType := fileHeader.Header.Get("Content-Type")
+	
+	var subFolder string
+	isImage := false
+
+	if strings.HasPrefix(contentType, "image/") {
+		subFolder = "images"
+		isImage = true
+	} else if strings.HasPrefix(contentType, "audio/") {
+		subFolder = "audio"
+	} else {
+		subFolder = "files"
 	}
-	defer file.Close()
 
-	// Decode (detects PNG/JPEG)
-	img, _, err := image.Decode(file)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode image: %v", err)
-	}
-
-	// Resize logic
-	bounds := img.Bounds()
-	width := bounds.Dx()
-	height := bounds.Dy()
-	maxDim := 1600
-
-	var finalImg image.Image = img
-
-	if width > maxDim || height > maxDim {
-		var newW, newH int
-		if width > height {
-			newW = maxDim
-			newH = (height * maxDim) / width
-		} else {
-			newH = maxDim
-			newW = (width * maxDim) / height
+	baseDir := "./uploads"
+	targetDir := filepath.Join(baseDir, subFolder)
+	
+	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(targetDir, 0755); err != nil {
+			return "", fmt.Errorf("failed to create directory: %v", err)
 		}
-		
-		// Create new image
-		dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
-		// High quality resize
-		draw.CatmullRom.Scale(dst, dst.Bounds(), img, bounds, draw.Over, nil)
-		finalImg = dst
 	}
 
-	// Generate filename
-	ext := ".jpg" // Always save as JPG
+	ext := filepath.Ext(fileHeader.Filename)
+	if isImage {
+		ext = ".jpg"
+	}
+	
 	filename := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), strings.TrimSuffix(fileHeader.Filename, filepath.Ext(fileHeader.Filename)), ext)
-	
-	// Ensure dir exists
-	uploadDir := "./uploads"
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		os.MkdirAll(uploadDir, 0755)
-	}
-	
-	outPath := filepath.Join(uploadDir, filename)
-	outFile, err := os.Create(outPath)
-	if err != nil {
-		return "", err
-	}
-	defer outFile.Close()
+	outPath := filepath.Join(targetDir, filename)
 
-	// Encode as JPEG with Quality 75
-	err = jpeg.Encode(outFile, finalImg, &jpeg.Options{Quality: 75})
-	if err != nil {
-		return "", err
+	if isImage {
+		file, err := fileHeader.Open()
+		if err != nil {
+			return "", err
+		}
+		defer file.Close()
+
+		img, _, err := image.Decode(file)
+		if err != nil {
+			return "", fmt.Errorf("failed to decode image: %v", err)
+		}
+
+		bounds := img.Bounds()
+		width := bounds.Dx()
+		height := bounds.Dy()
+		maxDim := 1600
+
+		var finalImg image.Image = img
+
+		if width > maxDim || height > maxDim {
+			var newW, newH int
+			if width > height {
+				newW = maxDim
+				newH = (height * maxDim) / width
+			} else {
+				newH = maxDim
+				newW = (width * maxDim) / height
+			}
+			
+			dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
+			draw.CatmullRom.Scale(dst, dst.Bounds(), img, bounds, draw.Over, nil)
+			finalImg = dst
+		}
+
+		outFile, err := os.Create(outPath)
+		if err != nil {
+			return "", err
+		}
+		defer outFile.Close()
+
+		if err := jpeg.Encode(outFile, finalImg, &jpeg.Options{Quality: 75}); err != nil {
+			return "", err
+		}
+
+	} else {
+		src, err := fileHeader.Open()
+		if err != nil {
+			return "", err
+		}
+		defer src.Close()
+
+		dst, err := os.Create(outPath)
+		if err != nil {
+			return "", err
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, src); err != nil {
+			return "", err
+		}
 	}
 
-	// Return relative URL path
-	return "/uploads/" + filename, nil
+	return fmt.Sprintf("/uploads/%s/%s", subFolder, filename), nil
 }
