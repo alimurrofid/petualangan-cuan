@@ -145,7 +145,7 @@ export const categoryIcons: IconItem[] = [
   { name: "Heart", icon: (LucideIcons as any).Heart, label: "Donasi" },
 
     // Pajak & Administrasi
-  { name: "HandCoins", icon: (LucideIcons as any).HandCoins, label: "Pajak" },
+  { name: "Scale", icon: (LucideIcons as any).Scale, label: "Pajak" },
   { name: "FileText", icon: (LucideIcons as any).FileText, label: "Administrasi" },
   { name: "Scale", icon: (LucideIcons as any).Scale, label: "Legal" },
 

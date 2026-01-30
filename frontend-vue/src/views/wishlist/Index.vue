@@ -384,7 +384,7 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
             :initialData="{
                 amount: selectedItemToBuy.estimated_price,
                 category_id: selectedItemToBuy.category_id,
-                description: `Pembelian Wishlist: ${selectedItemToBuy.name}`
+                description: selectedItemToBuy.name
             }"
             :wishlistItemId="selectedItemToBuy.id"
             @save="onTransactionSaved"

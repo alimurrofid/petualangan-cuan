@@ -530,7 +530,7 @@ func (s *transactionService) getCategoryForTransferFee(userID uint) (uint, error
 	var cat entity.Category
 	// Find or Create "Biaya Admin" of type expense
 	err := s.db.Where(entity.Category{UserID: userID, Type: "expense", Name: "Biaya Admin"}).
-		Attrs(entity.Category{Icon: "Em_MoneyWithWings", BudgetLimit: 0}).
+		Attrs(entity.Category{Icon: "Em_MoneyWing", BudgetLimit: 0}).
 		FirstOrCreate(&cat).Error
 
 	if err != nil {
