@@ -51,7 +51,7 @@ const handleLogout = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <div class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-                    <span class="text-sm font-medium text-foreground capitalize">Heyho, {{ authStore.user?.name || 'Bro' }}</span>
+                    <span class="text-sm font-medium text-foreground capitalize">{{ authStore.user?.name || 'Bro' }}</span>
                     <Avatar class="w-8 h-8 border border-border">
                         <AvatarImage src="https://github.com/shadcn.png" />
                         <AvatarFallback>CN</AvatarFallback>
@@ -59,28 +59,28 @@ const handleLogout = () => {
                 </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" class="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>Akun Saya</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem @click="router.push('/setting?tab=profile')">
                     <User class="mr-2 h-4 w-4" />
-                    <span>Profile</span>
+                    <span>Profil</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                     <CreditCard class="mr-2 h-4 w-4" />
-                    <span>Payment History</span>
+                    <span>Riwayat Pembayaran</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                     <LifeBuoy class="mr-2 h-4 w-4" />
-                    <span>Help Center</span>
+                    <span>Pusat Bantuan</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem @click="router.push('/setting?tab=password')">
                     <Lock class="mr-2 h-4 w-4" />
-                    <span>Change Password</span>
+                    <span>Ganti Kata Sandi</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem @click="handleLogout" class="text-red-500 focus:text-red-500">
                     <LogOut class="mr-2 h-4 w-4" />
-                    <span>Logout</span>
+                    <span>Keluar</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

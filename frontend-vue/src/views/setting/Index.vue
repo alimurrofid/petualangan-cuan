@@ -17,10 +17,10 @@ const isLoading = ref(false);
 const swal = useSwal();
 
 const tabs = [
-  { id: "profile", label: "Profile" },
-  { id: "currency", label: "Currency & Language" },
-  { id: "password", label: "Change Password" },
-  { id: "whatsapp", label: "WhatsApp Integration" },
+  { id: "profile", label: "Profil" },
+  { id: "currency", label: "Bahasa & Mata Uang" },
+  { id: "password", label: "Ganti Kata Sandi" },
+  { id: "whatsapp", label: "Integrasi WhatsApp" },
 ];
 
 // Settings Data (Static for now)
@@ -184,7 +184,7 @@ const handleUpdatePassword = async () => {
                 {{ tab.label }}
             </button>
         </div>
-        <Button variant="destructive" size="sm" class="hidden md:flex">Delete Account</Button>
+        <Button variant="destructive" size="sm" class="hidden md:flex">Hapus Akun</Button>
     </div>
 
     <Card class="border-border/60 shadow-sm overflow-hidden">
@@ -195,10 +195,10 @@ const handleUpdatePassword = async () => {
                 <!-- ... Existing Currency Content ... -->
                 <div class="space-y-4">
                     <div class="space-y-2">
-                        <Label>Language</Label>
+                        <Label>Bahasa</Label>
                          <Select v-model="formData.language">
                             <SelectTrigger class="w-full">
-                                <SelectValue placeholder="Select Language" />
+                                <SelectValue placeholder="Pilih Bahasa" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="English">English</SelectItem>
@@ -208,10 +208,10 @@ const handleUpdatePassword = async () => {
                     </div>
 
                      <div class="space-y-2">
-                        <Label>Timezone</Label>
+                        <Label>Zona Waktu</Label>
                          <Select v-model="formData.timezone">
                             <SelectTrigger class="w-full">
-                                <SelectValue placeholder="Select Timezone" />
+                                <SelectValue placeholder="Pilih Zona Waktu" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Asia/Jakarta (GMT+7)">Asia/Jakarta (GMT+7)</SelectItem>
@@ -222,10 +222,10 @@ const handleUpdatePassword = async () => {
                     </div>
 
                      <div class="space-y-2">
-                        <Label>Currency</Label>
+                        <Label>Mata Uang</Label>
                          <Select v-model="formData.currency">
                             <SelectTrigger class="w-full">
-                                <SelectValue placeholder="Select Currency" />
+                                <SelectValue placeholder="Pilih Mata Uang" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="IDR">IDR (Rupiah)</SelectItem>
@@ -235,21 +235,21 @@ const handleUpdatePassword = async () => {
                     </div>
 
                      <div class="space-y-2">
-                        <Label>Show Decimal</Label>
+                        <Label>Tampilkan Desimal</Label>
                          <Select v-model="formData.showDecimal">
                             <SelectTrigger class="w-full">
-                                <SelectValue placeholder="Select Option" />
+                                <SelectValue placeholder="Pilih Opsi" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="Show">Show</SelectItem>
-                                <SelectItem value="Hide">Hide</SelectItem>
+                                <SelectItem value="Show">Tampilkan</SelectItem>
+                                <SelectItem value="Hide">Sembunyikan</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
 
                 <div class="pt-4">
-                    <Button class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white">Save Changes</Button>
+                    <Button class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white">Simpan Perubahan</Button>
                 </div>
             </div>
 
@@ -257,7 +257,7 @@ const handleUpdatePassword = async () => {
             <div v-if="activeTab === 'profile'" class="space-y-6">
                  <div class="space-y-4">
                      <div class="grid w-full items-center gap-1.5">
-                        <Label for="name">Full Name</Label>
+                        <Label for="name">Nama Lengkap</Label>
                         <Input id="name" v-model="profileForm.name" placeholder="Nama Lengkap" :class="errors.profile.name ? 'border-red-500 ring-1 ring-red-500' : ''" />
                         <span v-if="errors.profile.name" class="text-xs text-red-500 font-medium">Nama lengkap wajib diisi</span>
                      </div>
@@ -269,7 +269,7 @@ const handleUpdatePassword = async () => {
                  </div>
                  <Button class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400" @click="handleUpdateProfile" :disabled="isLoading">
                     <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
-                    Save Profile
+                    Simpan Profil
                  </Button>
             </div>
 
@@ -277,7 +277,7 @@ const handleUpdatePassword = async () => {
              <div v-if="activeTab === 'password'" class="space-y-6">
                  <div class="space-y-4">
                       <div class="grid w-full items-center gap-1.5">
-                        <Label for="new_pass">New Password</Label>
+                        <Label for="new_pass">Kata Sandi Baru</Label>
                         <div class="relative">
                             <Input id="new_pass" v-model="passwordForm.new_password" :type="showPassword.new ? 'text' : 'password'" placeholder="Xyz•••••" :class="errors.password.new || errors.password.match ? 'border-red-500 ring-1 ring-red-500' : ''" />
                             <button type="button" @click="showPassword.new = !showPassword.new" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -288,7 +288,7 @@ const handleUpdatePassword = async () => {
                         <span v-if="errors.password.new" class="text-xs text-red-500 font-medium">Password baru wajib diisi</span>
                      </div>
                       <div class="grid w-full items-center gap-1.5">
-                        <Label for="confirm_pass">Confirm Password</Label>
+                        <Label for="confirm_pass">Konfirmasi Kata Sandi</Label>
                         <div class="relative">
                             <Input id="confirm_pass" v-model="passwordForm.confirm_password" :type="showPassword.confirm ? 'text' : 'password'" placeholder="Xyz•••••" :class="errors.password.confirm || errors.password.match ? 'border-red-500 ring-1 ring-red-500' : ''" />
                              <button type="button" @click="showPassword.confirm = !showPassword.confirm" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -302,16 +302,16 @@ const handleUpdatePassword = async () => {
                  </div>
                  <Button class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400" @click="handleUpdatePassword" :disabled="isLoading">
                     <Loader2 v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" />
-                    Update Password
+                    Perbarui Kata Sandi
                  </Button>
             </div>
 
              <!-- WhatsApp Tab -->
              <div v-if="activeTab === 'whatsapp'" class="space-y-6">
                  <div class="p-6 border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl text-center space-y-4">
-                     <h3 class="text-lg font-bold text-emerald-800 dark:text-emerald-100">WhatsApp Integration</h3>
-                     <p class="text-sm text-emerald-600 dark:text-emerald-300">Connect your account to receive daily reports and alerts via WhatsApp.</p>
-                     <Button class="bg-emerald-600 hover:bg-emerald-700 text-white">Connect WhatsApp</Button>
+                     <h3 class="text-lg font-bold text-emerald-800 dark:text-emerald-100">Integrasi WhatsApp</h3>
+                     <p class="text-sm text-emerald-600 dark:text-emerald-300">Hubungkan akun Anda untuk menerima laporan harian dan notifikasi via WhatsApp.</p>
+                     <Button class="bg-emerald-600 hover:bg-emerald-700 text-white">Hubungkan WhatsApp</Button>
                  </div>
             </div>
 

@@ -4,10 +4,10 @@ import { ToolCase, Wallet, ArrowLeftRight, FileChartColumn, Settings2 } from "lu
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: ToolCase },
-  { title: "Wallet", url: "/wallet", icon: Wallet },
+  { title: "Dompet", url: "/wallet", icon: Wallet },
   { title: "Transaksi", url: "/transaction", icon: ArrowLeftRight },
   { title: "Laporan", url: "/report", icon: FileChartColumn },
-  { title: "Setting", url: "/setting", icon: Settings2 },
+  { title: "Pengaturan", url: "/setting", icon: Settings2 },
 ];
 </script>
 

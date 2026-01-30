@@ -64,7 +64,7 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
     // Let's keep the raw value but handle status.
 
 	savingsRatio := entity.FinancialHealthRatio{
-		Name:   "Savings Rate",
+		Name:   "Rasio Tabungan",
 		Value:  savingsRate,
 		Target: "> 20%",
         FormattedValue: fmt.Sprintf("%.1f%%", savingsRate*100),
@@ -165,7 +165,7 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 	}
 
 	dtiRatioStruct := entity.FinancialHealthRatio{
-		Name:   "Debt-to-Income",
+		Name:   "Rasio Utang Terhadap Pendapatan",
 		Value:  dtiRatio,
 		Target: "< 35%",
         FormattedValue: fmt.Sprintf("%.1f%%", dtiRatio*100),

@@ -518,7 +518,7 @@ const onFeeBlur = () => {
         <DialogContent class="max-w-md bg-card text-foreground" @interact-outside="swal.handleSwalInteractOutside">
             <DialogHeader>
                 <DialogTitle>{{ transactionToEdit ? 'Edit Transaksi' : 'Tambah Transaksi' }}</DialogTitle>
-                <DialogDescription>Catat pengeluaran atau income baru.</DialogDescription>
+                <DialogDescription>Catat pengeluaran atau pemasukan baru.</DialogDescription>
             </DialogHeader>
 
             <div v-if="transactionToEdit && (transactionToEdit.type === 'transfer_in' || transactionToEdit.type === 'transfer_out')"
@@ -626,7 +626,7 @@ const onFeeBlur = () => {
                             <Input type="text" inputmode="decimal" placeholder="0" v-model="transferFeeDisplay" @blur="onFeeBlur"
                                 class="bg-background"
                                 :disabled="isSubmitting" />
-                        <span class="text-[10px] text-muted-foreground">Biaya ini akan ditarik dari dompet asal (Expense baru).</span>
+                        <span class="text-[10px] text-muted-foreground">Biaya ini akan ditarik dari dompet asal (Pengeluaran baru).</span>
                     </div>
 
                     <div v-if="activeTab !== 'transfer'" class="space-y-2">

@@ -154,7 +154,7 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
   <div class="flex-1 space-y-6 pt-2 text-foreground" v-else>
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
             <div>
-                <h2 class="text-3xl font-bold tracking-tight">Wishlist</h2>
+                <h2 class="text-3xl font-bold tracking-tight">Daftar Keinginan</h2>
                 <p class="text-sm text-muted-foreground mt-1">Simpan dan wujudkan impian finansial Anda.</p>
             </div>
             <Button @click="openAddDialog" class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-lg h-12 rounded-full transition-all hover:scale-105 active:scale-95 px-6">
@@ -230,7 +230,7 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
                         <Clock class="h-8 w-8 opacity-40" />
                     </div>
                     <p class="font-medium text-lg">Belum ada keinginan aktif.</p>
-                    <p class="text-sm opacity-70">Mulai catat wishlist impianmu sekarang.</p>
+                    <p class="text-sm opacity-70">Mulai catat keinginan impianmu sekarang.</p>
                     <Button @click="openAddDialog()" variant="link" class="mt-2 text-emerald-600">Tambah Baru</Button>
                 </div>
             </div>

@@ -298,7 +298,7 @@ const groupedRecentTransactions = computed(() => {
                  }">
                     {{ healthStore.data.overall_status }}
                  </div>
-                 <span class="text-xs text-muted-foreground">Score {{ healthStore.data.overall_score }}</span>
+                 <span class="text-xs text-muted-foreground">Skor {{ healthStore.data.overall_score }}</span>
               </div>
              <p class="text-xs text-muted-foreground mt-1 truncate">{{ healthStore.data.ratios.filter((r: any) => r.status !== 'Sehat').length === 0 ? 'Semua indikator aman.' : `${healthStore.data.ratios.filter((r: any) => r.status !== 'Sehat').length} indikator perlu perhatian` }}</p>
           </div>

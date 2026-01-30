@@ -14,7 +14,7 @@ const items = [
     icon: HeartPulse,
   },
   {
-    title: "AI Assistant",
+    title: "Asisten AI",
     url: "/chat",
     icon: Bot,
   },
@@ -49,7 +49,7 @@ const items = [
     icon: HandCoins,
   },
   {
-    title: "Wishlist",
+    title: "Keinginan",
     url: "/wishlist",
     icon: Heart,
   },

@@ -89,7 +89,7 @@ const generateMockResponse = (input: string): string => {
       </div>
       <div>
         <h2 class="text-xl font-bold tracking-tight flex items-center gap-2">
-            AI Assistant
+            Asisten AI
             <span class="text-[10px] bg-emerald-100/50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-200/50 flex items-center gap-1">
                 <Sparkles class="w-3 h-3" /> Beta
             </span>

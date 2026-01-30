@@ -29,11 +29,11 @@ const handleManualTransaction = () => {
         <DropdownMenuContent align="end" class="w-56 mb-2">
             <DropdownMenuItem @click="handleManualTransaction" class="gap-2 p-3 cursor-pointer">
                 <PenLine class="w-4 h-4" />
-                <span>Manual transaction input</span>
+                <span>Catat Transaksi Manual</span>
             </DropdownMenuItem>
             <DropdownMenuItem @click="handleCommandAi" class="gap-2 p-3 cursor-pointer">
                 <Bot class="w-4 h-4" />
-                <span>Command Ai</span>
+                <span>Perintah AI</span>
             </DropdownMenuItem>
         </DropdownMenuContent>
     </DropdownMenu>

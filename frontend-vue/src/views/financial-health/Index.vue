@@ -170,7 +170,7 @@ const getStatusIcon = (status: string) => {
                 <div class="relative w-72 h-60 flex items-center justify-center shrink-0">
                     <apexchart type="radialBar" height="300" width="100%" :options="chartOptions" :series="series"></apexchart>
                     <div class="absolute bottom-6 text-center pointer-events-none transform translate-y-2">
-                        <p class="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em] mb-1.5">Score</p>
+                        <p class="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em] mb-1.5">Skor</p>
                          <h3 class="text-base font-bold tracking-tight inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background/80 backdrop-blur-md shadow-sm border border-border" :class="{
                             'text-emerald-600': store.data.overall_status === 'Sehat',
                             'text-amber-600': store.data.overall_status === 'Waspada',

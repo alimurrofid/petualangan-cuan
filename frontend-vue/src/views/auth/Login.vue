@@ -100,7 +100,7 @@ const handleLogin = async () => {
                             <span class="w-full border-t"></span>
                         </div>
                         <div class="relative flex justify-center text-xs uppercase">
-                            <span class="bg-background px-2 text-muted-foreground lowercase">or login with email</span>
+                            <span class="bg-background px-2 text-muted-foreground lowercase">atau masuk dengan email</span>
                         </div>
                     </div>
                 </div>
@@ -115,7 +115,7 @@ const handleLogin = async () => {
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <Label for="password">Password</Label>
+                            <Label for="password">Kata Sandi</Label>
                             <div class="relative">
                                 <Lock class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input id="password" :type="showPassword ? 'text' : 'password'" placeholder="Xyz•••••" class="pl-10 pr-10 h-10" v-model="password" required />
@@ -126,7 +126,7 @@ const handleLogin = async () => {
                             </div>
                              <div class="flex justify-end pt-1">
                                 <a href="#" class="text-xs font-medium text-muted-foreground hover:text-emerald-600">
-                                    Forgot password?
+                                    Lupa kata sandi?
                                 </a>
                             </div>
                         </div>

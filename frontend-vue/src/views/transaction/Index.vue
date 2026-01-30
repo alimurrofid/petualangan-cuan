@@ -224,12 +224,12 @@ watch(localSearch, (val) => {
                 <h3 class="font-bold text-sm">Daftar Transaksi</h3>
                 <Button
                   @click="handleExport"
-                  title="Export Excel"
+                  title="Ekspor Excel"
                   variant="outline"
                   class="h-8 px-3 rounded-lg border-border shadow-sm hover:bg-muted/50 flex items-center gap-2 text-xs"
                 >
                   <Download class="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Export</span>
+                  <span>Ekspor</span>
                 </Button>
               </div>
               

@@ -19,7 +19,7 @@ const errorMessage = ref("");
 
 const handleRegister = async () => {
     if (password.value !== confirmPassword.value) {
-        errorMessage.value = "Konfirmasi password tidak sesuai.";
+        errorMessage.value = "Konfirmasi kata sandi tidak sesuai.";
         return;
     }
 
@@ -107,7 +107,7 @@ const handleRegister = async () => {
                             <span class="w-full border-t"></span>
                         </div>
                         <div class="relative flex justify-center text-xs uppercase">
-                            <span class="bg-background px-2 text-muted-foreground lowercase">or register with email</span>
+                            <span class="bg-background px-2 text-muted-foreground lowercase">atau daftar dengan email</span>
                         </div>
                     </div>
                 </div>
@@ -129,7 +129,7 @@ const handleRegister = async () => {
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <Label for="password">Password</Label>
+                            <Label for="password">Kata Sandi</Label>
                             <div class="relative">
                                 <Lock class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input id="password" :type="showPassword ? 'text' : 'password'" placeholder="Xyz•••••" class="pl-10 pr-10 h-10" v-model="password" required />
@@ -140,7 +140,7 @@ const handleRegister = async () => {
                             </div>
                         </div>
                          <div class="space-y-2">
-                            <Label for="confirmPassword">Konfirmasi Password</Label>
+                            <Label for="confirmPassword">Konfirmasi Kata Sandi</Label>
                             <div class="relative">
                                 <Lock class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input id="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" placeholder="Xyz•••••" class="pl-10 pr-10 h-10" v-model="confirmPassword" required />

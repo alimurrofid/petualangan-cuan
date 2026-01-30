@@ -330,9 +330,9 @@ const handleExport = async () => {
                 <CardHeader class="pb-3 border-b border-border/50">
                     <div class="flex items-center justify-between">
                         <CardTitle class="text-base font-bold">Rincian Kategori</CardTitle>
-                        <Button variant="outline" size="sm" @click="handleExport" class="h-8 rounded-xl border-border shadow-sm hover:bg-muted/50 gap-2 text-xs" title="Export Excel">
+                        <Button variant="outline" size="sm" @click="handleExport" class="h-8 rounded-xl border-border shadow-sm hover:bg-muted/50 gap-2 text-xs" title="Ekspor Excel">
                             <Download class="h-3.5 w-3.5 text-muted-foreground" />
-                            <span class="text-xs font-semibold text-muted-foreground">Export</span>
+                            <span class="text-xs font-semibold text-muted-foreground">Ekspor</span>
                         </Button>
                     </div>
                 </CardHeader>
@@ -369,7 +369,7 @@ const handleExport = async () => {
                                     {{ formatCurrency(item.total_amount) }}
                                  </p>
                                  <div v-if="item.type === 'expense' && item.budget_limit > 0" class="flex flex-col items-end">
-                                    <p class="text-[10px] text-muted-foreground">Budget: <span :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(item.budget_limit) }}</span></p>
+                                    <p class="text-[10px] text-muted-foreground">Anggaran: <span :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(item.budget_limit) }}</span></p>
                                  </div>
                                  <p v-else class="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">{{ item.type === 'expense' ? 'Pengeluaran' : '' }}</p>
                             </div>

@@ -41,10 +41,10 @@ export const useWishlistStore = defineStore('wishlist', () => {
         try {
             await api.post('/api/wishlist', data);
             await fetchItems();
-            swal.toast({ icon: 'success', title: 'Item wishlist berhasil ditambahkan' });
+            swal.toast({ icon: 'success', title: 'Keinginan berhasil ditambahkan' });
             return true;
         } catch (error) {
-            swal.error('Gagal', 'Gagal menambahkan item wishlist');
+            swal.error('Gagal', 'Gagal menambahkan keinginan');
             return false;
         }
     };
@@ -53,25 +53,25 @@ export const useWishlistStore = defineStore('wishlist', () => {
         try {
             await api.put(`/api/wishlist/${id}`, data);
             await fetchItems();
-            swal.toast({ icon: 'success', title: 'Item wishlist berhasil diperbarui' });
+            swal.toast({ icon: 'success', title: 'Keinginan berhasil diperbarui' });
             return true;
         } catch (error) {
-            swal.error('Gagal', 'Gagal memperbarui item wishlist');
+            swal.error('Gagal', 'Gagal memperbarui keinginan');
             return false;
         }
     };
 
     const deleteItem = async (id: number) => {
-        const confirmed = await swal.confirm('Apakah Anda yakin?', 'Item wishlist akan dihapus permanen');
+        const confirmed = await swal.confirm('Apakah Anda yakin?', 'Keinginan akan dihapus permanen');
         if (!confirmed) return false;
 
         try {
             await api.delete(`/api/wishlist/${id}`);
             await fetchItems();
-            swal.toast({ icon: 'success', title: 'Item wishlist berhasil dihapus' });
+            swal.toast({ icon: 'success', title: 'Keinginan berhasil dihapus' });
             return true;
         } catch (error) {
-            swal.error('Gagal', 'Gagal menghapus item wishlist');
+            swal.error('Gagal', 'Gagal menghapus keinginan');
             return false;
         }
     };
