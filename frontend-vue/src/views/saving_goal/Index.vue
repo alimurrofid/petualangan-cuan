@@ -155,10 +155,18 @@ const handleContributeClose = () => {
     walletStore.fetchWallets(); // Refresh wallet balances (available balance update)
 };
 
-onMounted(() => {
-    store.fetchGoals();
-    walletStore.fetchWallets();
-    categoryStore.fetchCategories();
+const isInitialLoading = ref(true);
+
+onMounted(async () => {
+    try {
+        await Promise.all([
+            store.fetchGoals(),
+            walletStore.fetchWallets(),
+            categoryStore.fetchCategories()
+        ]);
+    } finally {
+        isInitialLoading.value = false;
+    }
 });
 
 // Local formatCurrency removed, using imported one
@@ -199,7 +207,7 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
 </script>
 
 <template>
-  <div class="flex-1 space-y-6 pt-2" v-if="store.isLoading">
+  <div class="flex-1 space-y-6 pt-2" v-if="isInitialLoading">
       <div class="flex items-center justify-center min-h-[400px]">
           <p class="text-muted-foreground animate-pulse">Memuat data target menabung...</p>
       </div>

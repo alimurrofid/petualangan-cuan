@@ -22,9 +22,17 @@ const categoryStore = useCategoryStore();
 const authStore = useAuthStore();
 const swal = useSwal();
 
-onMounted(() => {
-    wishlistStore.fetchItems();
-    categoryStore.fetchCategories();
+const isInitialLoading = ref(true);
+
+onMounted(async () => {
+    try {
+        await Promise.all([
+            wishlistStore.fetchItems(),
+            categoryStore.fetchCategories()
+        ]);
+    } finally {
+        isInitialLoading.value = false;
+    }
 });
 
 // State for Add/Edit Dialog
@@ -146,7 +154,7 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
 </script>
 
 <template>
-  <div class="flex-1 space-y-6 pt-2" v-if="wishlistStore.isLoading">
+  <div class="flex-1 space-y-6 pt-2" v-if="isInitialLoading">
       <div class="flex items-center justify-center min-h-[400px]">
           <p class="text-muted-foreground animate-pulse">Memuat data wishlist...</p>
       </div>

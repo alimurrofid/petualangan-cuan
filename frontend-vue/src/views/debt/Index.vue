@@ -24,11 +24,17 @@ const debtStore = useDebtStore();
 const walletStore = useWalletStore();
 const authStore = useAuthStore();
 
+const isInitialLoading = ref(true);
+
 onMounted(async () => {
-  await Promise.all([
-    debtStore.fetchDebts(),
-    walletStore.fetchWallets()
-  ]);
+  try {
+    await Promise.all([
+        debtStore.fetchDebts(),
+        walletStore.fetchWallets()
+    ]);
+  } finally {
+    isInitialLoading.value = false;
+  }
 });
 
 // Local formatCurrency removed
@@ -241,36 +247,14 @@ const handleCreate = async () => {
             due_date: payload.due_date
         };
         await debtStore.updateDebt(editingId.value, updatePayload);
-         Swal.fire({
-          icon: 'success',
-          title: 'Berhasil',
-          text: 'Data berhasil diperbarui',
-          timer: 1500,
-          showConfirmButton: false
-        });
     } else {
         await debtStore.createDebt(payload);
-         Swal.fire({
-          icon: 'success',
-          title: 'Berhasil',
-          text: 'Data berhasil disimpan',
-          timer: 1500,
-          showConfirmButton: false
-        });
     }
     
     isCreateOpen.value = false;
   } catch (e: any) {
     console.error(e);
-    const errMsg = e.response?.data?.error || 'Terjadi kesalahan saat menyimpan data';
-    if (errMsg.toLowerCase().includes('insufficient')) {
-        return; // Handled by store
-    }
-    Swal.fire({
-      icon: 'error',
-      title: 'Gagal',
-      text: errMsg,
-    });
+    // Error is handled by store (Swal & throwing)
   } finally {
       isSubmitting.value = false;
   }
@@ -287,24 +271,9 @@ const handlePay = async () => {
     await debtStore.payDebt(selectedDebt.value.id, payload);
     isPayOpen.value = false;
     
-    Swal.fire({
-      icon: 'success',
-      title: 'Berhasil',
-      text: 'Pembayaran berhasil diproses',
-      timer: 1500,
-      showConfirmButton: false
-    });
   } catch (e: any) {
     console.error(e);
-    const errMsg = e.response?.data?.error || 'Terjadi kesalahan saat memproses pembayaran';
-    if (errMsg.toLowerCase().includes('insufficient')) {
-        return; // Handled by store
-    }
-    Swal.fire({
-      icon: 'error',
-      title: 'Gagal',
-      text: errMsg,
-    });
+    // Error handled by store
   } finally {
       isSubmitting.value = false;
   }
@@ -343,7 +312,7 @@ const handleDelete = async (id: number) => {
 </script>
 
 <template>
-  <div class="flex-1 space-y-6 pt-2" v-if="debtStore.isLoading">
+  <div class="flex-1 space-y-6 pt-2" v-if="isInitialLoading">
       <div class="flex items-center justify-center min-h-[400px]">
           <p class="text-muted-foreground animate-pulse">Memuat data utang & piutang...</p>
       </div>
