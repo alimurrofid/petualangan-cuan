@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
           ],
           runtimeCaching: [
             {
-              urlPattern: /^\/api\//,
+              urlPattern: /^.*\/api\/.*/,
               handler: 'NetworkOnly',
               options: {
                 cacheName: 'api-cache'
