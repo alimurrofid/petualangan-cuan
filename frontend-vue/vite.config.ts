@@ -44,8 +44,7 @@ export default defineConfig(({ mode }) => {
               urlPattern: /^\/api\//,
               handler: 'NetworkOnly',
               options: {
-                cacheName: 'api-cache',
-                networkTimeoutSeconds: 10
+                cacheName: 'api-cache'
               }
             }
           ]
