@@ -38,6 +38,16 @@ export default defineConfig(({ mode }) => {
           skipWaiting: true,
           navigateFallbackDenylist: [
             /^\/api\//
+          ],
+          runtimeCaching: [
+            {
+              urlPattern: /^\/api\//,
+              handler: 'NetworkOnly',
+              options: {
+                cacheName: 'api-cache',
+                networkTimeoutSeconds: 10
+              }
+            }
           ]
         }
       })
