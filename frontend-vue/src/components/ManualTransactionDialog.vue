@@ -338,7 +338,7 @@ const handleSave = async () => {
                 date: finalDate.toISOString(), // Backend expects ISO string if binding to time.Time JSON
                 description: description.value
             });
-            swal.toast({ icon: 'success', title: 'Berhasil menabung!' });
+            swal.success('Berhasil menabung!');
             emit("update:open", false);
             emit("save", {});
             
@@ -377,7 +377,7 @@ const handleSave = async () => {
             }
 
             await transactionStore.updateTransaction(props.transactionToEdit.id, payload);
-            swal.toast({ icon: 'success', title: 'Transaksi berhasil diperbarui' });
+            swal.success('Transaksi berhasil diperbarui');
         } else if (activeTab.value === 'transfer') {
             await transactionStore.transfer({
                 date: format(finalDate, "yyyy-MM-dd'T'HH:mm:ssXXX"),
@@ -402,7 +402,7 @@ const handleSave = async () => {
             }
 
             await transactionStore.createTransaction(payload);
-            swal.toast({ icon: 'success', title: 'Transaksi berhasil disimpan' });
+            swal.success('Transaksi berhasil disimpan');
 
             // If this transaction came from a wishlist item, mark it as bought
             if (props.wishlistItemId) {

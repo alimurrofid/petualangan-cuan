@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import api from '@/lib/api';
 import { useWalletStore } from './wallet';
 import { useTransactionStore } from './transaction';
-import Swal from 'sweetalert2';
+import { useSwal } from '@/composables/useSwal';
 
 export interface DebtPayment {
   id: number;
@@ -71,6 +71,7 @@ export const useDebtStore = defineStore('debt', () => {
   const receivables = ref<Debt[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  const swal = useSwal();
 
   const fetchDebts = async () => {
     isLoading.value = true;
@@ -101,13 +102,7 @@ export const useDebtStore = defineStore('debt', () => {
       await walletStore.fetchWallets(); // Update balance
       await transactionStore.fetchTransactions(); // Update history
       
-      Swal.fire({
-        icon: 'success',
-        title: 'Berhasil',
-        text: 'Data hutang/piutang berhasil dibuat',
-        timer: 1500,
-        showConfirmButton: false
-      });
+      swal.success('Berhasil', 'Data hutang/piutang berhasil dibuat');
 
       return response.data;
     } catch (err: any) {
@@ -115,17 +110,9 @@ export const useDebtStore = defineStore('debt', () => {
       error.value = errMsg;
       
       if (errMsg.toLowerCase().includes('insufficient')) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Gagal',
-            text: 'Saldo wallet tidak mencukupi!'
-        });
+        swal.error('Gagal', 'Saldo wallet tidak mencukupi!');
       } else {
-        Swal.fire({
-            icon: 'error',
-            title: 'Gagal',
-            text: errMsg
-        });
+        swal.error('Gagal', errMsg);
       }
       throw err;
     } finally {
@@ -140,13 +127,7 @@ export const useDebtStore = defineStore('debt', () => {
       const response = await api.put(`/api/debts/${id}`, input);
       await fetchDebts();
       
-      Swal.fire({
-        icon: 'success',
-        title: 'Berhasil',
-        text: 'Data berhasil diperbarui',
-        timer: 1500,
-        showConfirmButton: false
-      });
+      swal.success('Berhasil', 'Data berhasil diperbarui');
 
       return response.data;
     } catch (err: any) {
@@ -154,17 +135,9 @@ export const useDebtStore = defineStore('debt', () => {
       error.value = errMsg;
 
       if (errMsg.toLowerCase().includes('insufficient')) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Gagal',
-            text: 'Saldo wallet tidak mencukupi!'
-        });
+        swal.error('Gagal', 'Saldo wallet tidak mencukupi!');
       } else {
-        Swal.fire({
-            icon: 'error',
-            title: 'Gagal',
-            text: errMsg
-        });
+        swal.error('Gagal', errMsg);
       }
       throw err;
     } finally {
@@ -183,13 +156,7 @@ export const useDebtStore = defineStore('debt', () => {
       await walletStore.fetchWallets();
       await transactionStore.fetchTransactions();
       
-      Swal.fire({
-        icon: 'success',
-        title: 'Berhasil',
-        text: 'Pembayaran berhasil',
-        timer: 1500,
-        showConfirmButton: false
-      });
+      swal.success('Berhasil', 'Pembayaran berhasil');
 
       return response.data;
     } catch (err: any) {
@@ -197,17 +164,9 @@ export const useDebtStore = defineStore('debt', () => {
       error.value = errMsg;
 
       if (errMsg.toLowerCase().includes('insufficient')) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Gagal',
-            text: 'Saldo wallet tidak mencukupi!'
-        });
+        swal.error('Gagal', 'Saldo wallet tidak mencukupi!');
       } else {
-        Swal.fire({
-            icon: 'error',
-            title: 'Gagal',
-            text: errMsg
-        });
+        swal.error('Gagal', errMsg);
       }
       throw err;
     } finally {

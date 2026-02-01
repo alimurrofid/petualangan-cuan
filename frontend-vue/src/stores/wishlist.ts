@@ -41,7 +41,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
         try {
             await api.post('/api/wishlist', data);
             await fetchItems();
-            swal.toast({ icon: 'success', title: 'Keinginan berhasil ditambahkan' });
+            swal.success('Keinginan berhasil ditambahkan');
             return true;
         } catch (error) {
             swal.error('Gagal', 'Gagal menambahkan keinginan');
@@ -53,7 +53,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
         try {
             await api.put(`/api/wishlist/${id}`, data);
             await fetchItems();
-            swal.toast({ icon: 'success', title: 'Keinginan berhasil diperbarui' });
+            swal.success('Keinginan berhasil diperbarui');
             return true;
         } catch (error) {
             swal.error('Gagal', 'Gagal memperbarui keinginan');
@@ -68,7 +68,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
         try {
             await api.delete(`/api/wishlist/${id}`);
             await fetchItems();
-            swal.toast({ icon: 'success', title: 'Keinginan berhasil dihapus' });
+            swal.success('Keinginan berhasil dihapus');
             return true;
         } catch (error) {
             swal.error('Gagal', 'Gagal menghapus keinginan');

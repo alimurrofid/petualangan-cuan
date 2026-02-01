@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import api from "@/lib/api";
 import { useSwal } from "@/composables/useSwal";
-import Swal from "sweetalert2";
+
 
 export const useSavingGoalStore = defineStore("savingGoal", () => {
     const goals = ref<any[]>([]);
@@ -37,13 +37,7 @@ export const useSavingGoalStore = defineStore("savingGoal", () => {
         try {
             await api.post(`/api/saving-goals/${goalId}/contributions`, payload);
             
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil',
-                text: 'Berhasil menabung ke target goal',
-                timer: 1500,
-                showConfirmButton: false
-            });
+            swal.success('Berhasil', 'Berhasil menabung ke target goal');
             
             return true;
         } catch (error: any) {
@@ -51,17 +45,9 @@ export const useSavingGoalStore = defineStore("savingGoal", () => {
             const errMsg = error.response?.data?.error || "Gagal menabung";
             
             if (errMsg.toLowerCase().includes('insufficient')) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal',
-                    text: 'Saldo wallet tidak mencukupi!'
-                });
+                swal.error('Gagal', 'Saldo wallet tidak mencukupi!');
             } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal',
-                    text: errMsg
-                });
+                swal.error('Gagal', errMsg);
             }
             throw error;
         }

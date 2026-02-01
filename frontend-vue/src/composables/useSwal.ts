@@ -40,11 +40,9 @@ export function useSwal() {
   }
 
   const success = (title: string, text: string = '') => {
-    return fire({
+    return toast({
       icon: 'success',
-      title,
-      text,
-      confirmButtonColor: '#10B981',
+      title: title + (text ? ` - ${text}` : ''),
     })
   }
 
@@ -71,7 +69,7 @@ export function useSwal() {
       toast: true,
       position: 'top-end',
       showConfirmButton: false,
-      timer: 3000,
+      timer: 1500,
       timerProgressBar: true,
       didOpen: (toast) => {
         toast.addEventListener('mouseenter', Swal.stopTimer)
@@ -123,7 +121,7 @@ export function useSwal() {
     success,
     error,
     warning,
-    toast,
+
     confirm,
     confirmDelete,
     handleSwalInteractOutside

@@ -44,10 +44,7 @@ const handleDelete = async (t: any) => {
     if (result.isConfirmed) {
         try {
             await transactionStore.deleteTransaction(t.id);
-            swal.toast({
-                icon: 'success',
-                title: 'Transaksi berhasil dihapus'
-            });
+            swal.success('Transaksi berhasil dihapus');
         } catch (error: any) {
             const errMsg = error.response?.data?.error || "";
             // If insufficient balance, store handles it with Swal.fire
@@ -55,10 +52,7 @@ const handleDelete = async (t: any) => {
                 return;
             }
             
-            swal.toast({
-                icon: 'error',
-                title: 'Gagal menghapus transaksi'
-            });
+            swal.error('Gagal', 'Gagal menghapus transaksi');
         }
     }
 };
