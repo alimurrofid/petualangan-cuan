@@ -37,10 +37,7 @@ export default defineConfig(({ mode }) => {
           clientsClaim: true,
           skipWaiting: true,
           navigateFallbackDenylist: [
-            /^\/api\//,
-            /^\/auth\//,
-            /[?&]code=/,
-            /[?&]state=/,
+            /^\/api\//
           ],
           runtimeCaching: [
             {
