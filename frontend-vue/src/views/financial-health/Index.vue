@@ -3,7 +3,7 @@ import { computed, onMounted } from 'vue';
 import { useFinancialHealthStore } from '@/stores/financialHealth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RotateCcw, TrendingUp, Scale, HeartPulse, PiggyBank, ShieldCheck, AlertTriangle, AlertOctagon } from 'lucide-vue-next';
+import { RotateCcw, TrendingUp, Scale, HeartPulse, PiggyBank, ShieldCheck, AlertTriangle, AlertOctagon, ShieldPlus } from 'lucide-vue-next';
 
 const store = useFinancialHealthStore();
 
@@ -104,9 +104,9 @@ function getCardBorderClass(status: string) {
 }
 
 const getIcon = (name: string) => {
-    if (name.includes('Savings')) return PiggyBank;
+    if (name.includes('Rasio Tabungan')) return PiggyBank;
     if (name.includes('Dana Darurat')) return ShieldCheck;
-    if (name.includes('Debt')) return Scale;
+    if (name.includes('Rasio Utang Terhadap Pendapatan')) return Scale;
     return TrendingUp;
 }
 
@@ -148,7 +148,7 @@ const getStatusIcon = (status: string) => {
             <div class="relative z-10 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-10">
                 <div class="flex-1 text-center md:text-left space-y-3">
                     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-background/80 backdrop-blur-sm border border-border shadow-sm">
-                        <Scale class="w-3 h-3" />
+                        <ShieldPlus class="w-3 h-3" />
                         Diagnosa Umum
                     </div>
                      <h3 class="text-2xl sm:text-3xl font-bold text-foreground leading-tight">

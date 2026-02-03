@@ -15,20 +15,20 @@ export default defineConfig(({ mode }) => {
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
           name: 'Petualangan Cuan',
-          short_name: 'Cuan',
+          short_name: 'Petualangan Cuan',
           description: 'Aplikasi pencatat keuangan pribadi',
-          theme_color: '#ffffff',
+          theme_color: '#065f46',
           icons: [
+            {
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png'
+            },
             {
               src: 'pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png'
             },
-            {
-              src: 'pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png'
-            }
           ]
         },
         workbox: {
