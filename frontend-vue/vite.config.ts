@@ -17,7 +17,8 @@ export default defineConfig(({ mode }) => {
           name: 'Petualangan Cuan',
           short_name: 'Petualangan Cuan',
           description: 'Aplikasi pencatat keuangan pribadi',
-          theme_color: '#065f46',
+          theme_color: '#ffffff',
+          background_color: '#065f46',
           icons: [
             {
               src: 'pwa-512x512.png',
