@@ -37,9 +37,6 @@ onMounted(async () => {
   }
 });
 
-// Local formatCurrency removed
-
-// Summary Stats
 const totalDebt = computed(() => {
   return debtStore.debts.reduce((sum: number, d: Debt) => sum + d.remaining, 0);
 });
@@ -48,7 +45,6 @@ const totalReceivable = computed(() => {
   return debtStore.receivables.reduce((sum: number, d: Debt) => sum + d.remaining, 0);
 });
 
-// Filter & List Logic
 const filterType = ref<'all' | 'debt' | 'receivable'>('all');
 const filterWallet = ref<string[]>([]);
 
@@ -72,21 +68,18 @@ const filteredItems = computed(() => {
 const activeItems = computed(() => filteredItems.value.filter(item => !item.is_paid));
 const completedItems = computed(() => filteredItems.value.filter(item => item.is_paid));
 
-// Dialog States
 const isCreateOpen = ref(false);
 const isEditMode = ref(false);
 const editingId = ref<number | null>(null);
 const isPayOpen = ref(false);
 const isDetailOpen = ref(false);
-const activeTab = ref("debt"); // 'debt' or 'receivable'
+const activeTab = ref("debt");
 const selectedDebt = ref<Debt | null>(null);
 const isSubmitting = ref(false);
 
-// Display Refs for loose binding
 const createAmountDisplay = ref("");
 const payAmountDisplay = ref("");
 
-// Forms
 const createForm = reactive<CreateDebtInput>({
   name: "",
   amount: 0,
@@ -102,7 +95,6 @@ const payForm = reactive<PayDebtInput>({
   note: "",
 });
 
-// Helper for Wallet Selection
 const walletOptions = computed(() => walletStore.wallets.map(w => ({
     value: String(w.id),
     label: w.name,
@@ -118,7 +110,6 @@ const resetFilters = () => {
 
 
 
-// Sync Create Amount
 watch(createAmountDisplay, (val) => {
     const formatted = formatCurrencyLive(val);
     if(formatted !== val) { createAmountDisplay.value = formatted; return; }
@@ -133,7 +124,6 @@ const onCreateBlur = () => {
     if(num) createAmountDisplay.value = formatCurrencyInput(num);
 };
 
-// Sync Pay Amount
 watch(payAmountDisplay, (val) => {
     const formatted = formatCurrencyLive(val);
     if(formatted !== val) { payAmountDisplay.value = formatted; return; }
@@ -143,9 +133,7 @@ const onPayBlur = () => {
     const num = parseCurrencyInput(payAmountDisplay.value);
     if(num) payAmountDisplay.value = formatCurrencyInput(num);
 };
-// Pay amount is usually initialized from remaining, so we need init watcher or manual init.
 
-// Proxy for Select
 const createWalletIdProxy = computed({
   get: () => String(createForm.wallet_id),
   set: (val: string) => createForm.wallet_id = Number(val)
@@ -156,9 +144,8 @@ const payWalletIdProxy = computed({
   set: (val: string) => payForm.wallet_id = Number(val)
 });
 
-// Watch for tab change in Create Dialog to update form type
 const onTabChange = (val: string | number) => {
-    if (isEditMode.value) return; // Prevent changing type in edit mode
+    if (isEditMode.value) return;
     createForm.type = val as 'debt' | 'receivable';
     activeTab.value = val as string;
 };
@@ -166,7 +153,7 @@ const onTabChange = (val: string | number) => {
 const openCreateDialog = () => {
   isEditMode.value = false;
   editingId.value = null;
-  activeTab.value = 'debt'; // Default
+  activeTab.value = 'debt';
   createForm.type = 'debt';
   createForm.name = "";
   createForm.amount = 0;
@@ -254,7 +241,6 @@ const handleCreate = async () => {
     isCreateOpen.value = false;
   } catch (e: any) {
     console.error(e);
-    // Error is handled by store (Swal & throwing)
   } finally {
       isSubmitting.value = false;
   }
@@ -273,7 +259,6 @@ const handlePay = async () => {
     
   } catch (e: any) {
     console.error(e);
-    // Error handled by store
   } finally {
       isSubmitting.value = false;
   }

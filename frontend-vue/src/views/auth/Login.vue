@@ -23,7 +23,6 @@ const handleLogin = async () => {
         email: email.value,
         password: password.value
     });
-    // Redirect handled in store or here. Store handles it currently.
   } catch (error: any) {
     if (error.response && error.response.data && error.response.data.error) {
         errorMessage.value = error.response.data.error;

@@ -23,7 +23,6 @@ const tabs = [
   { id: "whatsapp", label: "Integrasi WhatsApp" },
 ];
 
-// Settings Data (Static for now)
 const formData = ref({
     language: "Indonesia",
     timezone: "Asia/Jakarta (GMT+7)",
@@ -31,13 +30,11 @@ const formData = ref({
     showDecimal: "Hide"
 });
 
-// Profile Data
 const profileForm = ref({
     name: "",
     email: ""
 });
 
-// Password Data
 const passwordForm = ref({
     new_password: "",
     confirm_password: ""
@@ -75,7 +72,6 @@ watch(() => authStore.user, () => {
     initProfile();
 }, { deep: true });
 
-// Validation Errors
 const errors = ref({
     profile: {
         name: false,
@@ -117,12 +113,10 @@ const handleUpdateProfile = async () => {
 };
 
 const handleUpdatePassword = async () => {
-    // Reset errors
     errors.value.password.new = !passwordForm.value.new_password;
     errors.value.password.confirm = !passwordForm.value.confirm_password;
     errors.value.password.match = false;
     
-    // Check required fields
     if (errors.value.password.new || errors.value.password.confirm) {
         let msg = "Mohon lengkapi data berikut:";
         if (errors.value.password.new) msg += "<br>- Password Baru";
@@ -137,7 +131,6 @@ const handleUpdatePassword = async () => {
         return;
     }
 
-    // Check matching
     if (passwordForm.value.new_password !== passwordForm.value.confirm_password) {
         errors.value.password.match = true;
          await swal.fire({

@@ -27,7 +27,7 @@ const authStore = useAuthStore();
 type PeriodType = 'monthly' | 'weekly' | 'daily' | 'custom';
 
 const filterWalletIds = ref<string[]>([]);
-const filterType = ref<string>("all"); // Default to all as requested
+const filterType = ref<string>("all");
 const periodType = ref<PeriodType>('monthly');
 const selectedDate = ref(new Date());
 const customDateRange = ref({
@@ -43,7 +43,6 @@ watch(periodType, (val) => {
 });
 
 onMounted(async () => {
-    // Fetch initial data
     await Promise.all([
         walletStore.fetchWallets(),
         categoryStore.fetchCategories()
@@ -106,15 +105,12 @@ const fetchReportData = async () => {
     );
 };
 
-// Watch for changes in filters to re-fetch
 watch([dateRange, filterWalletIds, filterType], () => {
     fetchReportData();
 }, { deep: true });
 
-// Use store data directly
 const reportData = computed(() => transactionStore.reportData);
 
-// Charts & Visuals
 const totalAmount = computed(() => {
     return reportData.value.reduce((sum: number, item: CategoryBreakdown) => sum + item.total_amount, 0);
 });
@@ -157,8 +153,6 @@ const chartOptions = computed(() => {
     };
 });
 
-
-
 const getDisplayPercentage = (item: CategoryBreakdown) => {
     if (item.type === 'expense') {
         if (item.budget_limit > 0) {
@@ -166,7 +160,6 @@ const getDisplayPercentage = (item: CategoryBreakdown) => {
         }
         return 0;
     }
-    // Fallback to percentage of total amount displayed (contribution)
     if (totalAmount.value === 0) return 0;
     return Math.round((item.total_amount / totalAmount.value) * 100);
 };

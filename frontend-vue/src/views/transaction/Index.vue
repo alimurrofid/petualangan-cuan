@@ -21,7 +21,6 @@ const transactionStore = useTransactionStore();
 const walletStore = useWalletStore();
 const categoryStore = useCategoryStore();
 
-// Filter States
 type PeriodType = 'monthly' | 'weekly' | 'daily' | 'custom';
 const periodType = ref<PeriodType>('monthly');
 const selectedDate = ref(new Date());
@@ -34,10 +33,6 @@ const filterWallet = ref<string[]>([]);
 const filterCategory = ref<string[]>([]);
 const searchQuery = ref("");
 
-// Data States
-
-
-// Derived Date Range
 const dateRange = computed(() => {
   const date = selectedDate.value;
   switch (periodType.value) {
@@ -82,14 +77,10 @@ const updateCustomDateRange = (range: { start: Date, end: Date }) => {
   customDateRange.value = range;
 };
 
-// Fetch Data Logic
 const fetchData = async (page = 1) => {
   const { start, end } = dateRange.value;
-  // Format with time to ensure full day coverage
   const startDateStr = format(start, 'yyyy-MM-dd HH:mm:ss');
   const endDateStr = format(end, 'yyyy-MM-dd HH:mm:ss');
-
-  // Sync store filters
   transactionStore.setFilters({
     page,
     limit: 10,
@@ -100,15 +91,10 @@ const fetchData = async (page = 1) => {
     search: searchQuery.value,
   });
 
-  // Fetch both list and summary/chart data
   await transactionStore.refreshData();
 };
 
-// ...
-
-// Watchers
 watch([periodType, selectedDate, customDateRange, filterWallet, filterCategory, searchQuery], () => {
-  // Reset to page 1 on filter change
   fetchData(1);
 }, { deep: true });
 
@@ -124,7 +110,6 @@ const onPageChange = (page: number) => {
   fetchData(page);
 };
 
-// Edit Logic
 const showDialog = ref(false);
 const transactionToEdit = ref<any>(null);
 
@@ -134,9 +119,8 @@ const handleEdit = (t: any) => {
 };
 
 const handleSave = () => {
-  // Store already refreshes data
   showDialog.value = false;
-  transactionToEdit.value = null; // Reset
+  transactionToEdit.value = null;
 };
 
 
@@ -155,10 +139,6 @@ const handleExport = async () => {
     console.error("Export failed", e);
   }
 };
-
-
-
-// ... existing code ...
 
 const localSearch = ref("");
 let debounceTimer: any = null;
@@ -263,5 +243,4 @@ watch(localSearch, (val) => {
 </template>
 
 <style scoped>
-/* Scoped styles if any */
 </style>

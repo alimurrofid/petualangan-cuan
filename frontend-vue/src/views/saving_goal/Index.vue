@@ -19,7 +19,7 @@ import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrency
 import { useSwal } from "@/composables/useSwal";
 
 const store = useSavingGoalStore();
-const walletStore = useWalletStore(); // Ensure wallets are loaded for contribution
+const walletStore = useWalletStore();
 const categoryStore = useCategoryStore();
 const authStore = useAuthStore();
 const swal = useSwal();
@@ -32,14 +32,12 @@ const selectedGoalForContribution = ref<any>(null);
 const selectedGoal = ref<any>(null);
 const isSubmitting = ref(false);
 
-// Form for New Goal
 const newGoalName = ref("");
 const newGoalTarget = ref("");
 const newGoalTargetDisplay = ref("");
 const newGoalDeadline = ref("");
 const newGoalCategory = ref("");
 
-// Handling Create
 const handleCreate = async () => {
     if (!newGoalName.value || !newGoalTarget.value || !newGoalCategory.value) return;
 
@@ -75,7 +73,6 @@ const handleCreate = async () => {
     }
 };
 
-// Open Contribute Dialog via ManualTransactionDialog
 const openContribute = (goal: any) => {
     selectedGoalForContribution.value = goal;
     isContributeOpen.value = true;
@@ -141,18 +138,15 @@ const handleFinish = async (goal: any) => {
         const success = await store.finishGoal(goal.id);
         if (success) {
             swal.success("Selamat! 🎉", "Target tercapai dan dana berhasil dicairkan ke dompet.");
-             walletStore.fetchWallets(); // Real-time wallet update
+             walletStore.fetchWallets();
         }
     }
 };
-
-// Close Handlers
 const handleContributeClose = () => {
     isContributeOpen.value = false;
     selectedGoalForContribution.value = null;
-    // Refresh to get updated amounts
     store.fetchGoals();
-    walletStore.fetchWallets(); // Refresh wallet balances (available balance update)
+    walletStore.fetchWallets();
 };
 
 const isInitialLoading = ref(true);
@@ -169,17 +163,11 @@ onMounted(async () => {
     }
 });
 
-// Local formatCurrency removed, using imported one
-
 const getProgress = (current: number, target: number) => {
     if (target === 0) return 0;
     return Math.min((current / target) * 100, 100);
 };
 
-// Nominal Input Formatting
-
-
-// Sync Display -> Model
 watch(newGoalTargetDisplay, (val) => {
     const formatted = formatCurrencyLive(val);
     if (formatted !== val) {
@@ -423,7 +411,6 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-
 
         <ManualTransactionDialog 
             v-if="isContributeOpen"

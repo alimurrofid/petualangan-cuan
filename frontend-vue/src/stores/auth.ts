@@ -59,7 +59,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     const refreshAccessToken = async () => {
         try {
-            // Cookie is sent automatically withCredentials: true
             const response = await api.post('/api/auth/refresh');
             
             token.value = response.data.token;
@@ -101,8 +100,6 @@ export const useAuthStore = defineStore('auth', () => {
             return user.value;
         } catch (error) {
             console.error("Failed to fetch user:", error);
-            // Optional: logout if token is invalid
-            // logout(); 
         }
     };
 

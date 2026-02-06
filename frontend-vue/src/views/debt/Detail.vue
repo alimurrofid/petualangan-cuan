@@ -37,14 +37,6 @@ const handleDeletePayment = async (paymentId: number) => {
       try {
           await debtStore.deletePayment(paymentId);
           Swal.fire('Terhapus!', 'Data pembayaran berhasil dihapus.', 'success');
-          // Note: The parent component relies on store data. 
-          // Store already refetches data after deletePayment.
-          // However, we might need to close/re-open or just rely on reactivity if `debt` prop is reactive from store list.
-          // Since `debt` prop is passed from Index.vue which takes it from `filteredItems` (computed from store),
-          // it SHOULD update automatically if the parent re-renders or if the object reference is kept.
-          // But `filteredItems` creates new array. We might need to ensure the parent updates the selected `debt` prop.
-          // Actually, standard pattern is to close details or rely on reactivity. 
-          // Let's assume reactivity works if strict ID matching is used, or we just close.
       } catch (e: any) {
           Swal.fire('Gagal', e.message || 'Terjadi kesalahan', 'error');
       }

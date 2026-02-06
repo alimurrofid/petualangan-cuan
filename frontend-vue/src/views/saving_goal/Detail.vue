@@ -35,18 +35,9 @@ const handleDeleteContribution = async (contributionId: number) => {
     });
 
     if (result.isConfirmed) {
-        // Optimistic update or wait for re-fetch? Store re-fetches.
-        // We need to close or update the local `goal` prop?
-        // The parent binds `selectedGoal`. When store updates `goals`, `selectedGoal` might not verify if it's the same refernece.
-        // `Index.vue` uses `selectedGoal` ref.
-        // If store.fetchGoals() runs, it creates NEW objects. `selectedGoal` will be STALE.
-        // We need to emit an event or handle it.
-        // Or simpler: close dialog. Use user preference from Debt?
-        // Debt re-fetches. Let's try closing dialog or updating local state (harder).
-        // Let's just call store and see. Ideally, we emit 'refresh' or close.
         await store.deleteContribution(props.goal.id, contributionId);
         Swal.fire('Terhapus!', 'Data berhasil dihapus.', 'success');
-        emit("update:open", false); // Close dialog to avoid stale data
+        emit("update:open", false);
     }
 };
 

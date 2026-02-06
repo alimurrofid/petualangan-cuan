@@ -13,7 +13,6 @@ import { emojiCategories, getEmoji, getIconComponent, categoryIcons } from "@/li
 import { Plus, Pencil, Trash2, LayoutGrid, Save, TrendingUp, TrendingDown } from "lucide-vue-next";
 import { formatCurrencyInput, parseCurrencyInput, formatCurrencyLive } from "@/lib/utils";
 
-// Define the form structure (frontend representation)
 interface CategoryForm {
   id: number;
   name: string;
@@ -72,7 +71,6 @@ const openEdit = (category: Category) => {
     name: category.name,
     icon: category.icon || "",
     type: category.type,
-    // Note: Backend JSON for budget_limit -> category.budget_limit
     budgetLimit: category.budget_limit || 0,
   };
   budgetLimitDisplay.value = category.budget_limit ? formatCurrencyInput(category.budget_limit) : "";
@@ -102,7 +100,6 @@ const handleSave = async () => {
           html: msg,
           confirmButtonColor: '#EF4444', 
       });
-      // Small delay to prevent ghost clicks after modal closes
       setTimeout(() => { isSubmitting.value = false; }, 300);
       return;
   }

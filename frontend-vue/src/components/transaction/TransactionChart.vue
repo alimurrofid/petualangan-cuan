@@ -11,12 +11,10 @@ const props = defineProps<{
 }>();
 
 const processedData = computed(() => {
-    // If not daily, or no data, just return as is
     if (props.periodType !== 'daily') {
         return props.summaryData;
     }
 
-    // Generate 24 hours slots
     const firstItem = props.summaryData[0];
     const baseDate = firstItem ? parseISO(firstItem.date) : new Date();
     const dayStart = startOfDay(baseDate);
@@ -25,7 +23,6 @@ const processedData = computed(() => {
     for (let i = 0; i < 24; i++) {
         const currentHour = addHours(dayStart, i);
         
-        // Find if we have data for this hour
         const match = props.summaryData.find(d => {
             const dDate = parseISO(d.date);
             return isSameHour(dDate, currentHour);

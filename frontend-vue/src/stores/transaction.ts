@@ -87,7 +87,6 @@ export const useTransactionStore = defineStore('transaction', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  // Filter State
   const filters = ref<TransactionFilterParams>({
     page: 1,
     limit: 10,
@@ -107,7 +106,6 @@ export const useTransactionStore = defineStore('transaction', () => {
     isLoading.value = true;
     error.value = null;
     
-    // Merge provided params with current store filters
     const finalParams = { ...filters.value, ...params };
 
     try {
@@ -146,7 +144,7 @@ export const useTransactionStore = defineStore('transaction', () => {
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Failed to fetch transactions';
       console.error(err);
-      return null; // Return null on error to avoid breaking Promise.all
+      return null;
     } finally {
       isLoading.value = false;
     }
@@ -201,7 +199,6 @@ export const useTransactionStore = defineStore('transaction', () => {
     const walletStore = useWalletStore();
     try {
       const response = await api.post('/api/transactions', input);
-      // Refresh transactions and wallets (balance changed)
       await refreshData();
       await walletStore.fetchWallets();
       
@@ -301,7 +298,6 @@ export const useTransactionStore = defineStore('transaction', () => {
     const walletStore = useWalletStore();
     try {
       await api.delete(`/api/transactions/${id}`);
-      // Refresh transactions and wallets (balance reverted)
       await refreshData();
       await walletStore.fetchWallets();
     } catch (err: any) {
@@ -330,7 +326,6 @@ export const useTransactionStore = defineStore('transaction', () => {
   const fetchCalendarData = async (startDate?: string, endDate?: string, walletId?: number | string, categoryId?: number | string, search?: string) => {
     isLoading.value = true;
     try {
-      // Use provided params or store filters
       const start = startDate || filters.value.start_date;
       const end = endDate || filters.value.end_date;
       const wId = walletId || filters.value.wallet_id;
@@ -380,7 +375,6 @@ export const useTransactionStore = defineStore('transaction', () => {
   };
 
   const exportTransactions = async (params: TransactionFilterParams = {}) => {
-    // Merge provided params with current store filters
     const finalParams = { ...filters.value, ...params };
     try {
         const queryParams = new URLSearchParams();
@@ -440,7 +434,6 @@ export const useTransactionStore = defineStore('transaction', () => {
   };
 
   const refreshData = async () => {
-      // Refresh with current filters
       await Promise.all([
           fetchTransactions(),
           fetchCalendarData()

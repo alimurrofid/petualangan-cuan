@@ -34,7 +34,6 @@ const localStartDate = ref<Date | undefined>(props.startDate);
 const localEndDate = ref<Date | undefined>(props.endDate);
 const currentMonth = ref(props.startDate || new Date());
 
-// Sync props to local if they change externally
 watch(() => props.startDate, (val) => { if(val) localStartDate.value = val; currentMonth.value = val || new Date(); });
 watch(() => props.endDate, (val) => { if(val) localEndDate.value = val; });
 
@@ -65,26 +64,21 @@ const isInRange = (date: Date) => {
 };
 
 const handleDateClick = (date: Date) => {
-    // 1. If nothing selected, set start
     if (!localStartDate.value && !localEndDate.value) {
         localStartDate.value = date;
         return;
     }
     
-    // 2. If both selected, reset and start new
     if (localStartDate.value && localEndDate.value) {
         localStartDate.value = date;
         localEndDate.value = undefined;
         return;
     }
     
-    // 3. If only start selected
     if (localStartDate.value) {
         if (isBefore(date, localStartDate.value)) {
-            // If clicked before start, update start
             localStartDate.value = date; 
         } else {
-             // Set end
              localEndDate.value = date;
         }
     }
@@ -100,7 +94,6 @@ const nextMonth = () => {
 
 const apply = () => {
     if (localStartDate.value && localEndDate.value) {
-        // Emit atomic update
         emit("update:range", { start: localStartDate.value, end: localEndDate.value });
         emit("apply");
     }

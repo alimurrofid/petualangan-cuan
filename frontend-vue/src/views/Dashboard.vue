@@ -36,27 +36,22 @@ const isMounted = ref(false);
 onMounted(() => {
     dashboardStore.fetchDashboard();
     healthStore.fetchFinancialHealth();
-    // Delay slightly to ensure layout is calculated
     setTimeout(() => {
         isMounted.value = true;
     }, 100);
 });
 
-// Charts & Visuals
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
 };
 
-// Trend Chart
 const filledMonthlyTrend = computed(() => {
     if (!data.value) return [];
     
     const filled: { date: string; income: number; expense: number }[] = [];
     const today = new Date();
     
-    // Generate last 6 months
     for (let i = 5; i >= 0; i--) {
-        // We just need YYYY-MM keys
         const dateObj = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const key = format(dateObj, 'yyyy-MM');
         
@@ -121,7 +116,6 @@ const chartOptionsArea = computed(() => ({
   }
 }));
 
-// Donut Chart (Breakdown)
 const chartSeriesDonut = computed(() => {
     return data.value?.expense_breakdown?.map(item => item.total_amount) || [];
 });
@@ -166,13 +160,10 @@ const chartOptionsDonut = computed(() => ({
     }
 }));
 
-// Budget Status (Top 5 Expenses)
 const budgetStatus = computed(() => {
     if (!data.value || !data.value.expense_breakdown) return [];
-    // Filter expense items that have budget logic or just use breakdown
     return data.value.expense_breakdown
         .filter(item => item.type === 'expense')
-        // Removed slice(0, 5) to show all categories as requested
         .map(item => {
             const limit = item.budget_limit || 0;
             const spent = item.total_amount;
@@ -193,12 +184,9 @@ const getWalletColorClass = (type: string) => {
     const t = type.toLowerCase();
     if (t.includes('bank')) return 'from-blue-500 to-blue-600 text-white';
     if (t.includes('wallet')) return 'from-purple-500 to-purple-600 text-white';
-    // Cash or others
     return 'from-emerald-500 to-emerald-600 text-white'; 
 };
 
-
-// Recent Transactions Grouping
 const groupedRecentTransactions = computed(() => {
     if (!data.value || !data.value.recent_transactions) return [];
     const groups: Record<string, any[]> = {};

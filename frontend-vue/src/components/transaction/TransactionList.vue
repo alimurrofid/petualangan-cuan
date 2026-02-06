@@ -47,7 +47,6 @@ const handleDelete = async (t: any) => {
             swal.success('Transaksi berhasil dihapus');
         } catch (error: any) {
             const errMsg = error.response?.data?.error || "";
-            // If insufficient balance, store handles it with Swal.fire
             if (errMsg.toLowerCase().includes('insufficient')) {
                 return;
             }
@@ -60,7 +59,6 @@ const handleDelete = async (t: any) => {
 const groupedTransactions = computed(() => {
     const groups: Record<string, any[]> = {};
     transactionStore.transactions.forEach(t => {
-        // Use local timezone for grouping key
         const dateObj = parseISO(t.date);
         const dateKey = format(dateObj, 'yyyy-MM-dd');
         if (!groups[dateKey]) groups[dateKey] = [];
@@ -73,11 +71,9 @@ const groupedTransactions = computed(() => {
         const date = parseISO(dateStr);
         let label = format(date, 'EEEE, d MMMM yyyy', { locale: id });
 
-        // Compare with today using local time
         const today = new Date();
         const yesterday = subDays(today, 1);
 
-        // We compare using formatted strings to avoid time discrepancies
         if (format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) label = "Hari Ini";
         if (format(date, 'yyyy-MM-dd') === format(yesterday, 'yyyy-MM-dd')) label = "Kemarin";
 

@@ -35,7 +35,6 @@ onMounted(async () => {
     }
 });
 
-// State for Add/Edit Dialog
 const isDialogOpen = ref(false);
 const isEditing = ref(false);
 const editingId = ref<number | null>(null);
@@ -48,7 +47,6 @@ const form = ref({
 const estimatedPriceDisplay = ref("");
 const isSubmitting = ref(false);
 
-// State for Buy Dialog
 const isBuyDialogOpen = ref(false);
 const selectedItemToBuy = ref<WishlistItem | null>(null);
 
@@ -116,20 +114,13 @@ const handleBuy = (item: WishlistItem) => {
 };
 
 const onTransactionSaved = () => {
-    // This is called when ManualTransactionDialog successfully saves.
-    // It should also trigger markAsBought via internal logic we added to dialog,
-    // BUT we need to refresh wishlist list to see the update.
     wishlistStore.fetchItems();
     isBuyDialogOpen.value = false;
     selectedItemToBuy.value = null;
 };
 
-// Formatting Helper
 const formatRp = (val: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 2 }).format(val);
 
-
-
-// Sync Display -> Model
 watch(estimatedPriceDisplay, (val) => {
     const formatted = formatCurrencyLive(val);
     if (formatted !== val) {

@@ -47,9 +47,6 @@ const totalAvailable = computed(() => {
     return wallets.value.reduce((sum: any, w: any) => sum + (w.available_balance || 0), 0);
 });
 
-
-
-// Sync Display -> Model
 watch(balanceDisplay, (val) => {
     const formatted = formatCurrencyLive(val);
     if (formatted !== val) {
@@ -59,7 +56,7 @@ watch(balanceDisplay, (val) => {
     const num = parseCurrencyInput(val);
     form.value.balance = num;
 });
-// Sync Model -> Display (initial or external)
+
 watch(() => form.value.balance, (val) => {
     const num = Number(val);
     const currentParsed = parseCurrencyInput(balanceDisplay.value);
@@ -118,7 +115,6 @@ const handleSave = async () => {
           html: msg,
           confirmButtonColor: '#EF4444', 
       });
-      // Small delay to prevent ghost clicks after modal closes
       setTimeout(() => { isSubmitting.value = false; }, 300);
       return;
   }
@@ -158,8 +154,6 @@ const handleDelete = async () => {
     }
   }
 };
-
-// Local formatCurrency removed
 
 const getCardGradient = (type: string) => {
     switch (type) {

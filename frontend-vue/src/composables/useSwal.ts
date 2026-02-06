@@ -108,7 +108,6 @@ export function useSwal() {
     )
   }
 
-  // Handle interacting outside of Shadcn Dialog when SweetAlert is open
   const handleSwalInteractOutside = (e: Event) => {
     const target = e.target as HTMLElement;
     if (target?.closest('.swal2-container')) {

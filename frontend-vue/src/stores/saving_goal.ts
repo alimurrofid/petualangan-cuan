@@ -79,9 +79,7 @@ export const useSavingGoalStore = defineStore("savingGoal", () => {
 
     const deleteContribution = async (goalId: number, contributionId: number) => {
         try {
-            // Note: The route is typically /api/saving-goals/:id/contributions/:contribution_id
             await api.delete(`/api/saving-goals/${goalId}/contributions/${contributionId}`);
-            // Fetch goals again to update progress
             await fetchGoals();
             return true;
         } catch (error: any) {

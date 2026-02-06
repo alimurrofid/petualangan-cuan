@@ -25,7 +25,7 @@ const props = defineProps<{
         description?: string;
     } | null;
     wishlistItemId?: number | null;
-    savingGoalTarget?: any | null; // New prop for Saving Goal
+    savingGoalTarget?: any | null;
 }>();
 
 const emit = defineEmits<{
@@ -47,8 +47,8 @@ const date = ref(format(new Date(), "yyyy-MM-dd"));
 const amount = ref("");
 const amountDisplay = ref("");
 const selectedWallet = ref("");
-const toWallet = ref(""); // New field for transfer
-const transferFee = ref(""); // New field for transfer fee
+const toWallet = ref("");
+const transferFee = ref("");
 const transferFeeDisplay = ref("");
 const selectedCategory = ref("");
 const description = ref("");
@@ -58,21 +58,18 @@ const existingAttachment = ref("");
 const isProcessingFile = ref(false);
 
 const handleFileChange = async (event: Event) => {
-    // Explicitly cast to HTMLInputElement
     const target = event.target as HTMLInputElement;
     if (target.files && target.files.length > 0) {
         const selectedFile = target.files[0];
         if (!selectedFile) return;
 
-        // 1. Validate Size (5MB)
         if (selectedFile.size > 5 * 1024 * 1024) {
             await swal.error("Gagal", "Ukuran file maksimal 5MB");
-            target.value = ""; // Reset
+            target.value = "";
             file.value = null;
             return;
         }
 
-        // 2. Initial Type Check & HEIC Conversion
         const fileType = selectedFile.type.toLowerCase();
         const fileName = selectedFile.name.toLowerCase();
 
@@ -85,15 +82,12 @@ const handleFileChange = async (event: Event) => {
                     quality: 0.8
                 });
 
-                // Handle array or single blob
                 const finalBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
 
                 if (!finalBlob) {
                     throw new Error("Conversion resulted in empty blob");
                 }
 
-                // Create new File from blob
-                // Note: We rename it to .jpg
                 const newName = fileName.replace(/\.heic$/, ".jpg");
                 file.value = new File([finalBlob], newName, { type: "image/jpeg" });
             } catch (e) {
@@ -105,45 +99,34 @@ const handleFileChange = async (event: Event) => {
                 isProcessingFile.value = false;
             }
         } else {
-            // Standard JPEG/PNG
             file.value = selectedFile;
         }
     }
 };
 
-// Initial fetch
 onMounted(() => {
     walletStore.fetchWallets();
     categoryStore.fetchCategories();
 });
-
-// Watch for edit mode
 watch(() => props.transactionToEdit, (newVal) => {
     if (newVal) {
         activeTab.value = newVal.type === 'transfer_in' || newVal.type === 'transfer_out' ? 'transfer' : newVal.type;
-        // If transfer, we treat as simple Expense/Income for now as per plan constraints, 
-        // OR better: if it's transfer_out, show as expense; transfer_in as income.
-        // But if user wants to edit "Transfer", we need to know other leg.
-        // Current plan: Edit as single transaction.
         if (newVal.type === 'transfer_out' || newVal.type === 'transfer_in') {
             activeTab.value = 'transfer';
-            // Fetch related transaction to get the other wallet
-            // Note: transactionStore needs fetchTransaction action.
             if (newVal.related_transaction_id) {
                 transactionStore.fetchTransaction(newVal.related_transaction_id).then(related => {
                     if (related) {
                         if (newVal.type === 'transfer_out') {
                             toWallet.value = String(related.wallet_id);
                         } else {
-                            toWallet.value = String(newVal.wallet_id); // Current is IN (to)
-                            selectedWallet.value = String(related.wallet_id); // Related is OUT (from)
+                            toWallet.value = String(newVal.wallet_id);
+                            selectedWallet.value = String(related.wallet_id);
                         }
                     }
                 });
             }
         }
 
-        // Standard setup
         if (newVal.type === 'transfer_out') {
             selectedWallet.value = String(newVal.wallet_id);
         } else if (newVal.type === 'transfer_in') {
@@ -154,7 +137,6 @@ watch(() => props.transactionToEdit, (newVal) => {
             }
         }
 
-        // Fix date format
         date.value = format(parseISO(newVal.date), 'yyyy-MM-dd');
         amount.value = newVal.amount.toString();
         amountDisplay.value = formatCurrencyInput(newVal.amount);
@@ -162,7 +144,7 @@ watch(() => props.transactionToEdit, (newVal) => {
         selectedCategory.value = String(newVal.category_id);
         description.value = newVal.description;
         existingAttachment.value = newVal.attachment || "";
-        file.value = null; // Reset new file selection
+        file.value = null;
     } else {
         // Reset defaults
         activeTab.value = "expense";
@@ -181,25 +163,21 @@ watch(() => props.transactionToEdit, (newVal) => {
     }
 });
 
-// Watch for initialData (for Wishlist or other pre-fills)
 watch(() => props.initialData, (newVal) => {
     if (newVal && !props.transactionToEdit) {
         amount.value = newVal.amount?.toString() || "";
         amountDisplay.value = newVal.amount ? formatCurrencyInput(newVal.amount) : "";
         selectedCategory.value = newVal.category_id?.toString() || "";
         description.value = newVal.description || "";
-        activeTab.value = "expense"; // Wishlist is typically expense
+        activeTab.value = "expense";
     }
     
-    // Enforce Expense tab for Wishlist Buy
     if (props.wishlistItemId) {
         activeTab.value = "expense";
     }
 }, { immediate: true });
 
-// Watch for Saving Goal Target
 watch(() => props.savingGoalTarget, (newVal) => {
-    // Don't react if we are currently submitting!
     if (isSubmitting.value) {
         return;
     }
@@ -211,9 +189,8 @@ watch(() => props.savingGoalTarget, (newVal) => {
             selectedCategory.value = String(newVal.category_id);
         }
     } else {
-        // Reset if null, to avoid stale description
         if (activeTab.value === 'saving') {
-            activeTab.value = "expense"; // Fallback to default
+            activeTab.value = "expense";
             description.value = "";
             selectedCategory.value = "";
             amount.value = "";
@@ -222,7 +199,6 @@ watch(() => props.savingGoalTarget, (newVal) => {
     }
 }, { immediate: true });
 
-// Filter categories based on active tab
 const filteredCategories = computed(() => {
     if (activeTab.value === 'saving') {
         return categoryStore.categories.filter(c => c.type === 'expense');
@@ -230,7 +206,6 @@ const filteredCategories = computed(() => {
     return categoryStore.categories.filter(c => c.type === activeTab.value);
 });
 
-// Option Computeds
 const walletOptions = computed(() => walletStore.wallets.map(w => ({
     value: String(w.id),
     label: w.name,
@@ -244,10 +219,6 @@ const categoryOptions = computed(() => filteredCategories.value.map(c => ({
     label: c.name,
     icon: c.icon
 })));
-
-// Utils for icon rendering
-
-
 
 watch(() => props.open, (newVal) => {
     if (!newVal) {
@@ -266,10 +237,8 @@ const errors = ref({
 const handleSave = async () => {
     isSubmitting.value = true;
 
-    // Reset errors
     Object.keys(errors.value).forEach(k => (errors.value as any)[k] = false);
 
-    // Validate fields
     errors.value.date = !date.value;
     errors.value.amount = !amount.value;
 
@@ -281,7 +250,6 @@ const handleSave = async () => {
         errors.value.category = !selectedCategory.value;
     }
 
-    // Check for validation errors
     const hasError = Object.values(errors.value).some(v => v);
     if (hasError) {
         let msg = "Mohon lengkapi data berikut:";
@@ -301,7 +269,6 @@ const handleSave = async () => {
         return;
     }
 
-    // Logical validation for transfer
     if (activeTab.value === 'transfer') {
         if (selectedWallet.value === toWallet.value) {
             await swal.error("Gagal", "Dompet asal dan tujuan tidak boleh sama");
@@ -309,7 +276,6 @@ const handleSave = async () => {
             return;
         }
 
-        // Validate Balance for Amount + Fee
         const wallet = walletStore.wallets.find(w => String(w.id) === selectedWallet.value);
         if (wallet) {
             const totalRequired = Number(amount.value) + Number(transferFee.value || 0);
@@ -322,20 +288,18 @@ const handleSave = async () => {
     }
 
     try {
-        // Construct date with current time
         const now = new Date();
         const [year = now.getFullYear(), month = now.getMonth() + 1, day = now.getDate()] = date.value.split('-').map(Number);
         const finalDate = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
 
         if (activeTab.value === 'saving' && props.savingGoalTarget) {
-            // Handle Saving Contribution
             const { useSavingGoalStore } = await import("@/stores/saving_goal");
             const savingStore = useSavingGoalStore();
             
             await savingStore.addContribution(props.savingGoalTarget.id, {
                 wallet_id: Number(selectedWallet.value),
                 amount: Number(amount.value),
-                date: finalDate.toISOString(), // Backend expects ISO string if binding to time.Time JSON
+                date: finalDate.toISOString(),
                 description: description.value
             });
             swal.success('Berhasil menabung!');
@@ -352,18 +316,15 @@ const handleSave = async () => {
             if (activeTab.value === 'transfer') {
                 if (props.transactionToEdit.type === 'transfer_in') {
                     finalType = 'transfer_in';
-                    // For transfer_in (Income), the wallet is the Destination (toWallet)
                     finalWalletId = Number(toWallet.value);
                 } else if (props.transactionToEdit.type === 'transfer_out') {
                     finalType = 'transfer_out';
-                    // For transfer_out (Expense), the wallet is the Source (selectedWallet)
                     finalWalletId = Number(selectedWallet.value);
                 } else {
                     finalType = 'transfer_out';
                 }
             }
 
-            // Prepare Payload
             const payload = new FormData();
             payload.append('wallet_id', String(finalWalletId));
             payload.append('category_id', String(selectedCategory.value));
@@ -404,7 +365,6 @@ const handleSave = async () => {
             await transactionStore.createTransaction(payload);
             swal.success('Transaksi berhasil disimpan');
 
-            // If this transaction came from a wishlist item, mark it as bought
             if (props.wishlistItemId) {
                 await wishlistStore.markAsBought(props.wishlistItemId);
             }
@@ -415,8 +375,6 @@ const handleSave = async () => {
     } catch (error: any) {
         console.error("Error in handleSave:", error);
         
-        // If the error is insufficient balance, the store has already shown a specific Swal.
-        // We should not overwrite it with a generic error.
         const errMsg = error.response?.data?.error || "";
         if (errMsg.toLowerCase().includes('insufficient')) {
             return;
@@ -446,34 +404,20 @@ const resetForm = () => {
     }
 };
 
-// Currency Formatting Logic
-// Sync Display -> Model
 watch(amountDisplay, (val) => {
-    // Live Format
     const formatted = formatCurrencyLive(val);
     if (formatted !== val) {
         amountDisplay.value = formatted;
-        // The change to amountDisplay will trigger this watch again immediately with the clean value
-         // But we need to update the model NOW for the clean value too? 
-         // logic: val="5000", formatted="5.000". Update display. Watch triggers again with "5.000".
-         // Next run: val="5.000". formatted="5.000". display no change.
-         // Proceed to update model.
-         return; 
+        return; 
     }
     
-    // Update Model
     const num = parseCurrencyInput(val);
     amount.value = num.toString();
 });
-
-// Sync Model -> Display (only if significant change i.e. external update)
 watch(amount, (val) => {
     const num = Number(val);
     const currentParsed = parseCurrencyInput(amountDisplay.value);
     
-    // Only update display if the model value is significantly different from what's currently displayed
-    // This prevents loop when user is typing "5000" (model) vs "5.000" (display) which parse to same.
-    // Also protects against "5000,5" (model) vs "5.000,5" (display).
     if (Math.abs(currentParsed - num) > 0.001) {
         amountDisplay.value = val ? formatCurrencyInput(val) : "";
     }
@@ -498,11 +442,7 @@ watch(transferFee, (val) => {
 });
 
 const onAmountBlur = () => {
-    // Ensure final consistency on blur
     const num = parseCurrencyInput(amountDisplay.value);
-    // formatCurrencyInput ensures "Rp" part is removed if we used `formatCurrency` but we are inputting manually.
-    // Actually formatCurrencyInput returns "10.000,00" (string). 
-    // formatCurrencyLive handles typing. onBlur just ensures cleaner look?
     if (num) amountDisplay.value = formatCurrencyInput(num);
 };
 
@@ -513,7 +453,6 @@ const onFeeBlur = () => {
 </script>
 
 <template>
-    <!-- Parent controls visibility via v-if, so we just use props.open -->
     <Dialog :open="props.open" @update:open="emit('update:open', $event)">
         <DialogContent class="max-w-md bg-card text-foreground" @interact-outside="swal.handleSwalInteractOutside">
             <DialogHeader>
@@ -650,16 +589,12 @@ const onFeeBlur = () => {
                         <span v-if="errors.category" class="text-xs text-red-500 font-medium">Kategori wajib
                             dipilih</span>
                     </div>
-
-
-
                     <div class="space-y-2">
                         <Label>Deskripsi (Opsional)</Label>
                         <Input placeholder="Misal: Makan siang, Gaji bulanan" v-model="description"
                             class="bg-background" :disabled="isSubmitting || activeTab === 'saving'" />
                     </div>
 
-                    <!-- File Upload -->
                     <div v-if="activeTab !== 'transfer'" class="space-y-2">
                         <Label>Lampiran (Foto/Gambar)</Label>
                         <div v-if="existingAttachment && !file" class="mb-2 relative w-fit">

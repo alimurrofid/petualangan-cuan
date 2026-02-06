@@ -54,7 +54,6 @@ const fetchData = async () => {
     );
 };
 
-// Fetch data when month changes
 watch(currentMonth, () => {
     fetchData();
 }); 
