@@ -58,12 +58,6 @@ func NewTransactionHandler(service service.TransactionService) TransactionHandle
 func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
 
-	// Parse Multipart Form
-	// We need to handle this manually since BodyParser might struggle with mixed types if not strictly defined
-	// But Fiber's BodyParser supports it if struct tags are form.
-	
-	// Let's try parsing fields manually for control
-	
 	var input service.CreateTransactionInput
 	input.Type = c.FormValue("type")
 	input.Description = c.FormValue("description")
@@ -86,7 +80,6 @@ func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
 		if err == nil {
 			input.Date = date
 		} else {
-             // Try simple date
              date, err = time.Parse("2006-01-02", dateStr)
              if err == nil {
                  input.Date = date
@@ -98,7 +91,6 @@ func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
 		input.Date = time.Now()
 	}
 
-	// Handle File
 	fileHeader, err := c.FormFile("attachment")
 	if err == nil {
 		path, err := processAndSaveFile(fileHeader)
@@ -136,7 +128,6 @@ func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
 func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
 
-	// Parse Query Params
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "10"))
 	startDate := c.Query("start_date")
@@ -147,8 +138,6 @@ func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 	walletID, _ := strconv.Atoi(c.Query("wallet_id", "0"))
 	categoryID, _ := strconv.Atoi(c.Query("category_id", "0"))
 
-	// Parse multi-select arrays
-	// c.QueryParser is robust for array params like wallet_ids[]
 	type FilterQuery struct {
 		WalletIDs   []uint `query:"wallet_ids"`
 		CategoryIDs []uint `query:"category_ids"`
@@ -226,7 +215,6 @@ func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
 	id, _ := strconv.Atoi(c.Params("id"))
 
-	// Manual parsing for Update
 	var input service.CreateTransactionInput
 	input.Type = c.FormValue("type")
 	input.Description = c.FormValue("description")
@@ -266,7 +254,6 @@ func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 		input.Date = time.Now()
 	}
 
-	// Handle File
 	fileHeader, err := c.FormFile("attachment")
 	if err == nil {
 		path, err := processAndSaveFile(fileHeader)
@@ -413,10 +400,8 @@ func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
 		})
 	}
 
-	// Support both single wallet_id and array wallet_ids
 	var walletIDs []uint
 	
-	// Check array param
 	type FilterQuery struct {
 		WalletIDs []uint `query:"wallet_ids"`
 	}
@@ -426,7 +411,6 @@ func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
 		walletIDs = filterQuery.WalletIDs
 	}
 
-	// Fallback to single param if array empty
 	if len(walletIDs) == 0 && walletIDStr != "" && walletIDStr != "all" {
 		id, err := strconv.ParseUint(walletIDStr, 10, 32)
 		if err == nil {
@@ -482,10 +466,8 @@ func (h *transactionHandler) ExportTransactions(c *fiber.Ctx) error {
 		Type:       transType,
 		WalletID:   uint(walletID),
 		CategoryID: uint(categoryID),
-		// Limit 0 is set in service
 	}
 
-	// Support array params for Export too if needed, keeping mostly backward compat for now but updated entities support it
 	type FilterQuery struct {
 		WalletIDs   []uint `query:"wallet_ids"`
 		CategoryIDs []uint `query:"category_ids"`
@@ -571,7 +553,6 @@ func (h *transactionHandler) WebhookReceiver(c *fiber.Ctx) error {
 	})
 }
 
-// Helper to process and save file (image, audio, or other)
 func processAndSaveFile(fileHeader *multipart.FileHeader) (string, error) {
 	contentType := fileHeader.Header.Get("Content-Type")
 	

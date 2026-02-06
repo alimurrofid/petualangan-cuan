@@ -33,13 +33,6 @@ func TestCreateDebt(t *testing.T) {
 		Type:     "debt",
 	}
 
-	// Expectations
-	// CreateDebt Calls: 
-	// 1. debtRepo.WithTx(tx).Create(...)
-	// 2. walletRepo.WithTx(tx).FindByID(...)
-	// 3. walletRepo.WithTx(tx).Update(...) (if no error)
-	// 4. transactionRepo.WithTx(tx).Create(...)
-
 	mockRepo.On("WithTx", testMock.Anything).Return(mockRepo).Once()
 	mockWalletRepo.On("WithTx", testMock.Anything).Return(mockWalletRepo).Twice()
 	mockTxRepo.On("WithTx", testMock.Anything).Return(mockTxRepo).Once()
@@ -98,24 +91,13 @@ func TestUpdateDebt(t *testing.T) {
 		Amount:   2000,
 	}
 
-	// UpdateDebt Calls:
-	// 1. debtRepo.WithTx.FindByID
-    // 2. walletRepo.WithTx.FindByID
-    // 3. walletRepo.WithTx.Update
-    // 4. walletRepo.WithTx.FindByID
-    // 5. walletRepo.WithTx.Update
-    // 6. debtRepo.WithTx.Update
-
 	mockRepo.On("WithTx", testMock.Anything).Return(mockRepo).Times(2)
 	mockWalletRepo.On("WithTx", testMock.Anything).Return(mockWalletRepo).Times(4)
 
 	mockRepo.On("FindByID", debtID, userID).Return(existingDebt, nil)
 	
-	// Wallet calls need to be carefully ordered or matched.
-	// 1. Find Old Wallet
 	mockWalletRepo.On("FindByID", walletID, userID).Return(&entity.Wallet{ID: walletID, Balance: 1000}, nil).Times(2)
 	
-	// 2. Update Old and New Wallet
 	mockWalletRepo.On("Update", testMock.Anything).Return(nil).Times(2)
 
 	mockRepo.On("Update", testMock.MatchedBy(func(d *entity.Debt) bool {
@@ -144,12 +126,6 @@ func TestDeleteDebt(t *testing.T) {
 	existingDebt := &entity.Debt{
 		ID: debtID, UserID: userID, WalletID: walletID, Amount: 1000, Remaining: 500, Type: "debt",
 	}
-
-    // Calls:
-    // 1. debtRepo.WithTx.FindByID
-    // 2. walletRepo.WithTx.FindByID
-    // 3. walletRepo.WithTx.Update
-    // 4. debtRepo.WithTx.Delete
 
 	mockRepo.On("WithTx", testMock.Anything).Return(mockRepo).Twice()
 	mockWalletRepo.On("WithTx", testMock.Anything).Return(mockWalletRepo).Twice()
@@ -189,13 +165,6 @@ func TestPayDebt(t *testing.T) {
 		Amount:   500,
 		Note:     "Partial Payment",
 	}
-
-    // Calls:
-    // 1. debtRepo.WithTx.FindByID
-    // 2. debtRepo.WithTx.Update
-    // 3. walletRepo.WithTx.FindByID
-    // 4. walletRepo.WithTx.Update
-    // 5. txRepo.WithTx.Create
 
 	mockRepo.On("WithTx", testMock.Anything).Return(mockRepo).Twice()
 	mockWalletRepo.On("WithTx", testMock.Anything).Return(mockWalletRepo).Twice()

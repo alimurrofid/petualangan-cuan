@@ -22,7 +22,6 @@ func Connect() (*gorm.DB, error) {
 		os.Getenv("DB_PORT"),
 	)
 
-	// Set GORM Logger to Silent in production if needed, or default
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Warn),
 	})
@@ -35,19 +34,11 @@ func Connect() (*gorm.DB, error) {
 		return nil, fmt.Errorf("❌ Gagal mendapatkan instance sql.DB: %w", err)
 	}
 
-	// Connection Pool Settings
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	fmt.Println("✅ Terhubung ke Database dengan Connection Pool!")
-
-	// AutoMigrate removed from Connect to allow --fresh flag to work if migration fails
-	// fmt.Println("Running Auto Migration...")
-	// err = db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{})
-	// if err != nil {
-	// 	return nil, fmt.Errorf("❌ Gagal migrasi database: %w", err)
-	// }
 
 	return db, nil
 }

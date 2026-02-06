@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockDebtService is a mock implementation of service.DebtService
 type MockDebtService struct {
 	mock.Mock
 }
@@ -71,9 +70,6 @@ func (m *MockDebtService) DeletePayment(id uint, userID uint) error {
     args := m.Called(id, userID)
     return args.Error(0)
 }
-
-
-// Handler Tests
 
 func TestCreateDebt_Handler(t *testing.T) {
 	mockService := new(MockDebtService)

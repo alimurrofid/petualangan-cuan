@@ -11,10 +11,10 @@ type SavingGoal struct {
 	CurrentAmount float64   `gorm:"not null;default:0" json:"current_amount"`
 	CategoryID    uint      `gorm:"default:null" json:"category_id"`
 	Category      Category  `gorm:"foreignKey:CategoryID" json:"category"`
-	Deadline      *time.Time `json:"deadline"` // Optional deadline
+	Deadline      *time.Time `json:"deadline"`
 	IsAchieved    bool      `gorm:"default:false" json:"is_achieved"`
-	IsFinished    bool      `gorm:"default:false" json:"is_finished"` // New field: if true, funds are released to available balance
-	Icon          string    `json:"icon"` // PiggyBank or Target icon
+	IsFinished    bool      `gorm:"default:false" json:"is_finished"`
+	Icon          string    `json:"icon"`
 	Contributions []SavingContribution `gorm:"foreignKey:GoalID" json:"contributions"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
@@ -26,7 +26,7 @@ type SavingContribution struct {
 	SavingGoal    SavingGoal  `gorm:"foreignKey:GoalID" json:"saving_goal"`
 	WalletID      uint        `gorm:"not null" json:"wallet_id"`
 	Wallet        Wallet      `gorm:"foreignKey:WalletID" json:"wallet"`
-	TransactionID uint        `gorm:"not null;unique" json:"transaction_id"` // One-to-one with payment tx
+	TransactionID uint        `gorm:"not null;unique" json:"transaction_id"`
 	Transaction   Transaction `gorm:"foreignKey:TransactionID" json:"transaction"`
 	Amount        float64     `gorm:"not null" json:"amount"`
 	Date          time.Time   `gorm:"not null" json:"date"`

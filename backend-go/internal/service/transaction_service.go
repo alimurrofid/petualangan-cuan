@@ -29,7 +29,7 @@ type TransactionService interface {
 type transactionService struct {
 	repo       repository.TransactionRepository
 	walletRepo repository.WalletRepository
-	db         *gorm.DB // Store DB connection to start transactions
+	db         *gorm.DB
 }
 
 func NewTransactionService(repo repository.TransactionRepository, walletRepo repository.WalletRepository, db *gorm.DB) TransactionService {
@@ -44,7 +44,7 @@ type CreateTransactionInput struct {
 	WalletID    uint      `json:"wallet_id" binding:"required"`
 	CategoryID  uint      `json:"category_id" binding:"required"`
 	Amount      float64   `json:"amount" binding:"required"`
-	Type        string    `json:"type" binding:"required"` // income, expense
+	Type        string    `json:"type" binding:"required"`
 	Description string    `json:"description"`
 	Attachment  string    `json:"attachment"`
 	Date        time.Time `json:"date" binding:"required"`
@@ -54,13 +54,12 @@ type TransferTransactionInput struct {
 	FromWalletID uint      `json:"from_wallet_id" binding:"required"`
 	ToWalletID   uint      `json:"to_wallet_id" binding:"required"`
 	Amount       float64   `json:"amount" binding:"required"`
-	TransferFee  float64   `json:"transfer_fee"` // Opsional
+	TransferFee  float64   `json:"transfer_fee"`
 	Description  string    `json:"description"`
 	Date         time.Time `json:"date" binding:"required"`
 }
 
 func (s *transactionService) CreateTransaction(userID uint, input CreateTransactionInput) (*entity.Transaction, error) {
-	// Start DB Transaction
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -72,14 +71,12 @@ func (s *transactionService) CreateTransaction(userID uint, input CreateTransact
 		return nil, tx.Error
 	}
 
-	// 1. Check Wallet Ownership
 	wallet, err := s.walletRepo.FindByID(input.WalletID, userID)
 	if err != nil {
 		tx.Rollback()
 		return nil, errors.New("wallet not found")
 	}
 
-	// 2. Create Transaction Record
 	transaction := &entity.Transaction{
 		UserID:      userID,
 		WalletID:    input.WalletID,
@@ -91,14 +88,11 @@ func (s *transactionService) CreateTransaction(userID uint, input CreateTransact
 		Date:        input.Date,
 	}
 
-	// Use repository bound to this transaction
 	if err := s.repo.WithTx(tx).Create(transaction); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	// 3. Update Wallet Balance
-	// 3. Update Wallet Balance if NOT saving_allocation
 	if input.Type != "saving_allocation" {
 		switch input.Type {
 		case "income":
@@ -112,22 +106,14 @@ func (s *transactionService) CreateTransaction(userID uint, input CreateTransact
 		}
 	}
 
-	// Use wallet repository linked to this transaction? 
-	// To do that properly we need walletRepo.WithTx too, or just update using tx here.
-	// For simplicity, let's assume walletRepo.Update uses its own DB or we pass tx manually.
-	// Since WalletRepo implementation is simple `db.Save`, we can temporarily hack it or add WithTx.
-	// A cleaner way is to just do:
 	if err := tx.Save(wallet).Error; err != nil {
 		tx.Rollback()
 		return nil, err
 	}
-
-	// Commit
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
-	// Fetch full object with preloads to return
 	return s.repo.FindByID(transaction.ID, userID)
 }
 
@@ -140,7 +126,6 @@ func (s *transactionService) GetTransaction(id uint, userID uint) (*entity.Trans
 }
 
 func (s *transactionService) UpdateTransaction(id uint, userID uint, input CreateTransactionInput) (*entity.Transaction, error) {
-	// Start DB Transaction
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -152,14 +137,12 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 		return nil, tx.Error
 	}
 
-	// 1. Fetch Existing Transaction
 	t, err := s.repo.FindByID(id, userID)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	// 2. Revert Old Balance
 	oldWallet, err := s.walletRepo.WithTx(tx).FindByID(t.WalletID, userID)
 	if err != nil {
 		tx.Rollback()
@@ -176,7 +159,6 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 	case "expense", "transfer_out":
 		oldWallet.Balance += t.Amount
 	case "saving_allocation":
-		// Do nothing to physical balance
 	}
 
 	if err := s.walletRepo.WithTx(tx).Update(oldWallet); err != nil {
@@ -184,14 +166,11 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 		return nil, err
 	}
 
-	// 3. Update Transaction Fields
 	t.WalletID = input.WalletID
 	t.CategoryID = input.CategoryID
 	t.Amount = input.Amount
 	t.Type = input.Type
 	t.Description = input.Description
-	// Only update attachment if provided (or handle deletion appropriately in handler)
-	// For now, if input has it, update it.
 	if input.Attachment != "" {
 		t.Attachment = input.Attachment
 	}
@@ -202,8 +181,6 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 		return nil, err
 	}
 
-	// 4. Apply New Balance
-	// Fetch new wallet (might be same as old)
 	newWallet, err := s.walletRepo.WithTx(tx).FindByID(input.WalletID, userID)
 	if err != nil {
 		tx.Rollback()
@@ -220,7 +197,6 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 		}
 		newWallet.Balance -= input.Amount
 	case "saving_allocation":
-		// Do nothing
 	}
 
 	if err := s.walletRepo.WithTx(tx).Update(newWallet); err != nil {
@@ -228,27 +204,20 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 		return nil, err
 	}
 
-	// 5. Cascade Update to Related Transaction (if exists)
 	if t.RelatedTransactionID != nil {
 		relatedID := *t.RelatedTransactionID
 		
 		var relatedTx entity.Transaction
 		if err := tx.Where("id = ?", relatedID).First(&relatedTx).Error; err == nil {
-			// Revert old balance effect of related tx
-			// Use Transactional Wallet Repo!!
 			relatedWallet, err := s.walletRepo.WithTx(tx).FindByID(relatedTx.WalletID, userID)
 			if err == nil {
-				// Revert OLD amount
-				// Revert OLD amount
 				switch relatedTx.Type {
 				case "transfer_in":
-					relatedWallet.Balance -= relatedTx.Amount // Revert add
+					relatedWallet.Balance -= relatedTx.Amount
 				case "transfer_out":
-					relatedWallet.Balance += relatedTx.Amount // Revert sub
+					relatedWallet.Balance += relatedTx.Amount
 				}
 				
-				// Apply NEW amount (from input.Amount)
-				// Apply NEW amount (from input.Amount)
 				switch relatedTx.Type {
 				case "transfer_in":
 					relatedWallet.Balance += input.Amount
@@ -261,7 +230,6 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 					return nil, err
 				}
 				
-				// Update the related transaction record
 				relatedTx.Amount = input.Amount
 				relatedTx.Date = input.Date
 				relatedTx.Description = input.Description 
@@ -282,7 +250,6 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 }
 
 func (s *transactionService) DeleteTransaction(id uint, userID uint) error {
-	// Start DB Transaction
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -290,22 +257,18 @@ func (s *transactionService) DeleteTransaction(id uint, userID uint) error {
 		}
 	}()
 
-	// 1. Get Transaction to know amount/wallet
 	t, err := s.repo.FindByID(id, userID)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// 2. Get Wallet
 	w, err := s.walletRepo.FindByID(t.WalletID, userID)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// 3. Revert Balance
-	// 3. Revert Balance
 	switch t.Type {
 	case "income":
 		if w.Balance < t.Amount {
@@ -324,7 +287,6 @@ func (s *transactionService) DeleteTransaction(id uint, userID uint) error {
 	case "transfer_out":
 		w.Balance += t.Amount
 	case "saving_allocation":
-		// Do nothing
 	}
 
 	if err := tx.Save(w).Error; err != nil {
@@ -332,19 +294,15 @@ func (s *transactionService) DeleteTransaction(id uint, userID uint) error {
 		return err
 	}
 
-	// 4. Delete Transaction
 	if err := tx.Delete(t).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// 5. Cascade Delete Related Transaction
 	if t.RelatedTransactionID != nil {
 		relatedID := *t.RelatedTransactionID
-		// Get related
 		var relatedTx entity.Transaction
 		if err := tx.Where("id = ?", relatedID).First(&relatedTx).Error; err == nil {
-			// Revert balance for related
 			relatedWallet, err := s.walletRepo.FindByID(relatedTx.WalletID, userID)
 			if err == nil {
 				switch relatedTx.Type {
@@ -358,7 +316,6 @@ func (s *transactionService) DeleteTransaction(id uint, userID uint) error {
 					return err
 				}
 				
-				// Delete related
 				if err := tx.Delete(&relatedTx).Error; err != nil {
 					tx.Rollback()
 					return err
@@ -382,14 +339,12 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 		return tx.Error
 	}
 
-	// 1. Get Wallets
 	fromWallet, err := s.walletRepo.FindByID(input.FromWalletID, userID)
 	if err != nil {
 		tx.Rollback()
 		return errors.New("source wallet not found")
 	}
 
-	// Validate sufficient balance including fee
 	totalRequired := input.Amount + input.TransferFee
 	if fromWallet.Balance < totalRequired {
 		tx.Rollback()
@@ -402,15 +357,12 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 		return errors.New("destination wallet not found")
 	}
 
-	// 2. Resolve Transfer Category (Main Transfer)
 	transferCatID, err := s.getCategoryForTransfer(userID)
 	if err != nil {
-		// If fails to find/create, we can't proceed cleanly
 		tx.Rollback()
 		return err
 	}
 
-	// 3. Create Outgoing Transaction (Review: Transfer Out)
 	expenseTx := &entity.Transaction{
 		UserID:      userID,
 		WalletID:    input.FromWalletID,
@@ -426,10 +378,8 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 		return err
 	}
 
-	// Deduct Main Amount
 	fromWallet.Balance -= input.Amount
 	
-	// 4. Create Incoming Transaction (Review: Transfer In)
 	incomeTx := &entity.Transaction{
 		UserID:      userID,
 		WalletID:    input.ToWalletID,
@@ -445,7 +395,6 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 		return err
 	}
 	
-	// Link Transactions
 	expenseTx.RelatedTransactionID = &incomeTx.ID
 	incomeTx.RelatedTransactionID = &expenseTx.ID
 	
@@ -460,7 +409,6 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 
 	toWallet.Balance += input.Amount
 	
-	// 5. Handle Transfer Fee (Transaction 3)
 	if input.TransferFee > 0 {
 		feeCatID, err := s.getCategoryForTransferFee(userID)
 		if err != nil {
@@ -473,7 +421,7 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 			WalletID:    input.FromWalletID,
 			CategoryID:  feeCatID,
 			Amount:      input.TransferFee,
-			Type:        "expense", // Fee is an expense
+			Type:        "expense",
 			Description: "Biaya Admin Transfer: " + input.Description,
 			Date:        input.Date,
 		}
@@ -483,11 +431,9 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 			return err
 		}
 
-		// Deduct Fee
 		fromWallet.Balance -= input.TransferFee
 	}
 
-	// Save Wallet Updates
 	if err := tx.Save(fromWallet).Error; err != nil {
 		tx.Rollback()
 		return err
@@ -501,18 +447,9 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 	return tx.Commit().Error
 }
 
-// Helper to find or create appropriate category for transfer
 func (s *transactionService) getCategoryForTransfer(userID uint) (uint, error) {
 
-	// But let's use the proper struct
 	var cat entity.Category
-
-	// Use FirstOrCreate to handle race condition atomicity (requires unique constraint usually, but GORM handles basic check)
-	// Ideally we should have a unique index on (user_id, type) where type='transfer' or name='Transfer'
-	// Assuming application level unique check is insufficient, but FirstOrCreate does:
-	// SELECT * FROM ... LIMIT 1; if not found -> INSERT
-	// Inside a transaction, if we set isolation level, it might work, or we rely on DB constraint.
-	// For now, using FirstOrCreate is the requested solution.
 	
 	err := s.db.Where(entity.Category{UserID: userID, Type: "transfer"}).
 		Attrs(entity.Category{Name: "Transfer", Icon: "Em_Exchange", BudgetLimit: 0}).
@@ -525,10 +462,8 @@ func (s *transactionService) getCategoryForTransfer(userID uint) (uint, error) {
 	return cat.ID, nil
 }
 
-// Helper to find or create "Biaya Admin" category
 func (s *transactionService) getCategoryForTransferFee(userID uint) (uint, error) {
 	var cat entity.Category
-	// Find or Create "Biaya Admin" of type expense
 	err := s.db.Where(entity.Category{UserID: userID, Type: "expense", Name: "Biaya Admin"}).
 		Attrs(entity.Category{Icon: "Em_MoneyWing", BudgetLimit: 0}).
 		FirstOrCreate(&cat).Error
@@ -549,7 +484,6 @@ func (s *transactionService) GetReport(userID uint, startDate, endDate string, w
 }
 
 func (s *transactionService) ExportTransactions(userID uint, params entity.TransactionFilterParams) (*bytes.Buffer, error) {
-	// Force limit to 0 to get all transactions
 	params.Limit = 0
 	transactions, _, err := s.repo.FindAll(userID, params)
 	if err != nil {
@@ -563,30 +497,26 @@ func (s *transactionService) ExportTransactions(userID uint, params entity.Trans
 		}
 	}()
 
-	// Create Sheet
 	sheetName := "Transactions"
 	index, err := f.NewSheet(sheetName)
 	if err != nil {
 		return nil, err
 	}
 	f.SetActiveSheet(index)
-	f.DeleteSheet("Sheet1") // Remove default sheet
+	f.DeleteSheet("Sheet1")
 
-	// Header
 	headers := []string{"No", "Date", "Description", "Category", "Wallet", "Type", "Amount"}
 	for i, header := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheetName, cell, header)
 	}
 
-	// Style Header
 	style, _ := f.NewStyle(&excelize.Style{
 		Font: &excelize.Font{Bold: true},
 		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E0E0E0"}, Pattern: 1},
 	})
 	f.SetCellStyle(sheetName, "A1", "G1", style)
 
-	// Rows
 	for i, t := range transactions {
 		row := i + 2
 		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), i+1)
@@ -628,21 +558,18 @@ func (s *transactionService) ExportReport(userID uint, startDate, endDate string
 	f.SetActiveSheet(index)
 	f.DeleteSheet("Sheet1")
 
-	// Header
 	headers := []string{"No", "Category", "Type", "Total Amount", "Budget Limit", "Is Over Budget"}
 	for i, header := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheetName, cell, header)
 	}
 
-	// Style
 	style, _ := f.NewStyle(&excelize.Style{
 		Font: &excelize.Font{Bold: true},
 		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E0E0E0"}, Pattern: 1},
 	})
 	f.SetCellStyle(sheetName, "A1", "F1", style)
 
-	// Rows
 	for i, item := range data {
 		row := i + 2
 		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), i+1)

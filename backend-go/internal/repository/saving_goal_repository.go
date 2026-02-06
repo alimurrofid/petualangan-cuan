@@ -13,9 +13,8 @@ type SavingGoalRepository interface {
 	Update(goal *entity.SavingGoal) error
 	Delete(goal *entity.SavingGoal) error
 
-	// Contributions
 	AddContribution(contribution *entity.SavingContribution) error
-	GetActiveContributions(walletID uint) (float64, error) // For calculating available balance
+	GetActiveContributions(walletID uint) (float64, error)
 	DeleteContributions(goalID uint) error
 	FindContributionByID(id uint) (*entity.SavingContribution, error)
 	DeleteContribution(contribution *entity.SavingContribution) error
@@ -37,7 +36,7 @@ func (r *savingGoalRepository) FindAll(userID uint) ([]entity.SavingGoal, error)
 	var goals []entity.SavingGoal
 	err := r.db.Where("user_id = ?", userID).
 		Preload("Contributions", func(db *gorm.DB) *gorm.DB {
-			return db.Order("date desc") // Order contributions by date
+			return db.Order("date desc")
 		}).
 		Preload("Contributions.Wallet").
 		Preload("Contributions.Transaction").
@@ -72,18 +71,8 @@ func (r *savingGoalRepository) AddContribution(contribution *entity.SavingContri
 	return r.db.Create(contribution).Error
 }
 
-// GetActiveContributions returns the total amount allocated to saving goals from a specific wallet.
-// Only counts goals that are NOT yet achieved (or maybe we always count them? 
-// Requirement: "Active Contributions" usually implies funds are still "locked" in the goal.
-// If an achieved goal is "cashed out", then we might need to handle that.
-// For now, let's assume ALL contributions to ANY goal (achieved or not) are deducted from Available Balance
-// because the money is physically there but logically "spent" on the goal.
-// UNLESS the goal is deleted or funds are withdrawn (functionality for later).
 func (r *savingGoalRepository) GetActiveContributions(walletID uint) (float64, error) {
 	var total float64
-	// Sum amount of all contributions where wallet_id = X
-	// Logic Update: Only count contributions for goals that are NOT finished.
-	// We need to join with SavingGoal table to check IsFinished status.
 	err := r.db.Table("saving_contributions").
 		Joins("JOIN saving_goals ON saving_goals.id = saving_contributions.goal_id").
 		Where("saving_contributions.wallet_id = ? AND saving_goals.is_finished = ?", walletID, false).

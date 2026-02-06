@@ -9,7 +9,7 @@ type Wallet struct {
 	UserID     uint      `gorm:"not null" json:"user_id"`
 	User       User      `gorm:"foreignKey:UserID" json:"-"`
 	Name       string    `gorm:"not null" json:"name"`
-	Type       string    `gorm:"not null" json:"type"` // Bank, E-Wallet, Cash
+	Type       string    `gorm:"not null" json:"type"`
 	Balance          float64   `gorm:"not null;default:0" json:"balance"`
 	AvailableBalance float64   `gorm:"-" json:"available_balance"`
 	Icon             string    `json:"icon"`

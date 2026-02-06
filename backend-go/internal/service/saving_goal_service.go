@@ -22,7 +22,7 @@ type SavingGoalService interface {
 type savingGoalService struct {
 	repo               repository.SavingGoalRepository
 	walletRepo         repository.WalletRepository
-	transactionService TransactionService // Re-use transaction creation logic
+	transactionService TransactionService
 	db                 *gorm.DB
 }
 
@@ -79,7 +79,6 @@ func (s *savingGoalService) AddContribution(userID uint, goalID uint, input Cont
 		}
 	}()
 
-	// 1. Validate Wallet & Goal coverage
 	goal, err := s.repo.FindByID(goalID, userID)
 	if err != nil {
 		tx.Rollback()
@@ -97,31 +96,10 @@ func (s *savingGoalService) AddContribution(userID uint, goalID uint, input Cont
 		return nil, errors.New("insufficient wallet balance")
 	}
 
-	// 2. Create "Virtual" Transaction (Saving Allocation)
-	// We need a special category for saving allocation usually, or we just leave it null/default?
-	// It's better to have a system category "Savings" or similar, or just manage it here.
-	// For now, let's create a transaction with type 'saving_allocation'.
-	
-	// Create Transaction via Service is tricky because it commits its own transaction if we call the public method.
-	// We should probably call `repo.Create` directly or exposing a WithTx method.
-	// Alternatively, we use `transactionService.CreateTransaction` but that might trigger physical balance update if we don't modify it first.
-	// Plan: Update TransactionService to handle `saving_allocation` correctly (NO physical update).
-	
-	// But `TransactionService` does not accept an external TX transaction.
-	// So we might need to rely on `TransactionService` handling its own atomic operation 
-	// OR we replicate the logic here.
-	// Given `TransactionService` is complex, let's try to use it, BUT we need to wrap everything in one DB transaction.
-	// The current `TransactionService.CreateTransaction` creates its OWN transaction `s.db.Begin()`.
-	// This makes nesting hard without savepoints.
-	// Simplified approach for this iteration: Implement the logic "inline" here using `tx`.
-	
-	// 2a. Create Transaction Record
-	// Use goal.CategoryID if set, otherwise fallback to "Tabungan"
 	var categoryID uint
 	if goal.CategoryID != 0 {
 		categoryID = goal.CategoryID
 	} else {
-		// Fallback: Find "Tabungan" category
 		var cat entity.Category
 		if err := tx.Where("user_id = ? AND type = ?", userID, "expense").Where("name = ?", "Tabungan").FirstOrCreate(&cat, entity.Category{
 			UserID: userID, Name: "Tabungan", Type: "expense", Icon: "PiggyBank",
@@ -132,7 +110,6 @@ func (s *savingGoalService) AddContribution(userID uint, goalID uint, input Cont
 		categoryID = cat.ID
 	}
 
-	// Use provided description or fallback
 	desc := input.Description
 	if desc == "" {
 		desc = "Alokasi ke " + goal.Name
@@ -143,18 +120,15 @@ func (s *savingGoalService) AddContribution(userID uint, goalID uint, input Cont
 		WalletID:    input.WalletID,
 		CategoryID:  categoryID,
 		Amount:      input.Amount,
-		Type:        "saving_allocation", // NEW TYPE
+		Type:        "saving_allocation",
 		Date:        input.Date,
 		Description: desc,
 	}
 
-	// Create Transaction
 	if err := tx.Create(transaction).Error; err != nil {
 		tx.Rollback()
 		return nil, err
 	}
-
-	// 3. Create Contribution Record
 	contribution := &entity.SavingContribution{
 		GoalID:        goal.ID,
 		WalletID:      input.WalletID,
@@ -168,7 +142,6 @@ func (s *savingGoalService) AddContribution(userID uint, goalID uint, input Cont
 		return nil, err
 	}
 
-	// 4. Update Goal Progress
 	goal.CurrentAmount += input.Amount
 	if goal.CurrentAmount >= goal.TargetAmount {
 		goal.IsAchieved = true
@@ -235,7 +208,6 @@ func (s *savingGoalService) DeleteContribution(userID uint, contributionID uint)
 		}
 	}()
 
-	// 1. Revert Goal Progress
 	contribution.SavingGoal.CurrentAmount -= contribution.Amount
 	if contribution.SavingGoal.CurrentAmount < contribution.SavingGoal.TargetAmount {
 		contribution.SavingGoal.IsAchieved = false
@@ -245,18 +217,6 @@ func (s *savingGoalService) DeleteContribution(userID uint, contributionID uint)
 		tx.Rollback()
 		return err
 	}
-
-	// 2. Delete Transaction (this might auto-handle wallet balance if hooks exist, strictly speaking we should just delete it)
-	// Assuming Deleting Transaction restores the balance if using a hook, OR we accept that 'saving_allocation' did not touch balance logic heavily?
-	// AddContribution logic: created transaction. If we delete it, it should vanish.
-	// Note: 'saving_allocation' isn't standard expense/income, so maybe it didn't affect balance?
-	// Wait, standard TransactionService usually updates balance on Create/Delete.
-	// If AddContribution didn't use TransactionService.Create (it used direct DB create), then balance might NOT have been updated
-	// UNLESS there is a GORM hook on Transaction model?
-	// Let's assume for now we just delete the record. If balance is wrong, we fix it later. 
-	// Actually, `AddContribution` creates a `transaction` record.
-	// If `Transaction` has hooks, it will run.
-	// Let's safe delete both.
 	
 	if err := tx.Delete(&entity.SavingContribution{}, contributionID).Error; err != nil {
 		tx.Rollback()

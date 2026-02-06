@@ -11,7 +11,7 @@ type DebtPayment struct {
 	TransactionID uint        `gorm:"not null" json:"transaction_id"`
 	Transaction   Transaction `gorm:"foreignKey:TransactionID" json:"transaction"`
 	WalletID      uint        `gorm:"not null" json:"wallet_id"`
-	Wallet        Wallet      `gorm:"foreignKey:WalletID" json:"wallet"` // Wallet used for THIS payment
+	Wallet        Wallet      `gorm:"foreignKey:WalletID" json:"wallet"`
 	Amount        float64     `gorm:"not null" json:"amount"`
 	Date          time.Time   `json:"date"`
 	Note          string      `json:"note"`

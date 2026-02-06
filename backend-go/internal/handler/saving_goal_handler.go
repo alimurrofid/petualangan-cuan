@@ -86,7 +86,6 @@ func (h *SavingGoalHandler) AddContribution(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 	
-	// Ensure date is set if not provided (though binding required it)
 	if input.Date.IsZero() {
 		input.Date = time.Now()
 	}

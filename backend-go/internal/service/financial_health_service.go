@@ -41,8 +41,7 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 	startDate := firstOfMonth.Format("2006-01-02")
 	endDate := lastOfMonth.Format("2006-01-02")
 
-	// --- 1. Savings Rate ---
-	// Formula: (Total Income - Total Expense) / Total Income (Current Month)
+	// Savings Rate : (Total Income - Total Expense) / Total Income (Current Month)
 	summary, err := s.transactionRepo.FindSummaryByDateRange(userID, startDate, endDate, nil, nil, "")
 	if err != nil {
 		return entity.FinancialHealthResponse{}, err
@@ -58,10 +57,6 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 	if totalIncomeMonth > 0 {
 		savingsRate = (totalIncomeMonth - totalExpenseMonth) / totalIncomeMonth
 	}
-
-    // Cap at 0 if negative savings (spending > income)
-    // Actually finding negative savings rate is valid (debt increase), but visually we might handle it.
-    // Let's keep the raw value but handle status.
 
 	savingsRatio := entity.FinancialHealthRatio{
 		Name:   "Rasio Tabungan",
@@ -81,8 +76,7 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 		savingsRatio.Description = "Hati-hati, tabungan Anda terlalu sedikit (atau minus)."
 	}
 
-	// --- 2. Liquidity Ratio (Emergency Fund) ---
-	// Formula: Total Wallet Balance / Avg Monthly Expense (Last 3 Months)
+	// Liquidity Ratio (Emergency Fund) : Total Wallet Balance / Avg Monthly Expense (Last 3 Months)
 	wallets, err := s.walletRepo.FindByUserID(userID)
 	if err != nil {
 		return entity.FinancialHealthResponse{}, err
@@ -93,11 +87,9 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 		totalWalletBalance += w.Balance
 	}
 
-	// Get 3 previous months
 	startOf3MonthsAgo := firstOfMonth.AddDate(0, -3, 0)
-	endOfLastMonth := firstOfMonth.AddDate(0, 0, -1) // End of previous month
+	endOfLastMonth := firstOfMonth.AddDate(0, 0, -1)
     
-    // If user is new, they might not have 3 months of data. Handle gracefully.
 	trend, err := s.transactionRepo.GetMonthlyTrend(userID, startOf3MonthsAgo.Format("2006-01-02"), endOfLastMonth.Format("2006-01-02"))
 	if err != nil {
 		return entity.FinancialHealthResponse{}, err
@@ -112,12 +104,10 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 		}
 	}
     
-    // If no past data, use current month expense if available project it (risky), or just use 0 -> Infinite
     avgMonthlyExpense := 0.0
     if monthsCount > 0 {
         avgMonthlyExpense = totalExpense3Months / float64(monthsCount)
     } else if totalExpenseMonth > 0 {
-        // Fallback to current month if no history
         avgMonthlyExpense = totalExpenseMonth
     }
 
@@ -128,8 +118,6 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
         liquidityScore = 999 // Infinite liquidity
     }
     
-    // Cap strictly for display if needed, but raw value is better
-    
 	liquidityRatio := entity.FinancialHealthRatio{
 		Name:   "Dana Darurat",
 		Value:  liquidityScore,
@@ -137,14 +125,13 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
         FormattedValue: fmt.Sprintf("%.1f Bulan", liquidityScore),
 	}
 
-	if liquidityScore >= 3 && liquidityScore <= 12 { // Allow up to 12 months as healthy
+	if liquidityScore >= 3 && liquidityScore <= 12 {
 		liquidityRatio.Status = entity.StatusHealthy
 		liquidityRatio.Description = "Dana darurat Anda aman untuk menutupi pengeluaran mendadak."
 	} else if liquidityScore >= 1 {
 		liquidityRatio.Status = entity.StatusWarning
 		liquidityRatio.Description = "Dana darurat ada, namun perlu ditingkatkan untuk keamanan ekstra."
 	} else if liquidityScore > 12 {
-        // Too much cash is also "Warning" in investment terms but here acts as Healthy/Passive
         liquidityRatio.Status = entity.StatusHealthy 
         liquidityRatio.Description = "Dana darurat sangat berlimpah."
     } else {
@@ -152,8 +139,7 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 		liquidityRatio.Description = "Bahaya! Segera sisihkan uang untuk dana darurat minimal 1 bulan pengeluaran."
 	}
 
-	// --- 3. Debt-to-Income Ratio ---
-	// Formula: Total Debt Installments / Total Income (Current Month)
+	// Debt-to-Income Ratio : Total Debt Installments / Total Income (Current Month)
 	debtPayments, err := s.debtRepo.GetTotalPayments(userID, startDate, endDate)
 	if err != nil {
 		return entity.FinancialHealthResponse{}, err
@@ -185,7 +171,7 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 		dtiRatioStruct.Description = "Bahaya! Utang Anda sudah melebih batas wajar (over-leveraged)."
 	}
 
-	// --- Overall Score Calculation ---
+	// Overall Score Calculation
     // Simple point system: Healthy=100, Warning=50, Danger=0
     score := 0.0
     

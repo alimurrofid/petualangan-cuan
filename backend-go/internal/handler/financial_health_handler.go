@@ -24,7 +24,6 @@ func NewFinancialHealthHandler(service service.FinancialHealthService) *Financia
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/financial-health [get]
 func (h *FinancialHealthHandler) GetFinancialHealth(c *fiber.Ctx) error {
-	// Assumes JWT middleware sets "userID" in Locals
 	userID := c.Locals("userID").(uint)
 
 	data, err := h.service.GetFinancialHealth(userID)

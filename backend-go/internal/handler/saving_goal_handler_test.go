@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockSavingGoalService is a mock implementation of service.SavingGoalService
 type MockSavingGoalService struct {
 	mock.Mock
 }
@@ -69,8 +68,6 @@ func (m *MockSavingGoalService) FinishGoal(userID uint, goalID uint) error {
 	args := m.Called(userID, goalID)
 	return args.Error(0)
 }
-
-// Handler Test Suite
 
 func TestGetGoals_Handler(t *testing.T) {
 	mockService := new(MockSavingGoalService)
@@ -196,9 +193,6 @@ func TestAddContribution_Handler(t *testing.T) {
 		Amount:   100,
 		Date:     time.Now(),
 	}
-	// Need to fix time comparison in mock, usually issues with monotonic clock or parsing
-	// Easier to use Matcher or just ensure unmarshal works similarly
-	// For this test, let's construct body and matcher carefully
 	
 	body, _ := json.Marshal(input)
 
@@ -206,7 +200,6 @@ func TestAddContribution_Handler(t *testing.T) {
 		GoalID: uint(goalID), WalletID: 1, Amount: 100,
 	}
 
-	// Use MatchedBy to ignore slight time differences during JSON Marshal/Unmarshal
 	mockService.On("AddContribution", uint(1), uint(goalID), mock.MatchedBy(func(i service.ContributionInput) bool {
 		return i.WalletID == input.WalletID && i.Amount == input.Amount
 	})).Return(expectedContribution, nil)

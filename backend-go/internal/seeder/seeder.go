@@ -35,7 +35,7 @@ func SeedAll(db *gorm.DB) {
 		return
 	}
 	
-	mainUser := plantedUsers[0] // Use the first user for relational data
+	mainUser := plantedUsers[0]
 	fmt.Printf("👤 Using user: %s (ID: %d) for related data\n", mainUser.Name, mainUser.ID)
 
 	fmt.Println("🌱 Seeding Wallets...")
@@ -65,14 +65,11 @@ func SeedAll(db *gorm.DB) {
 		for i, tx := range Transactions {
 			tx.UserID = mainUser.ID
 			
-			// Fix Timezone to Asia/Jakarta
 			loc, _ := time.LoadLocation("Asia/Jakarta")
 			tx.Date = tx.Date.In(loc)
 
-			// Distribute transactions across wallets and categories (simple round-robin or random)
 			tx.WalletID = plantedWallets[i%len(plantedWallets)].ID
 			
-			// Matches type (income/expense)
 			var validCategories []entity.Category
 			for _, cat := range plantedCategories {
 				if cat.Type == tx.Type {
@@ -81,11 +78,8 @@ func SeedAll(db *gorm.DB) {
 			}
 
 			if len(validCategories) > 0 {
-				// Try to match category by name in description
 				matched := false
 				for _, cat := range validCategories {
-					// Simple keyword check: if category name (first word) is in description
-					// or description contains common keywords mapping
 					if strings.Contains(strings.ToLower(tx.Description), strings.ToLower(strings.Split(cat.Name, " ")[0])) {
 						tx.CategoryID = cat.ID
 						matched = true
@@ -93,7 +87,6 @@ func SeedAll(db *gorm.DB) {
 					}
 				}
 				
-				// Fallback to round-robin if no keyword match
 				if !matched {
 					tx.CategoryID = validCategories[i%len(validCategories)].ID
 				}

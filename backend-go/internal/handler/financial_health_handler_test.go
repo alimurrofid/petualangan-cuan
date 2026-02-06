@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockFinancialHealthService
 type MockFinancialHealthService struct {
 	mock.Mock
 }

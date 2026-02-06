@@ -291,7 +291,6 @@ func (s *debtService) PayDebt(id uint, userID uint, input PayDebtInput) (*entity
 		return nil, err
 	}
 
-	// 3. Handle Wallet & Transaction
 	wallet, err := s.walletRepo.WithTx(tx).FindByID(input.WalletID, userID)
 	if err != nil {
 		tx.Rollback()
@@ -352,8 +351,6 @@ func (s *debtService) PayDebt(id uint, userID uint, input PayDebtInput) (*entity
 		return nil, err
 	}
 
-	// 4. Create DebtPayment Record through Association or direct create
-	// We need TransactionID for this.
 	debtPayment := &entity.DebtPayment{
 		DebtID:        debt.ID,
 		TransactionID: transaction.ID,
@@ -367,8 +364,6 @@ func (s *debtService) PayDebt(id uint, userID uint, input PayDebtInput) (*entity
         debtPayment.Note = "Pembayaran Cicilan"
     }
 
-	// We can't easily use a repository for this new entity unless we add it to the interface or use DB directly.
-	// Using simple approach: s.db.Create (bound to tx)
 	if err := tx.Create(debtPayment).Error; err != nil {
 		tx.Rollback()
 		return nil, err
@@ -420,7 +415,6 @@ func (s *debtService) DeleteDebt(id uint, userID uint) error {
 		return err
 	}
 
-    // Delete associated DebtPayments first to avoid FK constraint violation
     if err := tx.Where("debt_id = ?", id).Delete(&entity.DebtPayment{}).Error; err != nil {
         tx.Rollback()
         return err
@@ -446,30 +440,22 @@ func (s *debtService) DeletePayment(id uint, userID uint) error {
 		return tx.Error
 	}
 
-	// 1. Find DebtPayment
 	var payment entity.DebtPayment
 	if err := tx.Preload("Debt").Preload("Transaction").First(&payment, id).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Verify User via Debt (or Transaction) ownership
 	if payment.Debt.UserID != userID {
 		tx.Rollback()
 		return errors.New("unauthorized")
 	}
-
-	// 2. Revert Wallet Balance
 	wallet, err := s.walletRepo.WithTx(tx).FindByID(payment.WalletID, userID)
 	if err != nil {
 		tx.Rollback()
 		return errors.New("wallet not found")
 	}
 
-	// Logic: Inverting the payment effect.
-	// Payment for Debt(Payable) was Expense (Balance - Amount). Revert: Balance + Amount.
-	// Payment for Receivable was Income (Balance + Amount). Revert: Balance - Amount.
-	// Check Transaction Type or Debt Type.
 	if payment.Debt.Type == entity.DebtTypePayable {
 		wallet.Balance += payment.Amount
 	} else {
@@ -485,10 +471,8 @@ func (s *debtService) DeletePayment(id uint, userID uint) error {
 		return err
 	}
 
-	// 3. Revert Debt Remaining
 	payment.Debt.Remaining += payment.Amount
 
-	// Check if it was paid, now might not be.
 	if payment.Debt.Remaining > 0 {
 		payment.Debt.IsPaid = false
 	}
@@ -498,7 +482,6 @@ func (s *debtService) DeletePayment(id uint, userID uint) error {
 		return err
 	}
 
-	// 4. Delete Records - MUST DELETE Payment before Transaction due to FK
     if err := tx.Delete(&payment).Error; err != nil {
         tx.Rollback()
         return err

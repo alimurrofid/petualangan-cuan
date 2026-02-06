@@ -12,7 +12,7 @@ type DashboardData struct {
 }
 
 type MonthlyTrend struct {
-	Date    string  `json:"date"` // YYYY-MM
+	Date    string  `json:"date"`
 	Income  float64 `json:"income"`
 	Expense float64 `json:"expense"`
 }

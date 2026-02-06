@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockWishlistService is a mock implementation of service.WishlistService
 type MockWishlistService struct {
 	mock.Mock
 }
@@ -57,8 +56,6 @@ func (m *MockWishlistService) MarkAsBought(id uint, userID uint) error {
 	args := m.Called(id, userID)
 	return args.Error(0)
 }
-
-// Handler tests
 
 func TestCreateWishlist_Handler(t *testing.T) {
 	mockService := new(MockWishlistService)

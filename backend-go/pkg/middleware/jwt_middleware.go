@@ -60,7 +60,6 @@ func Protected() fiber.Handler {
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if ok && token.Valid {
-			// Extract user_id as float64 (default for JSON numbers) and convert to uint
 			if userID, ok := claims["user_id"].(float64); ok {
 				c.Locals("userID", uint(userID))
 			}

@@ -41,9 +41,9 @@ func (h *userHandler) setRefreshCookie(c *fiber.Ctx, refreshToken string) {
 	cookie := new(fiber.Cookie)
 	cookie.Name = "refresh_token"
 	cookie.Value = refreshToken
-	cookie.Expires = time.Now().Add(72 * time.Hour) // Duration must match JWT_REFRESH_EXPIRY
+	cookie.Expires = time.Now().Add(72 * time.Hour) 
 	cookie.HTTPOnly = true
-	cookie.Secure = false // Set to true in production (https)
+	cookie.Secure = false 
 	cookie.SameSite = "Lax" 
 	
 	c.Cookie(cookie)
@@ -117,16 +117,8 @@ func (h *userHandler) Login(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]string
 // @Router /auth/logout [post]
 func (h *userHandler) Logout(c *fiber.Ctx) error {
-	// Clear cookie
 	c.ClearCookie("refresh_token")
 
-	// In a stateless JWT setup, the server doesn't strictly need to do anything
-	// unless a blacklist is implemented.
-	// But since we have stateful refresh token now, we might want to call service logout too if we passed the token.
-	// However, we can't easily get the 'refresh_token' from cookie in Logout if we want to revoke IT specifically.
-	// But usually Logout invalidates the *access token* or the session. 
-	// Our service.Logout takes a string. Ideally we pass the refresh token string from cookie to revoke it.
-	
 	refreshToken := c.Cookies("refresh_token")
 	if refreshToken != "" {
 		_ = h.userService.Logout(refreshToken)
@@ -148,7 +140,6 @@ func (h *userHandler) Logout(c *fiber.Ctx) error {
 // @Failure 400 {object} map[string]string
 // @Router /auth/refresh [post]
 func (h *userHandler) RefreshToken(c *fiber.Ctx) error {
-	// Read from Cookie
 	refreshToken := c.Cookies("refresh_token")
 	if refreshToken == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "No refresh token provided"})
@@ -156,7 +147,6 @@ func (h *userHandler) RefreshToken(c *fiber.Ctx) error {
 
 	accessToken, newRefreshToken, err := h.userService.RefreshToken(refreshToken)
 	if err != nil {
-		// If refresh logic fails (expired, invalid), return 400 or 401
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -295,10 +285,8 @@ func (h *userHandler) GoogleCallback(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	
-	_ = user // user unused for now
+	_ = user
 
-	// We can append refresh token here but it's URL param.. 
-	// Ideally should be a proper redirect to frontend which handles params.
 	return c.Redirect(h.frontendURL + "/auth/google/callback?token=" + jwtToken + "&refresh_token=" + refreshToken)
 }
 

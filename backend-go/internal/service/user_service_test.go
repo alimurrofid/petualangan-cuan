@@ -126,7 +126,6 @@ func TestChangePassword(t *testing.T) {
 	mockRepo := new(mock.UserRepositoryMock)
 	userService := service.NewUserService(mockRepo)
 
-	// Setup initial user with a password
 	initialPassword := "oldpassword"
 	hashedInitialPassword, _ := bcrypt.GenerateFromPassword([]byte(initialPassword), bcrypt.DefaultCost)
 	
@@ -137,13 +136,10 @@ func TestChangePassword(t *testing.T) {
 		Password: string(hashedInitialPassword),
 	}
 
-	// Mocking FindByID
 	mockRepo.On("FindByID", uint(1)).Return(user, nil)
 
-	// Mocking Update
 	mockRepo.On("Update", testifyMock.AnythingOfType("*entity.User")).Return(nil).Run(func(args testifyMock.Arguments) {
 		updatedUser := args.Get(0).(*entity.User)
-		// Verify password has changed and is hashed
 		err := bcrypt.CompareHashAndPassword([]byte(updatedUser.Password), []byte("newpassword"))
 		assert.NoError(t, err)
 	})

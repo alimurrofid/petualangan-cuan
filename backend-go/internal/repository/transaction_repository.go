@@ -17,7 +17,6 @@ type TransactionRepository interface {
 	GetCategoryBreakdown(userID uint, startDate, endDate string, walletIDs []uint, filterType *string) ([]entity.CategoryBreakdown, error)
 	GetMonthlyTrend(userID uint, startDate, endDate string) ([]entity.MonthlyTrend, error)
 	GetRecentTransactions(userID uint, limit int) ([]entity.Transaction, error)
-	// Used for transactions, we need access to DB transaction object
 	WithTx(tx *gorm.DB) TransactionRepository
 }
 
@@ -65,12 +64,10 @@ func (r *transactionRepository) FindAll(userID uint, params entity.TransactionFi
 		query = query.Where("transactions.type = ?", params.Type)
 	}
 
-	// Count total before pagination
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Pagination
 	offset := (params.Page - 1) * params.Limit
 	if params.Limit > 0 {
 		query = query.Offset(offset).Limit(params.Limit)
@@ -105,20 +102,11 @@ func (r *transactionRepository) Delete(id uint, userID uint) error {
 func (r *transactionRepository) FindSummaryByDateRange(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error) {
 	var results []entity.TransactionSummary
 	
-	// Check if single day (naive check: start == end) or small range
-    // Ideally user passes granularity, but for now we infer:
-    // If startDate == endDate, group by hour
-    
 	dateFormat := "YYYY-MM-DD"
-
-	// Check if single day (first 10 chars "YYYY-MM-DD" match)
 	if len(startDate) >= 10 && len(endDate) >= 10 && startDate[:10] == endDate[:10] {
-        // Hourly format: "2024-01-01 10:00"
         dateFormat = "YYYY-MM-DD HH24:00" 
 	}
     
-	// Use Sprintf for Group clause to ensure identical expression in Select, Group, and Order
-	// Postgres requires exact match for Group By to work with Select identifiers
     dateExpr := fmt.Sprintf("TO_CHAR(transactions.date, '%s')", dateFormat)
 
 	query := r.db.Model(&entity.Transaction{}).
@@ -138,7 +126,7 @@ func (r *transactionRepository) FindSummaryByDateRange(userID uint, startDate, e
 	}
 
 	err := query.Group(dateExpr).
-        Order("1 ASC"). // Order by the first column (date) to avoid ambiguity
+        Order("1 ASC").
 		Scan(&results).Error
 
 	return results, err
@@ -167,14 +155,11 @@ func (r *transactionRepository) GetCategoryBreakdown(userID uint, startDate, end
 		return nil, err
 	}
 
-    // Calculate IsOverBudget
     for i := range results {
         if results[i].Type == "expense" && results[i].BudgetLimit > 0 {
             if results[i].TotalAmount > results[i].BudgetLimit {
                 results[i].IsOverBudget = true
             }
-             // Optional: Calculate Percentage if needed in backend, otherwise frontend can do it
-             // results[i].Percentage = (results[i].TotalAmount / results[i].BudgetLimit) * 100
         }
     }
 
@@ -184,7 +169,6 @@ func (r *transactionRepository) GetCategoryBreakdown(userID uint, startDate, end
 func (r *transactionRepository) GetMonthlyTrend(userID uint, startDate, endDate string) ([]entity.MonthlyTrend, error) {
 	results := make([]entity.MonthlyTrend, 0)
 
-	// PostgreSQL: TO_CHAR(date, 'YYYY-MM')
 	err := r.db.Model(&entity.Transaction{}).
 		Select("TO_CHAR(date, 'YYYY-MM') as date, SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income, SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense").
 		Where("user_id = ? AND date BETWEEN ? AND ?", userID, startDate, endDate).

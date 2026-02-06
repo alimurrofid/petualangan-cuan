@@ -35,8 +35,6 @@ type UserService interface {
 	RefreshToken(refreshToken string) (string, string, error)
 }
 
-// ... (existing code) ...
-
 func (s *userService) GetProfile(id uint) (*entity.User, error) {
 	user, err := s.userRepository.FindByID(id)
 	if err != nil {
@@ -62,7 +60,6 @@ func NewUserService(userRepository repository.UserRepository) UserService {
 	return &userService{userRepository}
 }
 
-// Helper to get durations
 func getTokenDurations() (time.Duration, time.Duration) {
 	accessStr := os.Getenv("JWT_ACCESS_EXPIRY")
 	if accessStr == "" {
@@ -144,11 +141,6 @@ func (s *userService) Login(input LoginInput) (*entity.User, string, string, err
 }
 
 func (s *userService) Logout(token string) error {
-	// Parse token to get userID
-	// Since we don't have straightforward Parse in middleware exposed universally yet (except ad-hoc in RefreshToken),
-	// we'll reuse the logic or if it fails we just ignore (best effort).
-	// Actually, strict logout means cleaning DB.
-	
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
@@ -157,8 +149,6 @@ func (s *userService) Logout(token string) error {
 	})
 
 	if err != nil || !parsedToken.Valid {
-		// If token invalid, maybe already expired. Safe to ignore or return error?
-		// For UX, return nil.
 		return nil
 	}
 	
@@ -190,7 +180,7 @@ func (s *userService) UpdateProfile(id uint, input UpdateProfileInput) (*entity.
 	}
 
 	user.Name = input.Name
-	user.Email = input.Email // Minimal validation for now
+	user.Email = input.Email
 
 	err = s.userRepository.Update(user)
 	if err != nil {
@@ -216,10 +206,8 @@ func (s *userService) ChangePassword(id uint, input ChangePasswordInput) error {
 }
 
 func (s *userService) LoginOrRegisterGoogle(email string, name string, googleID string) (*entity.User, string, string, error) {
-	// Check if user exists by email
 	user, err := s.userRepository.FindByEmail(email)
 	if err != nil {
-		// User not found, create new user
 		user = &entity.User{
 			Name:     name,
 			Email:    email,
@@ -230,7 +218,6 @@ func (s *userService) LoginOrRegisterGoogle(email string, name string, googleID 
 			return nil, "", "", err
 		}
 	} else {
-		// User found, update GoogleID if not set
 		if user.GoogleID == "" {
 			user.GoogleID = googleID
 			err = s.userRepository.Update(user)
@@ -259,7 +246,6 @@ func (s *userService) LoginOrRegisterGoogle(email string, name string, googleID 
 }
 
 func (s *userService) RefreshToken(refreshToken string) (string, string, error) {
-	// Parse and validate the token
 	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
@@ -276,7 +262,6 @@ func (s *userService) RefreshToken(refreshToken string) (string, string, error) 
 		return "", "", errors.New("invalid token claims")
 	}
 
-	// Extract User ID
 	var userID uint
 	if idFloat, ok := claims["user_id"].(float64); ok {
 		userID = uint(idFloat)
@@ -284,18 +269,14 @@ func (s *userService) RefreshToken(refreshToken string) (string, string, error) 
 		return "", "", errors.New("invalid user id in token")
 	}
 
-	// Verify user exists (optional but recommended)
 	user, err := s.userRepository.FindByID(userID)
 	if err != nil {
 		return "", "", errors.New("user not found")
 	}
-
-	// Stateful Check: input token must match DB token
 	if user.RefreshToken != refreshToken {
 		return "", "", errors.New("invalid refresh token (reuse detected or logged out)")
 	}
 
-	// Generate new pair
 	accessDur, refreshDur := getTokenDurations()
 	newAccessToken, err := middleware.GenerateToken(userID, accessDur)
 	if err != nil {
@@ -306,7 +287,6 @@ func (s *userService) RefreshToken(refreshToken string) (string, string, error) 
 		return "", "", err
 	}
 
-	// Update DB with new refresh token (Rotation)
 	user.RefreshToken = newRefreshToken
 	if err := s.userRepository.Update(user); err != nil {
 		return "", "", err

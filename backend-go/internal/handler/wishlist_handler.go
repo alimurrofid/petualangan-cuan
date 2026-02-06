@@ -32,7 +32,6 @@ func (h *WishlistHandler) Create(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 	
-	// User ID is set directly in middleware
 	userID := c.Locals("userID").(uint)
 
 	if err := h.wishlistService.Create(userID, &req); err != nil {
