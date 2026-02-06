@@ -195,7 +195,7 @@ const getCardGradient = (type: string) => {
             </div>
              <div class="flex items-center gap-2 text-muted-foreground/70 text-sm font-medium">
                 <span>Total Keseluruhan:</span>
-                <span class="font-mono text-foreground/80" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(totalOverall) }}</span>
+                <span class="text-muted-foreground/70 text-sm font-medium" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(totalOverall) }}</span>
             </div>
         </div>
       </div>

@@ -70,7 +70,6 @@ export const getEmoji = (name: string | undefined | null): string | null => {
     if (found) return found.emoji;
   }
   
-  // Fallback: Jika string adalah emoji native
   if (/\p{Emoji}/u.test(name)) return name;
   
   return null;
@@ -99,7 +98,7 @@ export const categoryIcons: IconItem[] = [
   { name: "Pizza", icon: (LucideIcons as any).Pizza, label: "Jajan" },
   { name: "Cigarette", icon: (LucideIcons as any).Cigarette, label: "Rokok" },
   { name: "IceCream", icon: (LucideIcons as any).IceCream, label: "Dessert" },
-  { name: "Wine", icon: (LucideIcons as any).Wine, label: "Alkohol / Bar" },
+  { name: "Wine", icon: (LucideIcons as any).Wine, label: "Minuman" },
   
   // Transportasi
   { name: "Car", icon: (LucideIcons as any).Car, label: "Mobil" },
@@ -200,7 +199,7 @@ export const walletIcons: IconItem[] = [
   { name: "Banknote", icon: (LucideIcons as any).Banknote, label: "Uang Tunai" },
   { name: "Landmark", icon: (LucideIcons as any).Landmark, label: "Bank" },
   { name: "CreditCard", icon: (LucideIcons as any).CreditCard, label: "Kartu Kredit/Debit" },
-  { name: "SmartphoneNfc", icon: (LucideIcons as any).SmartphoneNfc, label: "E-Wallet" }, // GoPay, OVO, dll
+  { name: "SmartphoneNfc", icon: (LucideIcons as any).SmartphoneNfc, label: "E-Wallet" },
   { name: "PiggyBank", icon: (LucideIcons as any).PiggyBank, label: "Tabungan" },
   { name: "Vault", icon: (LucideIcons as any).Vault, label: "Brankas" },
   { name: "Bitcoin", icon: (LucideIcons as any).Bitcoin, label: "Kripto" },
