@@ -1,6 +1,8 @@
 services:
   backend:
-    image: ghcr.io/alimurrofid/petualangan-cuan/backend:latest
+    build: 
+      context: ./backend-go
+      dockerfile: Dockerfile
     container_name: petualangan_cuan_backend
     environment:
       - PORT=${PORT}
@@ -16,6 +18,7 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL}
       - FRONTEND_URL=${FRONTEND_URL}
+      - LLM_URL=${LLM_URL}
     ports:
       - "${PORT}:${PORT}"
     volumes:
@@ -23,20 +26,12 @@ services:
     depends_on:
       postgres:
         condition: service_started
+      llm-server:
+        condition: service_started
     networks:
       - app-network
     restart: always
     user: appuser
-  frontend:
-    image: ghcr.io/alimurrofid/petualangan-cuan/frontend:latest
-    container_name: petualangan_cuan_frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    networks:
-      - app-network
-    restart: always
   
   postgres:
     image: postgres:15-alpine
@@ -47,6 +42,28 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: always
+
+  llm-server:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: petualangan_cuan_llm
+    volumes:
+      - ./ai-models:/models
+    command: >
+      -m /models/google_gemma-3-4b-it-Q4_K_M.gguf
+      --mmproj /models/mmproj-google_gemma-3-4b-it-f16.gguf
+      --host 0.0.0.0
+      --port 8080
+      -c 4096
+      -t 8
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+    ports:
+      - "8081:8080"
     networks:
       - app-network
     restart: always

@@ -56,6 +56,11 @@ func main() {
 		frontendURL = "http://localhost:5173"
 	}
 
+	llmURL := os.Getenv("LLM_URL")
+	whisperPath := "/app/bin/whisper-cli"
+
+	aiSvc := service.NewAIService(llmURL, whisperPath)
+
 	userRepo := repository.NewUserRepository(db)
 	userSvc := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userSvc, frontendURL)
@@ -89,6 +94,14 @@ func main() {
 
 	financialHealthSvc := service.NewFinancialHealthService(repo, walletRepo, debtRepo)
 	financialHealthHandler := handler.NewFinancialHealthHandler(financialHealthSvc)
+
+	chatbotSvc := service.NewChatbotService(
+		walletRepo, categoryRepo, svc,
+		repo, debtRepo, savingGoalRepo,
+		dashboardSvc, financialHealthSvc,
+	)
+	aiHandler := handler.NewAIHandler(aiSvc, chatbotSvc)
+
 
 	app := fiber.New(fiber.Config{
 		BodyLimit: 10 * 1024 * 1024, // 10MB
@@ -175,6 +188,9 @@ func main() {
 	savingGoals.Put("/:id/finish", savingGoalHandler.FinishGoal)
 
 	api.Get("/financial-health", middleware.Protected(), financialHealthHandler.GetFinancialHealth)
+
+	ai := api.Group("/ai", middleware.Protected())
+	ai.Post("/chat", aiHandler.ChatMessage)
 
 	app.Get("/swagger/*", swagger.HandlerDefault) 
 

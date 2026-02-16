@@ -5,6 +5,9 @@ main
 main.exe
 *.exe
 *.test
+*.bin
+bin/whisper-cli
+
 
 # Dependency
 vendor/
