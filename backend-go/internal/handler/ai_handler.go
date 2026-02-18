@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/service"
 	"encoding/base64"
@@ -11,6 +12,11 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+)
+
+const (
+	MaxImageSize = 5 << 20  // 5MB
+	MaxAudioSize = 10 << 20 // 10MB
 )
 
 type AIHandler interface {
@@ -45,6 +51,11 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 
 	voiceFile, err := c.FormFile("voice")
 	if err == nil && voiceFile != nil {
+		if voiceFile.Size > MaxAudioSize {
+			return c.Status(http.StatusRequestEntityTooLarge).JSON(fiber.Map{
+				"error": fmt.Sprintf("Ukuran audio maksimal %dMB", MaxAudioSize>>20),
+			})
+		}
 		savedPath, err := processAndSaveFile(voiceFile)
 		if err != nil {
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
@@ -69,6 +80,11 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 
 	imageFile, err := c.FormFile("image")
 	if err == nil && imageFile != nil {
+		if imageFile.Size > MaxImageSize {
+			return c.Status(http.StatusRequestEntityTooLarge).JSON(fiber.Map{
+				"error": fmt.Sprintf("Ukuran gambar maksimal %dMB", MaxImageSize>>20),
+			})
+		}
 		savedPath, err := processAndSaveFile(imageFile)
 		if err != nil {
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
@@ -151,11 +167,22 @@ func readFileAsBase64(path string) (string, error) {
 	}
 	defer file.Close()
 
-	data, err := io.ReadAll(file)
+	info, err := file.Stat()
 	if err != nil {
 		return "", err
 	}
-	return base64.StdEncoding.EncodeToString(data), nil
+
+	estimatedSize := int(info.Size()*4/3) + 4
+	var buf bytes.Buffer
+	buf.Grow(estimatedSize)
+
+	encoder := base64.NewEncoder(base64.StdEncoding, &buf)
+	if _, err := io.Copy(encoder, file); err != nil {
+		return "", err
+	}
+	encoder.Close()
+
+	return buf.String(), nil
 }
 
 func removeTempWavFile(path string) {

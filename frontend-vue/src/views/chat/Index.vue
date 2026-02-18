@@ -88,17 +88,84 @@ const triggerImageUpload = () => {
   imageInput.value?.click();
 };
 
-const onImageSelected = (event: Event) => {
+const MAX_IMAGE_DIMENSION = 1024;
+const IMAGE_QUALITY = 0.7;
+const MAX_COMPRESSED_SIZE = 2 * 1024 * 1024; // 2MB after compression
+
+const compressImage = (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      let { width, height } = img;
+      if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+        if (width > height) {
+          height = Math.round((height * MAX_IMAGE_DIMENSION) / width);
+          width = MAX_IMAGE_DIMENSION;
+        } else {
+          width = Math.round((width * MAX_IMAGE_DIMENSION) / height);
+          height = MAX_IMAGE_DIMENSION;
+        }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error("Gagal kompres gambar"));
+          const compressed = new File([blob], file.name.replace(/\.\w+$/, ".jpg"), {
+            type: "image/jpeg",
+          });
+          resolve(compressed);
+        },
+        "image/jpeg",
+        IMAGE_QUALITY,
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Gagal membaca gambar"));
+    };
+
+    img.src = url;
+  });
+};
+
+const onImageSelected = async (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
 
-  imageFile.value = file;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    imagePreview.value = e.target?.result as string;
-  };
-  reader.readAsDataURL(file);
+  try {
+    const compressed = await compressImage(file);
+    if (compressed.size > MAX_COMPRESSED_SIZE) {
+      alert("Gambar terlalu besar. Mohon gunakan gambar yang lebih kecil.");
+      return;
+    }
+    imageFile.value = compressed;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imagePreview.value = e.target?.result as string;
+    };
+    reader.readAsDataURL(compressed);
+  } catch (err) {
+    console.error("Image compression failed:", err);
+    // Fallback: use original file
+    imageFile.value = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imagePreview.value = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
 };
 
 const clearImage = () => {

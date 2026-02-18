@@ -43,30 +43,28 @@ func NewChatbotService(
 
 func (s *ChatbotService) GetUserContext(userID uint) string {
 	var sb strings.Builder
-	sb.WriteString("\n\n--- DATA KEUANGAN USER (REAL-TIME) ---\n")
+	sb.WriteString("\n--- DATA KEUANGAN USER ---\n")
 
+	// Dashboard summary
 	if dashboard, err := s.dashboardSvc.GetDashboardData(userID); err == nil {
-		sb.WriteString("\n📊 RINGKASAN BULAN INI:\n")
-		sb.WriteString(fmt.Sprintf("- Total Saldo: Rp%.0f\n", dashboard.TotalBalance))
-		sb.WriteString(fmt.Sprintf("- Saldo Tersedia: Rp%.0f\n", dashboard.TotalAvailableBalance))
-		sb.WriteString(fmt.Sprintf("- Pemasukan Bulan Ini: Rp%.0f\n", dashboard.TotalIncomeMonth))
-		sb.WriteString(fmt.Sprintf("- Pengeluaran Bulan Ini: Rp%.0f\n", dashboard.TotalExpenseMonth))
+		sb.WriteString(fmt.Sprintf("Total Saldo: Rp%.0f\n", dashboard.TotalBalance))
+		sb.WriteString(fmt.Sprintf("Saldo Tersedia: Rp%.0f\n", dashboard.TotalAvailableBalance))
+		sb.WriteString(fmt.Sprintf("Pemasukan Bulan Ini: Rp%.0f\n", dashboard.TotalIncomeMonth))
+		sb.WriteString(fmt.Sprintf("Pengeluaran Bulan Ini: Rp%.0f\n", dashboard.TotalExpenseMonth))
 	}
 
+	// Wallets with type info (critical for AI to match wallet names)
 	if wallets, err := s.walletRepo.FindByUserID(userID); err == nil && len(wallets) > 0 {
-		sb.WriteString(fmt.Sprintf("\n💳 DAFTAR WALLET (%d):\n", len(wallets)))
+		sb.WriteString(fmt.Sprintf("\nDaftar Wallet (%d):\n", len(wallets)))
 		for _, w := range wallets {
 			sb.WriteString(fmt.Sprintf("- %s (%s): Rp%.0f\n", w.Name, w.Type, w.Balance))
 		}
 	}
 
-	if txns, err := s.transactionRepo.GetRecentTransactions(userID, 10); err == nil && len(txns) > 0 {
-		sb.WriteString(fmt.Sprintf("\n📝 TRANSAKSI TERAKHIR (%d):\n", len(txns)))
+	// Recent transactions (5 items, with category for pattern recognition)
+	if txns, err := s.transactionRepo.GetRecentTransactions(userID, 5); err == nil && len(txns) > 0 {
+		sb.WriteString("\nTransaksi Terakhir:\n")
 		for _, t := range txns {
-			prefix := "🔴"
-			if t.Type == "income" {
-				prefix = "🟢"
-			}
 			walletName := ""
 			if t.Wallet.Name != "" {
 				walletName = t.Wallet.Name
@@ -75,106 +73,82 @@ func (s *ChatbotService) GetUserContext(userID uint) string {
 			if t.Category.Name != "" {
 				categoryName = t.Category.Name
 			}
-			sb.WriteString(fmt.Sprintf("- %s %s: Rp%.0f (%s, %s, %s)\n",
-				prefix, t.Description, t.Amount, t.Type, walletName, categoryName))
+			sb.WriteString(fmt.Sprintf("- %s: Rp%.0f (%s, %s, %s)\n",
+				t.Description, t.Amount, t.Type, walletName, categoryName))
 		}
 	}
 
-	today := time.Now().Format("2006-01-02")
-	if summary, err := s.transactionRepo.FindSummaryByDateRange(userID, today, today, nil, nil, ""); err == nil {
-		totalExpenseToday := 0.0
-		totalIncomeToday := 0.0
+	// Use WIB timezone for date calculations (container may run in UTC)
+	wib, _ := time.LoadLocation("Asia/Jakarta")
+	now := time.Now().In(wib)
+	today := now.Format("2006-01-02")
+	todayEnd := today + " 23:59:59"
+
+	// Today summary
+	if summary, err := s.transactionRepo.FindSummaryByDateRange(userID, today, todayEnd, nil, nil, ""); err == nil {
+		expToday, incToday := 0.0, 0.0
 		for _, s := range summary {
-			totalExpenseToday += s.Expense
-			totalIncomeToday += s.Income
+			expToday += s.Expense
+			incToday += s.Income
 		}
-		sb.WriteString(fmt.Sprintf("\n📅 HARI INI (%s):\n", today))
-		sb.WriteString(fmt.Sprintf("- Pengeluaran: Rp%.0f\n", totalExpenseToday))
-		sb.WriteString(fmt.Sprintf("- Pemasukan: Rp%.0f\n", totalIncomeToday))
+		sb.WriteString(fmt.Sprintf("\nHari Ini (%s): Pengeluaran Rp%.0f, Pemasukan Rp%.0f\n", today, expToday, incToday))
 	}
 
-	now := time.Now()
+	// Weekly summary
 	offset := (int(now.Weekday()) + 6) % 7
 	startOfWeek := now.AddDate(0, 0, -offset)
 	weekStart := startOfWeek.Format("2006-01-02")
-	if summary, err := s.transactionRepo.FindSummaryByDateRange(userID, weekStart, today, nil, nil, ""); err == nil {
-		totalExpenseWeek := 0.0
-		totalIncomeWeek := 0.0
+	if summary, err := s.transactionRepo.FindSummaryByDateRange(userID, weekStart, todayEnd, nil, nil, ""); err == nil {
+		expWeek, incWeek := 0.0, 0.0
 		for _, s := range summary {
-			totalExpenseWeek += s.Expense
-			totalIncomeWeek += s.Income
+			expWeek += s.Expense
+			incWeek += s.Income
 		}
-		sb.WriteString(fmt.Sprintf("\n📅 MINGGU INI (%s s/d %s):\n", weekStart, today))
-		sb.WriteString(fmt.Sprintf("- Pengeluaran: Rp%.0f\n", totalExpenseWeek))
-		sb.WriteString(fmt.Sprintf("- Pemasukan: Rp%.0f\n", totalIncomeWeek))
+		sb.WriteString(fmt.Sprintf("Minggu Ini (%s s/d %s): Pengeluaran Rp%.0f, Pemasukan Rp%.0f\n", weekStart, today, expWeek, incWeek))
 	}
-
 	if debts, err := s.debtRepo.FindByUserID(userID, ""); err == nil && len(debts) > 0 {
-		activeDebts := 0
+		hasActive := false
 		for _, d := range debts {
-			if !d.IsPaid {
-				activeDebts++
+			if d.IsPaid {
+				continue
 			}
-		}
-		if activeDebts > 0 {
-			sb.WriteString(fmt.Sprintf("\n💸 UTANG/PIUTANG AKTIF (%d):\n", activeDebts))
-			for _, d := range debts {
-				if d.IsPaid {
-					continue
-				}
-				typeLabel := "Utang"
-				if d.Type == entity.DebtTypeReceivable {
-					typeLabel = "Piutang"
-				}
-				sb.WriteString(fmt.Sprintf("- %s [%s]: Sisa Rp%.0f dari Rp%.0f", d.Name, typeLabel, d.Remaining, d.Amount))
-				if d.DueDate != nil {
-					sb.WriteString(fmt.Sprintf(" (jatuh tempo: %s)", d.DueDate.Format("02 Jan 2006")))
-				}
-				sb.WriteString("\n")
+			if !hasActive {
+				sb.WriteString("\nUtang/Piutang Aktif:\n")
+				hasActive = true
 			}
+			typeLabel := "Utang"
+			if d.Type == entity.DebtTypeReceivable {
+				typeLabel = "Piutang"
+			}
+			sb.WriteString(fmt.Sprintf("- %s [%s]: Sisa Rp%.0f dari Rp%.0f\n", d.Name, typeLabel, d.Remaining, d.Amount))
 		}
 	}
 
+	// Saving goals
 	if goals, err := s.savingGoalRepo.FindAll(userID); err == nil && len(goals) > 0 {
-		activeGoals := 0
+		hasActive := false
 		for _, g := range goals {
-			if !g.IsFinished {
-				activeGoals++
+			if g.IsFinished {
+				continue
 			}
-		}
-		if activeGoals > 0 {
-			sb.WriteString(fmt.Sprintf("\n🎯 TARGET TABUNGAN AKTIF (%d):\n", activeGoals))
-			for _, g := range goals {
-				if g.IsFinished {
-					continue
-				}
-				progress := 0.0
-				if g.TargetAmount > 0 {
-					progress = (g.CurrentAmount / g.TargetAmount) * 100
-				}
-				status := "⏳"
-				if g.IsAchieved {
-					status = "✅"
-				}
-				sb.WriteString(fmt.Sprintf("- %s %s: Rp%.0f / Rp%.0f (%.0f%%)",
-					status, g.Name, g.CurrentAmount, g.TargetAmount, progress))
-				if g.Deadline != nil {
-					sb.WriteString(fmt.Sprintf(" deadline: %s", g.Deadline.Format("02 Jan 2006")))
-				}
-				sb.WriteString("\n")
+			if !hasActive {
+				sb.WriteString("\nTarget Tabungan:\n")
+				hasActive = true
 			}
+			progress := 0.0
+			if g.TargetAmount > 0 {
+				progress = (g.CurrentAmount / g.TargetAmount) * 100
+			}
+			sb.WriteString(fmt.Sprintf("- %s: Rp%.0f/Rp%.0f (%.0f%%)\n", g.Name, g.CurrentAmount, g.TargetAmount, progress))
 		}
 	}
 
+	// Financial health score only
 	if health, err := s.financialHealth.GetFinancialHealth(userID); err == nil {
-		sb.WriteString("\n🏥 KESEHATAN KEUANGAN:\n")
-		sb.WriteString(fmt.Sprintf("- Skor: %.0f/100 (%s)\n", health.OverallScore, health.OverallStatus))
-		for _, r := range health.Ratios {
-			sb.WriteString(fmt.Sprintf("- %s: %s (%s) - %s\n", r.Name, r.FormattedValue, r.Status, r.Description))
-		}
+		sb.WriteString(fmt.Sprintf("\nSkor Keuangan: %.0f/100 (%s)\n", health.OverallScore, health.OverallStatus))
 	}
 
-	sb.WriteString("\n--- AKHIR DATA KEUANGAN ---")
+	sb.WriteString("--- AKHIR DATA ---")
 	return sb.String()
 }
 

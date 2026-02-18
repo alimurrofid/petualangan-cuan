@@ -11,20 +11,20 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 )
 
 type AIService struct {
 	llmURL      string
 	whisperPath string
-	mu          sync.Mutex
+	llmSem      chan struct{}
 }
 
 func NewAIService(llmURL, whisperPath string) *AIService {
 	return &AIService{
 		llmURL:      llmURL,
 		whisperPath: whisperPath,
+		llmSem:      make(chan struct{}, 2), // max 2 concurrent LLM inference
 	}
 }
 
@@ -60,8 +60,8 @@ type chatCompletionResponse struct {
 }
 
 func (s *AIService) Chat(message string, imageBase64 string, userContext string) (*entity.ChatAIResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.llmSem <- struct{}{}
+	defer func() { <-s.llmSem }()
 
 	var userContent interface{}
 
@@ -76,6 +76,7 @@ func (s *AIService) Chat(message string, imageBase64 string, userContext string)
 	}
 
 	systemPrompt := fmt.Sprintf(SystemPromptChat, userContext)
+	fmt.Printf("[DEBUG] User Context sent to LLM:\n%s\n", userContext)
 
 	payload := chatCompletionRequest{
 		Messages: []chatMessage{
@@ -120,8 +121,6 @@ func (s *AIService) Chat(message string, imageBase64 string, userContext string)
 }
 
 func (s *AIService) ProcessVoice(path string) (string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	if _, err := exec.LookPath("ffmpeg"); err != nil {
 		return "", fmt.Errorf("ffmpeg not found: %w", err)
