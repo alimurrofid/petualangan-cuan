@@ -19,6 +19,7 @@ services:
       - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL}
       - FRONTEND_URL=${FRONTEND_URL}
       - LLM_URL=${LLM_URL}
+      - WHISPER_URL=${WHISPER_URL}
       - TZ=Asia/Jakarta
     ports:
       - "${PORT}:${PORT}"
@@ -28,6 +29,8 @@ services:
       postgres:
         condition: service_started
       llm-server:
+        condition: service_started
+      whisper-server:
         condition: service_started
     networks:
       - app-network
@@ -67,6 +70,19 @@ services:
           memory: 8G
     ports:
       - "8081:8080"
+    networks:
+      - app-network
+    restart: always
+
+  whisper-server:
+    image: fedirz/faster-whisper-server:latest-cpu
+    container_name: petualangan_cuan_whisper
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai-models/whisper:/root/.cache/huggingface
+    environment:
+      - WHISPER_MODEL=small
     networks:
       - app-network
     restart: always

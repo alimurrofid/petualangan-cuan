@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from "vue";
+import { ref, reactive, nextTick, onMounted, onUnmounted } from "vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -19,7 +19,6 @@ import {
   Trash2,
 } from "lucide-vue-next";
 import { format } from "date-fns";
-import api from "@/lib/api";
 
 
 
@@ -55,6 +54,7 @@ const messages = ref<Message[]>([
 
 const userInput = ref("");
 const isTyping = ref(false);
+const typingStatus = ref("Sedang berpikir...");
 const chatContainer = ref<HTMLElement | null>(null);
 
 const imageFile = ref<File | null>(null);
@@ -75,6 +75,7 @@ const audioCurrent = ref(0);
 const audioDurationVal = ref(0);
 const audioPlaying = ref(false);
 
+let isScrollPending = false;
 const scrollToBottom = async () => {
   await nextTick();
   if (chatContainer.value) {
@@ -82,7 +83,44 @@ const scrollToBottom = async () => {
   }
 };
 
+const throttledScrollToBottom = () => {
+  if (!isScrollPending && chatContainer.value) {
+    const { scrollTop, scrollHeight, clientHeight } = chatContainer.value;
+    if (scrollHeight - scrollTop - clientHeight < 150) {
+      isScrollPending = true;
+      requestAnimationFrame(async () => {
+        await scrollToBottom();
+        isScrollPending = false;
+      });
+    }
+  }
+};
+
 onMounted(scrollToBottom);
+
+onUnmounted(() => {
+  if (previewVoiceUrl.value) {
+    URL.revokeObjectURL(previewVoiceUrl.value);
+  }
+  if (imagePreview.value && imagePreview.value.startsWith("blob:")) {
+    URL.revokeObjectURL(imagePreview.value);
+  }
+
+  if (activeAudio.value) {
+    activeAudio.value.pause();
+    activeAudio.value = null;
+  }
+  if (previewAudio.value) {
+    previewAudio.value.pause();
+    previewAudio.value = null;
+  }
+  if (mediaRecorder.value && mediaRecorder.value.state !== "inactive") {
+    mediaRecorder.value.stop();
+  }
+  if (recordingTimer.value) {
+    clearInterval(recordingTimer.value);
+  }
+});
 
 const triggerImageUpload = () => {
   imageInput.value?.click();
@@ -158,7 +196,6 @@ const onImageSelected = async (event: Event) => {
     reader.readAsDataURL(compressed);
   } catch (err) {
     console.error("Image compression failed:", err);
-    // Fallback: use original file
     imageFile.value = file;
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -390,28 +427,104 @@ const sendMessage = async () => {
   scrollToBottom();
 
   isTyping.value = true;
+  typingStatus.value = "Sedang berpikir...";
+
   try {
-    const response = await api.post("/api/ai/chat", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-      timeout: 180000,
+    const token = localStorage.getItem("token");
+    const response = await fetch(import.meta.env.VITE_API_BASE_URL + "/api/ai/chat/stream", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
     });
 
-    isTyping.value = false;
+    if (!response.body) throw new Error("Streaming not supported");
 
-    const assistantMsg: Message = {
+    const assistantMsg: Message = reactive({
       id: Date.now() + 1,
       role: "assistant",
-      content: response.data.reply,
+      content: "",
       time: format(new Date(), "HH:mm"),
-    };
-    if (response.data.transactions?.length) {
-      assistantMsg.transactions = response.data.transactions;
+    });
+    let isMessagePushed = false;
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+
+      for (const part of parts) {
+        const lines = part.split("\n");
+        let event = "";
+        let data = "";
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) event = line.substring(7);
+          else if (line.startsWith("data: ")) data = line.substring(6);
+        }
+
+        if (event === "status") {
+          typingStatus.value = data;
+          isTyping.value = true;
+          throttledScrollToBottom();
+        } else if (event === "token") {
+          try {
+            if (!isMessagePushed) {
+              messages.value.push(assistantMsg);
+              isMessagePushed = true;
+              isTyping.value = false;
+              scrollToBottom();
+            }
+
+            const parsed = JSON.parse(data);
+            assistantMsg.content += parsed.content;
+
+            throttledScrollToBottom();
+          } catch (e) { }
+        } else if (event === "done") {
+          try {
+            const result = JSON.parse(data);
+
+            if (!isMessagePushed) {
+              messages.value.push(assistantMsg);
+              isMessagePushed = true;
+            }
+
+            if (result.transactions?.length) {
+              assistantMsg.transactions = result.transactions;
+            }
+            if (result.reply) {
+              assistantMsg.content = result.reply;
+            }
+
+            scrollToBottom();
+          } catch (e) { }
+          isTyping.value = false;
+        } else if (event === "error") {
+          if (!isMessagePushed) {
+            messages.value.push(assistantMsg);
+            isMessagePushed = true;
+          }
+          try {
+            const parsed = JSON.parse(data);
+            assistantMsg.content += `\n⚠️ Error: ${parsed || data}`;
+          } catch (e) {
+            assistantMsg.content += `\n⚠️ Error: ${data}`;
+          }
+          isTyping.value = false;
+        }
+      }
     }
-    messages.value.push(assistantMsg);
+
   } catch (error: any) {
     isTyping.value = false;
-    const errMsg =
-      error.response?.data?.error || "Terjadi kesalahan. Coba lagi nanti.";
+    const errMsg = error.message || "Terjadi kesalahan koneksi.";
     messages.value.push({
       id: Date.now() + 1,
       role: "assistant",
@@ -571,7 +684,7 @@ const sendMessage = async () => {
             <div
               class="bg-card border border-border px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-1.5 h-10 shadow-sm">
               <Loader2 class="h-4 w-4 text-emerald-500 animate-spin" />
-              <span class="text-xs text-muted-foreground">Sedang berpikir...</span>
+              <span class="text-xs text-muted-foreground">{{ typingStatus }}</span>
             </div>
           </div>
         </div>

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type ChatbotService struct {
@@ -42,11 +44,89 @@ func NewChatbotService(
 }
 
 func (s *ChatbotService) GetUserContext(userID uint) string {
+	var eg errgroup.Group
+
+	var dashboard *entity.DashboardData
+	var wallets []entity.Wallet
+	var txns []entity.Transaction
+	var summaryToday []entity.TransactionSummary
+	var summaryWeek []entity.TransactionSummary
+	var debts []entity.Debt
+	var goals []entity.SavingGoal
+	var health entity.FinancialHealthResponse
+
+	wib, _ := time.LoadLocation("Asia/Jakarta")
+	now := time.Now().In(wib)
+	today := now.Format("2006-01-02")
+	todayEnd := today + " 23:59:59"
+
+	offset := (int(now.Weekday()) + 6) % 7
+	startOfWeek := now.AddDate(0, 0, -offset)
+	weekStart := startOfWeek.Format("2006-01-02")
+
+	eg.Go(func() error {
+		if d, err := s.dashboardSvc.GetDashboardData(userID); err == nil {
+			dashboard = d
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		if w, err := s.walletRepo.FindByUserID(userID); err == nil {
+			wallets = w
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		if t, err := s.transactionRepo.GetRecentTransactions(userID, 5); err == nil {
+			txns = t
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		if st, err := s.transactionRepo.FindSummaryByDateRange(userID, today, todayEnd, nil, nil, ""); err == nil {
+			summaryToday = st
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		if sw, err := s.transactionRepo.FindSummaryByDateRange(userID, weekStart, todayEnd, nil, nil, ""); err == nil {
+			summaryWeek = sw
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		if d, err := s.debtRepo.FindByUserID(userID, ""); err == nil {
+			debts = d
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		if g, err := s.savingGoalRepo.FindAll(userID); err == nil {
+			goals = g
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		if h, err := s.financialHealth.GetFinancialHealth(userID); err == nil {
+			health = h
+		}
+		return nil
+	})
+
+	eg.Wait()
+
 	var sb strings.Builder
 	sb.WriteString("\n--- DATA KEUANGAN USER ---\n")
 
 	// Dashboard summary
-	if dashboard, err := s.dashboardSvc.GetDashboardData(userID); err == nil {
+	if dashboard != nil {
 		sb.WriteString(fmt.Sprintf("Total Saldo: Rp%.0f\n", dashboard.TotalBalance))
 		sb.WriteString(fmt.Sprintf("Saldo Tersedia: Rp%.0f\n", dashboard.TotalAvailableBalance))
 		sb.WriteString(fmt.Sprintf("Pemasukan Bulan Ini: Rp%.0f\n", dashboard.TotalIncomeMonth))
@@ -54,7 +134,7 @@ func (s *ChatbotService) GetUserContext(userID uint) string {
 	}
 
 	// Wallets with type info (critical for AI to match wallet names)
-	if wallets, err := s.walletRepo.FindByUserID(userID); err == nil && len(wallets) > 0 {
+	if len(wallets) > 0 {
 		sb.WriteString(fmt.Sprintf("\nDaftar Wallet (%d):\n", len(wallets)))
 		for _, w := range wallets {
 			sb.WriteString(fmt.Sprintf("- %s (%s): Rp%.0f\n", w.Name, w.Type, w.Balance))
@@ -62,7 +142,7 @@ func (s *ChatbotService) GetUserContext(userID uint) string {
 	}
 
 	// Recent transactions (5 items, with category for pattern recognition)
-	if txns, err := s.transactionRepo.GetRecentTransactions(userID, 5); err == nil && len(txns) > 0 {
+	if len(txns) > 0 {
 		sb.WriteString("\nTransaksi Terakhir:\n")
 		for _, t := range txns {
 			walletName := ""
@@ -78,16 +158,10 @@ func (s *ChatbotService) GetUserContext(userID uint) string {
 		}
 	}
 
-	// Use WIB timezone for date calculations (container may run in UTC)
-	wib, _ := time.LoadLocation("Asia/Jakarta")
-	now := time.Now().In(wib)
-	today := now.Format("2006-01-02")
-	todayEnd := today + " 23:59:59"
-
 	// Today summary
-	if summary, err := s.transactionRepo.FindSummaryByDateRange(userID, today, todayEnd, nil, nil, ""); err == nil {
+	if len(summaryToday) > 0 {
 		expToday, incToday := 0.0, 0.0
-		for _, s := range summary {
+		for _, s := range summaryToday {
 			expToday += s.Expense
 			incToday += s.Income
 		}
@@ -95,18 +169,15 @@ func (s *ChatbotService) GetUserContext(userID uint) string {
 	}
 
 	// Weekly summary
-	offset := (int(now.Weekday()) + 6) % 7
-	startOfWeek := now.AddDate(0, 0, -offset)
-	weekStart := startOfWeek.Format("2006-01-02")
-	if summary, err := s.transactionRepo.FindSummaryByDateRange(userID, weekStart, todayEnd, nil, nil, ""); err == nil {
+	if len(summaryWeek) > 0 {
 		expWeek, incWeek := 0.0, 0.0
-		for _, s := range summary {
+		for _, s := range summaryWeek {
 			expWeek += s.Expense
 			incWeek += s.Income
 		}
 		sb.WriteString(fmt.Sprintf("Minggu Ini (%s s/d %s): Pengeluaran Rp%.0f, Pemasukan Rp%.0f\n", weekStart, today, expWeek, incWeek))
 	}
-	if debts, err := s.debtRepo.FindByUserID(userID, ""); err == nil && len(debts) > 0 {
+	if len(debts) > 0 {
 		hasActive := false
 		for _, d := range debts {
 			if d.IsPaid {
@@ -125,7 +196,7 @@ func (s *ChatbotService) GetUserContext(userID uint) string {
 	}
 
 	// Saving goals
-	if goals, err := s.savingGoalRepo.FindAll(userID); err == nil && len(goals) > 0 {
+	if len(goals) > 0 {
 		hasActive := false
 		for _, g := range goals {
 			if g.IsFinished {
@@ -144,7 +215,7 @@ func (s *ChatbotService) GetUserContext(userID uint) string {
 	}
 
 	// Financial health score only
-	if health, err := s.financialHealth.GetFinancialHealth(userID); err == nil {
+	if health.OverallStatus != "" {
 		sb.WriteString(fmt.Sprintf("\nSkor Keuangan: %.0f/100 (%s)\n", health.OverallScore, health.OverallStatus))
 	}
 

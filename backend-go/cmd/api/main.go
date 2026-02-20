@@ -52,14 +52,10 @@ func main() {
 	}
 
 	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		frontendURL = "http://localhost:5173"
-	}
-
 	llmURL := os.Getenv("LLM_URL")
-	whisperPath := "/app/bin/whisper-cli"
+	whisperURL := os.Getenv("WHISPER_URL")
 
-	aiSvc := service.NewAIService(llmURL, whisperPath)
+	aiSvc := service.NewAIService(llmURL, whisperURL)
 
 	userRepo := repository.NewUserRepository(db)
 	userSvc := service.NewUserService(userRepo)
@@ -191,6 +187,7 @@ func main() {
 
 	ai := api.Group("/ai", middleware.Protected())
 	ai.Post("/chat", aiHandler.ChatMessage)
+	ai.Post("/chat/stream", aiHandler.ChatMessageStream)
 
 	app.Get("/swagger/*", swagger.HandlerDefault) 
 
