@@ -3,7 +3,9 @@ package service
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"cuan-backend/internal/entity"
+	aiprovider "cuan-backend/internal/provider/ai"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,15 +17,21 @@ import (
 	"time"
 )
 
-type AIService struct {
-	llmURL     string
+type AIService interface {
+	Chat(message string, imageBase64 string, userContext string) (*entity.ChatAIResponse, error)
+	ChatStream(message string, imageBase64 string, userContext string, onToken func(string) error) (*entity.ChatAIResponse, error)
+	ProcessVoice(path string) (string, error)
+}
+
+type aiService struct {
+	provider   aiprovider.Provider
 	whisperURL string
 	llmSem     chan struct{}
 }
 
-func NewAIService(llmURL, whisperURL string) *AIService {
-	return &AIService{
-		llmURL:     llmURL,
+func NewAIService(provider aiprovider.Provider, whisperURL string) AIService {
+	return &aiService{
+		provider:   provider,
 		whisperURL: whisperURL,
 		llmSem:     make(chan struct{}, 2), // max 2 concurrent LLM inference
 	}
@@ -60,7 +68,7 @@ type chatCompletionResponse struct {
 	} `json:"choices"`
 }
 
-func (s *AIService) Chat(message string, imageBase64 string, userContext string) (*entity.ChatAIResponse, error) {
+func (s *aiService) Chat(message string, imageBase64 string, userContext string) (*entity.ChatAIResponse, error) {
 	select {
 	case s.llmSem <- struct{}{}:
 		defer func() { <-s.llmSem }()
@@ -68,64 +76,29 @@ func (s *AIService) Chat(message string, imageBase64 string, userContext string)
 		return nil, fmt.Errorf("AI Server sedang sibuk, mohon coba beberapa saat lagi")
 	}
 
-	var userContent interface{}
-
-	if imageBase64 != "" {
-		parts := []contentPart{
-			{Type: "text", Text: message},
-			{Type: "image_url", ImageURL: &imageURL{URL: "data:image/jpeg;base64," + imageBase64}},
-		}
-		userContent = parts
-	} else {
-		userContent = message
-	}
-
 	systemPrompt := fmt.Sprintf(SystemPromptChat, userContext)
 	fmt.Printf("[DEBUG] User Context sent to LLM:\n%s\n", userContext)
 
-	payload := chatCompletionRequest{
-		Messages: []chatMessage{
-			{Role: "system", Content: systemPrompt},
-			{Role: "user", Content: userContent},
-		},
-		MaxTokens:   1024,
-		Temperature: 0.3,
-		Stream:      false,
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	req := aiprovider.AIRequest{
+		Prompt:      message,
+		Base64Image: imageBase64,
+		System:      systemPrompt,
 	}
 
-	content, err := s.doChatUnlocked(payload)
+	content, err := s.provider.GenerateCompletion(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("provider error: %w", err)
 	}
 
 	fmt.Printf("[DEBUG] AI Raw Response: %q\n", content)
 
-	startIdx := strings.Index(content, "{")
-	endIdx := strings.LastIndex(content, "}")
-	if startIdx == -1 || endIdx == -1 {
-		return &entity.ChatAIResponse{
-			Reply:         content,
-			IsTransaction: false,
-			Transactions:  nil,
-		}, nil
-	}
-
-	jsonPart := content[startIdx : endIdx+1]
-
-	var response entity.ChatAIResponse
-	if err := json.Unmarshal([]byte(jsonPart), &response); err != nil {
-		fmt.Printf("[WARN] Failed to parse AI JSON: %v, raw: %s\n", err, jsonPart)
-		return &entity.ChatAIResponse{
-			Reply:         content,
-			IsTransaction: false,
-			Transactions:  nil,
-		}, nil
-	}
-
-	return &response, nil
+	return parseAIResponse(content), nil
 }
 
-func (s *AIService) ProcessVoice(path string) (string, error) {
+func (s *aiService) ProcessVoice(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return "", fmt.Errorf("failed to open audio file: %w", err)
@@ -145,13 +118,16 @@ func (s *AIService) ProcessVoice(path string) (string, error) {
 		m.WriteField("model", "small")
 	}()
 
-	req, err := http.NewRequest("POST", s.whisperURL+"/v1/audio/transcriptions", pr)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", s.whisperURL+"/v1/audio/transcriptions", pr)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to create whisper request: %w", err)
 	}
 	req.Header.Set("Content-Type", m.FormDataContentType())
 
-	client := &http.Client{Timeout: 300 * time.Second}
+	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("whisper request failed: %w", err)
@@ -173,7 +149,7 @@ func (s *AIService) ProcessVoice(path string) (string, error) {
 	return strings.TrimSpace(result.Text), nil
 }
 
-func (s *AIService) ChatStream(message string, imageBase64 string, userContext string, onToken func(string) error) (*entity.ChatAIResponse, error) {
+func (s *aiService) ChatStream(message string, imageBase64 string, userContext string, onToken func(string) error) (*entity.ChatAIResponse, error) {
 	select {
 	case s.llmSem <- struct{}{}:
 		defer func() { <-s.llmSem }()
@@ -181,26 +157,11 @@ func (s *AIService) ChatStream(message string, imageBase64 string, userContext s
 		return nil, fmt.Errorf("AI Server sedang sibuk, mohon coba beberapa saat lagi")
 	}
 
-	var userContent interface{}
-
-	if imageBase64 != "" {
-		parts := []contentPart{
-			{Type: "text", Text: message},
-			{Type: "image_url", ImageURL: &imageURL{URL: "data:image/jpeg;base64," + imageBase64}},
-		}
-		userContent = parts
-	} else {
-		userContent = message
-	}
-
 	systemPrompt := fmt.Sprintf(SystemPromptChat, userContext)
 	fmt.Printf("[DEBUG] User Context sent to LLM (Stream):\n%s\n", userContext)
 
 	payload := chatCompletionRequest{
-		Messages: []chatMessage{
-			{Role: "system", Content: systemPrompt},
-			{Role: "user", Content: userContent},
-		},
+		Messages:    buildMessages(systemPrompt, message, imageBase64),
 		MaxTokens:   1024,
 		Temperature: 0.3,
 		Stream:      true,
@@ -209,13 +170,57 @@ func (s *AIService) ChatStream(message string, imageBase64 string, userContext s
 	return s.doChatStream(payload, onToken)
 }
 
-func (s *AIService) doChatStream(payload chatCompletionRequest, onToken func(string) error) (*entity.ChatAIResponse, error) {
+func buildMessages(system, prompt, imageBase64 string) []chatMessage {
+	var userContent interface{}
+	if imageBase64 != "" {
+		userContent = []contentPart{
+			{Type: "text", Text: prompt},
+			{Type: "image_url", ImageURL: &imageURL{URL: "data:image/jpeg;base64," + imageBase64}},
+		}
+	} else {
+		userContent = prompt
+	}
+
+	return []chatMessage{
+		{Role: "system", Content: system},
+		{Role: "user", Content: userContent},
+	}
+}
+
+func parseAIResponse(content string) *entity.ChatAIResponse {
+	startIdx := strings.Index(content, "{")
+	endIdx := strings.LastIndex(content, "}")
+	if startIdx == -1 || endIdx == -1 {
+		return &entity.ChatAIResponse{Reply: content, IsTransaction: false}
+	}
+
+	jsonPart := content[startIdx : endIdx+1]
+	var response entity.ChatAIResponse
+	if err := json.Unmarshal([]byte(jsonPart), &response); err != nil {
+		fmt.Printf("[WARN] Failed to parse AI JSON: %v, raw: %s\n", err, jsonPart)
+		return &entity.ChatAIResponse{Reply: content, IsTransaction: false}
+	}
+	return &response
+}
+
+func (s *aiService) doChatStream(payload chatCompletionRequest, onToken func(string) error) (*entity.ChatAIResponse, error) {
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", s.llmURL+"/v1/chat/completions", bytes.NewBuffer(jsonPayload))
+	type urlGetter interface {
+		GetURL() string
+	}
+
+	var streamURL string
+	if ug, ok := s.provider.(urlGetter); ok {
+		streamURL = ug.GetURL() + "/v1/chat/completions"
+	} else {
+		return s.chatStreamViaProvider(payload, onToken)
+	}
+
+	req, err := http.NewRequest("POST", streamURL, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +239,60 @@ func (s *AIService) doChatStream(payload chatCompletionRequest, onToken func(str
 		return nil, fmt.Errorf("llm returned status %d: %s", resp.StatusCode, string(body))
 	}
 
-	reader := bufio.NewReader(resp.Body)
+	return parseSSEStream(resp.Body, onToken)
+}
+
+func (s *aiService) chatStreamViaProvider(payload chatCompletionRequest, onToken func(string) error) (*entity.ChatAIResponse, error) {
+	var prompt, system, imageBase64 string
+	for _, msg := range payload.Messages {
+		switch msg.Role {
+		case "system":
+			if s, ok := msg.Content.(string); ok {
+				system = s
+			}
+		case "user":
+			if s, ok := msg.Content.(string); ok {
+				prompt = s
+			} else if parts, ok := msg.Content.([]contentPart); ok {
+				for _, p := range parts {
+					if p.Type == "text" {
+						prompt = p.Text
+					} else if p.Type == "image_url" && p.ImageURL != nil {
+						imageBase64 = strings.TrimPrefix(p.ImageURL.URL, "data:image/jpeg;base64,")
+					}
+				}
+			}
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	req := aiprovider.AIRequest{
+		Prompt:      prompt,
+		Base64Image: imageBase64,
+		System:      system,
+	}
+
+	content, err := s.provider.GenerateCompletion(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("provider error: %w", err)
+	}
+
+	fmt.Printf("[DEBUG] AI Stream (via provider) Final Content: %q\n", content)
+
+	response := parseAIResponse(content)
+	for _, char := range response.Reply {
+		if err := onToken(string(char)); err != nil {
+			return nil, err
+		}
+	}
+
+	return response, nil
+}
+
+func parseSSEStream(body io.Reader, onToken func(string) error) (*entity.ChatAIResponse, error) {
+	reader := bufio.NewReader(body)
 	var fullContent strings.Builder
 
 	var (
@@ -309,7 +367,7 @@ func (s *AIService) doChatStream(payload chatCompletionRequest, onToken func(str
 							if r == '\\' {
 								escape = true
 								if err := onToken(string(r)); err != nil {
-								    return nil, err
+									return nil, err
 								}
 							} else if r == '"' {
 								inString = false
@@ -336,7 +394,7 @@ func (s *AIService) doChatStream(payload chatCompletionRequest, onToken func(str
 
 	startIdx := strings.Index(finalContent, "{")
 	endIdx := strings.LastIndex(finalContent, "}")
-	
+
 	response := &entity.ChatAIResponse{
 		Reply:         finalContent,
 		IsTransaction: false,
@@ -354,41 +412,4 @@ func (s *AIService) doChatStream(payload chatCompletionRequest, onToken func(str
 	}
 
 	return response, nil
-}
-
-
-func (s *AIService) doChatUnlocked(payload chatCompletionRequest) (string, error) {
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequest("POST", s.llmURL+"/v1/chat/completions", bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 180 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("llm request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("llm returned status %d: %s", resp.StatusCode, string(body))
-	}
-
-	var result chatCompletionResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("failed to decode llm response: %w", err)
-	}
-
-	if len(result.Choices) == 0 {
-		return "", fmt.Errorf("llm returned no choices")
-	}
-
-	return strings.TrimSpace(result.Choices[0].Message.Content), nil
 }

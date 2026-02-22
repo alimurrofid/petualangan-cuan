@@ -27,11 +27,11 @@ type AIHandler interface {
 }
 
 type aiHandler struct {
-	aiService      *service.AIService
+	aiService      service.AIService
 	chatbotService *service.ChatbotService
 }
 
-func NewAIHandler(aiService *service.AIService, chatbotService *service.ChatbotService) AIHandler {
+func NewAIHandler(aiService service.AIService, chatbotService *service.ChatbotService) AIHandler {
 	return &aiHandler{
 		aiService:      aiService,
 		chatbotService: chatbotService,

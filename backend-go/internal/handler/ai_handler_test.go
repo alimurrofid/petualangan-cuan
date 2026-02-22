@@ -2,6 +2,9 @@ package handler
 
 import (
 	"bytes"
+	"context"
+	"cuan-backend/internal/entity"
+	aiprovider "cuan-backend/internal/provider/ai"
 	"cuan-backend/internal/service"
 	"mime/multipart"
 	"net/http/httptest"
@@ -11,28 +14,40 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// mockAIService and mockChatbotService can be instantiated as empty or properly mocked structures
-// depending on how deep the handler test needs to be. For fiber handler routing tests,
-// we can test the failure cases where message/files are missing, or contexts are unauthorized.
+type mockAIService struct{}
+
+func (m *mockAIService) Chat(_ string, _ string, _ string) (*entity.ChatAIResponse, error) {
+	return nil, nil
+}
+
+func (m *mockAIService) ChatStream(_ string, _ string, _ string, _ func(string) error) (*entity.ChatAIResponse, error) {
+	return nil, nil
+}
+
+func (m *mockAIService) ProcessVoice(_ string) (string, error) {
+	return "", nil
+}
+
+type mockAIProvider struct{}
+
+func (m *mockAIProvider) GenerateCompletion(_ context.Context, _ aiprovider.AIRequest) (string, error) {
+	return "", nil
+}
 
 func setupAIApp() (*fiber.App, AIHandler) {
 	app := fiber.New()
 
-	// Create mock services
-	aiSvc := &service.AIService{}           // Simplified mock
-	chatbotSvc := &service.ChatbotService{} // Simplified mock
+	aiSvc := &mockAIService{}
+	chatbotSvc := &service.ChatbotService{}
 
 	h := NewAIHandler(aiSvc, chatbotSvc)
 
-	// Register route with mock JWT Local setup
 	app.Post("/api/ai/chat", func(c *fiber.Ctx) error {
-		// Mock valid user login
 		c.Locals("userID", uint(1))
 		return h.ChatMessage(c)
 	})
 
 	app.Post("/api/ai/chat/unauth", func(c *fiber.Ctx) error {
-		// Mock unauthorized (missing userID)
 		return h.ChatMessage(c)
 	})
 

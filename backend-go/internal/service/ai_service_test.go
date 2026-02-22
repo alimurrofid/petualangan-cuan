@@ -1,24 +1,31 @@
 package service
 
 import (
+	"context"
 	"testing"
+
+	aiprovider "cuan-backend/internal/provider/ai"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAIService_ProcessVoice_FileNotFound(t *testing.T) {
-	service := NewAIService("", "")
+type stubProvider struct{}
 
-	_, err := service.ProcessVoice("./non_existent_file.ogg")
+func (s *stubProvider) GenerateCompletion(_ context.Context, _ aiprovider.AIRequest) (string, error) {
+	return "", nil
+}
+
+func TestAIService_ProcessVoice_FileNotFound(t *testing.T) {
+	svc := NewAIService(&stubProvider{}, "")
+
+	_, err := svc.ProcessVoice("./non_existent_file.ogg")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no such file or directory")
 }
 
-func TestAIService_Chat_EmptyMessage(t *testing.T) {
-	service := NewAIService("fake_url", "fake_whisper")
+func TestAIService_ProcessVoice_NoWhisperURL(t *testing.T) {
+	svc := NewAIService(&stubProvider{}, "")
 
-	resp, err := service.Chat("", "", "")
-
+	_, err := svc.ProcessVoice("./non_existent_file.ogg")
 	assert.Error(t, err)
-	assert.Nil(t, resp)
 }

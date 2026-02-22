@@ -7,6 +7,7 @@ import (
 
 	"cuan-backend/internal/config"
 	"cuan-backend/internal/handler"
+	aiprovider "cuan-backend/internal/provider/ai"
 	"cuan-backend/internal/repository"
 	"cuan-backend/internal/seeder"
 	"cuan-backend/internal/service"
@@ -52,10 +53,24 @@ func main() {
 	}
 
 	frontendURL := os.Getenv("FRONTEND_URL")
-	llmURL := os.Getenv("LLM_URL")
-	whisperURL := os.Getenv("WHISPER_URL")
 
-	aiSvc := service.NewAIService(llmURL, whisperURL)
+	var llmProvider aiprovider.Provider
+	switch os.Getenv("AI_PROVIDER") {
+	case "external":
+		externalURL := os.Getenv("EXTERNAL_AI_URL")
+		apiKey := os.Getenv("EXTERNAL_AI_API_KEY")
+		model := os.Getenv("EXTERNAL_AI_MODEL")
+		llmProvider = aiprovider.NewExternalProvider(externalURL, apiKey, model)
+		log.Printf("[AI] Provider: External (%s, model: %s)", externalURL, model)
+	default:
+		localLLMURL := os.Getenv("LOCAL_LLM_URL")
+		llmProvider = aiprovider.NewLocalProvider(localLLMURL)
+		log.Printf("[AI] Provider: Local (%s)", localLLMURL)
+	}
+
+	whisperURL := os.Getenv("LOCAL_WHISPER_URL")
+
+	aiSvc := service.NewAIService(llmProvider, whisperURL)
 
 	userRepo := repository.NewUserRepository(db)
 	userSvc := service.NewUserService(userRepo)
