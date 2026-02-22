@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -24,17 +25,21 @@ const (
 type AIHandler interface {
 	ChatMessage(c *fiber.Ctx) error
 	ChatMessageStream(c *fiber.Ctx) error
+	GetChatHistory(c *fiber.Ctx) error
+	ClearChatHistory(c *fiber.Ctx) error
 }
 
 type aiHandler struct {
 	aiService      service.AIService
 	chatbotService *service.ChatbotService
+	chatHistorySvc service.ChatHistoryService
 }
 
-func NewAIHandler(aiService service.AIService, chatbotService *service.ChatbotService) AIHandler {
+func NewAIHandler(aiService service.AIService, chatbotService *service.ChatbotService, chatHistorySvc service.ChatHistoryService) AIHandler {
 	return &aiHandler{
 		aiService:      aiService,
 		chatbotService: chatbotService,
+		chatHistorySvc: chatHistorySvc,
 	}
 }
 
@@ -132,6 +137,12 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 		})
 	}
 
+	// Simpan pesan user ke history
+	userContent := message
+	if err := h.chatHistorySvc.SaveMessage(userID, "user", userContent, audioURL, savedImageURL); err != nil {
+		fmt.Printf("[WARN] Gagal menyimpan pesan user ke history: %v\n", err)
+	}
+
 	userContext := h.chatbotService.GetUserContext(userID, message)
 	aiResponse, err := h.aiService.Chat(message, imageBase64, userContext)
 	if err != nil {
@@ -166,6 +177,11 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 			}
 			response.Reply += summary
 		}
+	}
+
+	// Simpan balasan AI ke history
+	if err := h.chatHistorySvc.SaveMessage(userID, "assistant", response.Reply, "", ""); err != nil {
+		fmt.Printf("[WARN] Gagal menyimpan balasan AI ke history: %v\n", err)
 	}
 
 	return c.JSON(response)
@@ -264,6 +280,11 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 			return
 		}
 
+		// Simpan pesan user ke history
+		if err := h.chatHistorySvc.SaveMessage(userID, "user", message, audioURL, savedImageURL); err != nil {
+			fmt.Printf("[WARN] Gagal menyimpan pesan user ke history: %v\n", err)
+		}
+
 		botStatus := "Sedang berpikir..."
 		if diskImagePath != "" {
 			botStatus = "Menganalisis gambar..."
@@ -314,11 +335,67 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 			}
 		}
 
+		// Simpan balasan AI ke history setelah streaming selesai
+		if err := h.chatHistorySvc.SaveMessage(userID, "assistant", response.Reply, "", ""); err != nil {
+			fmt.Printf("[WARN] Gagal menyimpan balasan AI ke history: %v\n", err)
+		}
+
 		finalJSON, _ := json.Marshal(response)
 		writeSSE(w, "done", string(finalJSON))
 	})
 
 	return nil
+}
+
+// GetChatHistory godoc
+// @Summary Get chat history
+// @Description Get the chat message history for the authenticated user
+// @Tags ai
+// @Produce json
+// @Security BearerAuth
+// @Param limit query int false "Number of messages to return (default 100)"
+// @Success 200 {array} entity.ChatMessage
+// @Failure 401 {object} map[string]interface{}
+// @Router /api/ai/chat/history [get]
+func (h *aiHandler) GetChatHistory(c *fiber.Ctx) error {
+	userID, ok := c.Locals("userID").(uint)
+	if !ok {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	limitStr := c.Query("limit", "100")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 100
+	}
+
+	messages, err := h.chatHistorySvc.GetHistory(userID, limit)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal mengambil riwayat chat"})
+	}
+
+	return c.JSON(messages)
+}
+
+// ClearChatHistory godoc
+// @Summary Clear chat history
+// @Description Delete all chat messages for the authenticated user
+// @Tags ai
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /api/ai/chat/history [delete]
+func (h *aiHandler) ClearChatHistory(c *fiber.Ctx) error {
+	userID, ok := c.Locals("userID").(uint)
+	if !ok {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	if err := h.chatHistorySvc.ClearHistory(userID); err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal menghapus riwayat chat"})
+	}
+
+	return c.JSON(fiber.Map{"message": "Riwayat chat berhasil dihapus"})
 }
 
 func writeSSE(w *bufio.Writer, event, data string) error {

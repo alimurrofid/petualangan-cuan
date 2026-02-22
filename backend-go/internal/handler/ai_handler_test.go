@@ -34,13 +34,28 @@ func (m *mockAIProvider) GenerateCompletion(_ context.Context, _ aiprovider.AIRe
 	return "", nil
 }
 
+type mockChatHistoryService struct{}
+
+func (m *mockChatHistoryService) SaveMessage(_ uint, _, _, _, _ string) error {
+	return nil
+}
+
+func (m *mockChatHistoryService) GetHistory(_ uint, _ int) ([]entity.ChatMessage, error) {
+	return nil, nil
+}
+
+func (m *mockChatHistoryService) ClearHistory(_ uint) error {
+	return nil
+}
+
 func setupAIApp() (*fiber.App, AIHandler) {
 	app := fiber.New()
 
 	aiSvc := &mockAIService{}
 	chatbotSvc := &service.ChatbotService{}
+	chatHistSvc := &mockChatHistoryService{}
 
-	h := NewAIHandler(aiSvc, chatbotSvc)
+	h := NewAIHandler(aiSvc, chatbotSvc, chatHistSvc)
 
 	app.Post("/api/ai/chat", func(c *fiber.Ctx) error {
 		c.Locals("userID", uint(1))

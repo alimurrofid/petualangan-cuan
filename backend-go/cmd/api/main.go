@@ -111,7 +111,11 @@ func main() {
 		repo, debtRepo, savingGoalRepo,
 		dashboardSvc, financialHealthSvc,
 	)
-	aiHandler := handler.NewAIHandler(aiSvc, chatbotSvc)
+
+	chatRepo := repository.NewChatRepository(db)
+	chatHistSvc := service.NewChatHistoryService(chatRepo)
+
+	aiHandler := handler.NewAIHandler(aiSvc, chatbotSvc, chatHistSvc)
 
 
 	app := fiber.New(fiber.Config{
@@ -203,6 +207,8 @@ func main() {
 	ai := api.Group("/ai", middleware.Protected())
 	ai.Post("/chat", aiHandler.ChatMessage)
 	ai.Post("/chat/stream", aiHandler.ChatMessageStream)
+	ai.Get("/chat/history", aiHandler.GetChatHistory)
+	ai.Delete("/chat/history", aiHandler.ClearChatHistory)
 
 	app.Get("/swagger/*", swagger.HandlerDefault) 
 

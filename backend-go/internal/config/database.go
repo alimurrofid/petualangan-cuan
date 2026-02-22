@@ -54,13 +54,14 @@ func MigrateFresh(db *gorm.DB) {
 	db.Migrator().DropTable(&entity.Category{})
 	db.Migrator().DropTable(&entity.Wallet{})
 	db.Migrator().DropTable(&entity.User{})
+	db.Migrator().DropTable(&entity.ChatMessage{})
 
 	fmt.Println("✅ All tables dropped!")
 	fmt.Println("🆕 Re-running Auto Migration...")
-	db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{}, &entity.WishlistItem{}, &entity.SavingGoal{}, &entity.SavingContribution{})
+	db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{}, &entity.WishlistItem{}, &entity.SavingGoal{}, &entity.SavingContribution{}, &entity.ChatMessage{})
 }
 
 func RunMigration(db *gorm.DB) error {
 	fmt.Println("Running Auto Migration...")
-	return db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{}, &entity.WishlistItem{}, &entity.SavingGoal{}, &entity.SavingContribution{})
+	return db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{}, &entity.WishlistItem{}, &entity.SavingGoal{}, &entity.SavingContribution{}, &entity.ChatMessage{})
 }

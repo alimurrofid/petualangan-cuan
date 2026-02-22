@@ -17,8 +17,12 @@ import {
   Pause,
   Volume2,
   Trash2,
+  Eraser,
 } from "lucide-vue-next";
 import { format } from "date-fns";
+import { useSwal } from "@/composables/useSwal";
+
+const swal = useSwal();
 
 
 
@@ -42,15 +46,8 @@ interface Message {
   transactions?: SavedTransaction[];
 }
 
-const messages = ref<Message[]>([
-  {
-    id: 1,
-    role: "assistant",
-    content:
-      "Halo! Saya Cuan AI, asisten keuangan pribadimu. Kamu bisa kirim teks, foto struk, atau pesan suara! 🤖💰",
-    time: format(new Date(), "HH:mm"),
-  },
-]);
+const messages = ref<Message[]>([]);
+const isLoadingHistory = ref(false);
 
 const userInput = ref("");
 const isTyping = ref(false);
@@ -96,7 +93,89 @@ const throttledScrollToBottom = () => {
   }
 };
 
-onMounted(scrollToBottom);
+onMounted(async () => {
+  await loadHistory();
+  scrollToBottom();
+});
+
+const loadHistory = async () => {
+  isLoadingHistory.value = true;
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(
+      import.meta.env.VITE_API_BASE_URL + "/api/ai/chat/history?limit=100",
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) throw new Error("Gagal memuat history");
+    const data: Array<{
+      id: number;
+      role: "user" | "assistant";
+      content: string;
+      audio_url?: string;
+      image_url?: string;
+      created_at: string;
+    }> = await res.json();
+
+    if (data && data.length > 0) {
+      messages.value = data.map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        time: format(new Date(m.created_at), "HH:mm"),
+        audioUrl: m.audio_url || undefined,
+        imageUrl: m.image_url || undefined,
+      }));
+    } else {
+      // Pesan sambutan untuk percakapan baru
+      messages.value = [
+        {
+          id: 1,
+          role: "assistant",
+          content:
+            "Halo! Saya Cuan AI, asisten keuangan pribadimu. Kamu bisa kirim teks, foto struk, atau pesan suara! 🤖💰",
+          time: format(new Date(), "HH:mm"),
+        },
+      ];
+    }
+  } catch {
+    messages.value = [
+      {
+        id: 1,
+        role: "assistant",
+        content:
+          "Halo! Saya Cuan AI, asisten keuangan pribadimu. Kamu bisa kirim teks, foto struk, atau pesan suara! 🤖💰",
+        time: format(new Date(), "HH:mm"),
+      },
+    ];
+  } finally {
+    isLoadingHistory.value = false;
+  }
+};
+
+const clearHistory = async () => {
+  const confirmed = await swal.confirmDelete('riwayat percakapan');
+  if (!confirmed) return;
+
+  try {
+    const token = localStorage.getItem("token");
+    await fetch(import.meta.env.VITE_API_BASE_URL + "/api/ai/chat/history", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    messages.value = [
+      {
+        id: Date.now(),
+        role: "assistant",
+        content:
+          "Riwayat percakapan telah dihapus. Halo lagi! Saya siap membantu keuanganmu. 🤖💰",
+        time: format(new Date(), "HH:mm"),
+      },
+    ];
+    swal.success('Riwayat percakapan berhasil dihapus');
+  } catch {
+    swal.error('Gagal', 'Gagal menghapus riwayat percakapan.');
+  }
+};
 
 onUnmounted(() => {
   if (previewVoiceUrl.value) {
@@ -545,7 +624,7 @@ const sendMessage = async () => {
         class="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg text-white">
         <Bot class="h-6 w-6" />
       </div>
-      <div>
+      <div class="flex-1">
         <h2 class="text-xl font-bold tracking-tight flex items-center gap-2">
           Cuan AI
           <span
@@ -556,6 +635,22 @@ const sendMessage = async () => {
         <p class="text-sm text-muted-foreground">
           Tanya tips keuangan, kirim foto struk, atau rekam suara.
         </p>
+      </div>
+      <!-- Clear history button -->
+      <Button
+        v-if="messages.length > 0 && !isLoadingHistory"
+        variant="ghost"
+        size="icon"
+        title="Hapus riwayat percakapan"
+        class="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 transition-colors"
+        @click="clearHistory"
+      >
+        <Eraser class="h-4 w-4" />
+      </Button>
+      <!-- Loading history indicator -->
+      <div v-if="isLoadingHistory" class="flex items-center gap-2 text-xs text-muted-foreground">
+        <Loader2 class="h-4 w-4 animate-spin text-emerald-500" />
+        <span>Memuat...</span>
       </div>
     </div>
 
