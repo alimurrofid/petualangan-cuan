@@ -132,7 +132,7 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 		})
 	}
 
-	userContext := h.chatbotService.GetUserContext(userID)
+	userContext := h.chatbotService.GetUserContext(userID, message)
 	aiResponse, err := h.aiService.Chat(message, imageBase64, userContext)
 	if err != nil {
 		fmt.Printf("[ERROR] AI Chat failed: %v\n", err)
@@ -270,7 +270,7 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		}
 		writeSSE(w, "status", botStatus)
 
-		userContext := h.chatbotService.GetUserContext(userID)
+		userContext := h.chatbotService.GetUserContext(userID, message)
 
 		aiResponse, err := h.aiService.ChatStream(message, imageBase64, userContext, func(token string) error {
 			safeToken, _ := json.Marshal(map[string]string{"content": token})

@@ -187,7 +187,7 @@ func TestChatbotService_GetUserContext(t *testing.T) {
 	mockGoalRepo.On("FindAll", uint(1)).Return([]entity.SavingGoal{}, nil)
 	mockHealthSvc.On("GetFinancialHealth", uint(1)).Return(entity.FinancialHealthResponse{OverallStatus: "Good", OverallScore: 85}, nil)
 
-	contextStr := service.GetUserContext(1)
+	contextStr := service.GetUserContext(1, "cek data keuangan saya")
 
 	assert.Contains(t, contextStr, "Daftar Wallet (1):")
 	assert.Contains(t, contextStr, "Cash")
