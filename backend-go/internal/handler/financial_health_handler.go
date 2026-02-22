@@ -2,6 +2,7 @@ package handler
 
 import (
 	"cuan-backend/internal/service"
+	"cuan-backend/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -24,7 +25,13 @@ func NewFinancialHealthHandler(service service.FinancialHealthService) *Financia
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/financial-health [get]
 func (h *FinancialHealthHandler) GetFinancialHealth(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status": "error",
+			"error":  "Unauthorized",
+		})
+	}
 
 	data, err := h.service.GetFinancialHealth(userID)
 	if err != nil {

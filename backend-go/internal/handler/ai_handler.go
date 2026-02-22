@@ -38,6 +38,22 @@ func NewAIHandler(aiService *service.AIService, chatbotService *service.ChatbotS
 	}
 }
 
+// ChatMessage godoc
+// @Summary Send chat message
+// @Description Send text, image, or voice message to the AI chatbot
+// @Tags ai
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param message formData string false "Text message"
+// @Param image formData file false "Image attachment"
+// @Param voice formData file false "Voice attachment"
+// @Success 200 {object} entity.ChatResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 413 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/ai/chat [post]
 func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 	message := c.FormValue("message")
 	var imageBase64 string
@@ -122,7 +138,6 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 		fmt.Printf("[ERROR] AI Chat failed: %v\n", err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Gagal mendapatkan respons AI: " + err.Error(),
-
 		})
 	}
 
@@ -156,6 +171,18 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
+// ChatMessageStream godoc
+// @Summary Send chat message via stream
+// @Description Stream AI chatbot response using Server-Sent Events (SSE)
+// @Tags ai
+// @Accept multipart/form-data
+// @Produce text/event-stream
+// @Security BearerAuth
+// @Param message formData string false "Text message"
+// @Param image formData file false "Image attachment"
+// @Param voice formData file false "Voice attachment"
+// @Success 200 {string} string "SSE stream"
+// @Router /api/ai/chat/stream [post]
 func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 	message := c.FormValue("message")
 	var imageBase64 string
@@ -207,7 +234,8 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 			writeSSE(w, "status", "Mentranskripsi suara...")
 			transcription, err := h.aiService.ProcessVoice(diskVoicePath)
 			if err != nil {
-				writeSSE(w, "error", fmt.Sprintf(`"Gagal memproses audio: %s"`, err.Error()))
+				safeError, _ := json.Marshal(map[string]string{"error": "Gagal memproses audio: " + err.Error()})
+				writeSSE(w, "error", string(safeError))
 				return
 			}
 			if message == "" {
@@ -220,7 +248,8 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		if diskImagePath != "" {
 			b64, err := readFileAsBase64(diskImagePath)
 			if err != nil {
-				writeSSE(w, "error", fmt.Sprintf(`"Gagal memproses gambar: %s"`, err.Error()))
+				safeError, _ := json.Marshal(map[string]string{"error": "Gagal memproses gambar: " + err.Error()})
+				writeSSE(w, "error", string(safeError))
 				return
 			}
 			imageBase64 = b64
@@ -230,7 +259,8 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		}
 
 		if message == "" {
-			writeSSE(w, "error", `"Message required"`)
+			safeError, _ := json.Marshal(map[string]string{"error": "Message required"})
+			writeSSE(w, "error", string(safeError))
 			return
 		}
 
@@ -239,9 +269,9 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 			botStatus = "Menganalisis gambar..."
 		}
 		writeSSE(w, "status", botStatus)
-		
+
 		userContext := h.chatbotService.GetUserContext(userID)
-		
+
 		aiResponse, err := h.aiService.ChatStream(message, imageBase64, userContext, func(token string) error {
 			safeToken, _ := json.Marshal(map[string]string{"content": token})
 			return writeSSE(w, "token", string(safeToken))
@@ -249,7 +279,8 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 
 		if err != nil {
 			fmt.Printf("[ERROR] Stream failed: %v\n", err)
-			writeSSE(w, "error", fmt.Sprintf(`"%s"`, err.Error()))
+			safeError, _ := json.Marshal(map[string]string{"error": err.Error()})
+			writeSSE(w, "error", string(safeError))
 			return
 		}
 
@@ -273,7 +304,7 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 				for _, s := range saved {
 					summary += fmt.Sprintf("\n📝 %s — Rp%s", s.Description, formatCurrency(s.Amount))
 				}
-				
+
 				for _, char := range summary {
 					safeToken, _ := json.Marshal(map[string]string{"content": string(char)})
 					writeSSE(w, "token", string(safeToken))

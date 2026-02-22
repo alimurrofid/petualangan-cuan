@@ -2,6 +2,7 @@ package handler
 
 import (
 	"cuan-backend/internal/service"
+	"cuan-backend/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -28,7 +29,12 @@ func NewDashboardHandler(service service.DashboardService) DashboardHandler {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/dashboard [get]
 func (h *dashboardHandler) GetDashboard(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
+	}
 
 	data, err := h.service.GetDashboardData(userID)
 	if err != nil {

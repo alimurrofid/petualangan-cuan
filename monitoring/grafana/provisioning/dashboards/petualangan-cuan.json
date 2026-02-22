@@ -1,0 +1,133 @@
+{
+  "title": "Petualangan Cuan Logs",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 3,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Backend Log Volume per Minute",
+      "datasource": "Loki",
+      "targets": [{"expr": "sum(rate({container=\"petualangan_cuan_backend\"}[1m])) by (container)"}],
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "LLM Server Log Volume per Minute",
+      "datasource": "Loki",
+      "targets": [{"expr": "sum(rate({container=\"petualangan_cuan_llm\"}[1m])) by (container)"}],
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Whisper Server Log Volume per Minute",
+      "datasource": "Loki",
+      "targets": [{"expr": "sum(rate({container=\"petualangan_cuan_whisper\"}[1m])) by (container)"}],
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Database Log Volume per Minute",
+      "datasource": "Loki",
+      "targets": [{"expr": "sum(rate({container=\"petualangan_cuan_db\"}[1m])) by (container)"}],
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Uptime Kuma Log Volume per Minute",
+      "datasource": "Loki",
+      "targets": [{"expr": "sum(rate({container=\"petualangan_cuan_uptime\"}[1m])) by (container)"}],
+      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Monitoring Infra Log Volume (Grafana, Loki, Promtail)",
+      "datasource": "Loki",
+      "targets": [
+        {"expr": "sum(rate({container=\"petualangan_cuan_grafana\"}[1m])) by (container)"},
+        {"expr": "sum(rate({container=\"petualangan_cuan_loki\"}[1m])) by (container)"},
+        {"expr": "sum(rate({container=\"petualangan_cuan_promtail\"}[1m])) by (container)"}
+      ],
+      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}}
+    }
+  ]
+}

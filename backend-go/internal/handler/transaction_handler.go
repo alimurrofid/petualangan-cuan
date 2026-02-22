@@ -3,6 +3,7 @@ package handler
 import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/service"
+	"cuan-backend/pkg/utils"
 	"io"
 	"net/http"
 	"strconv"
@@ -56,37 +57,40 @@ func NewTransactionHandler(service service.TransactionService) TransactionHandle
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions [post]
 func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 
 	var input service.CreateTransactionInput
 	input.Type = c.FormValue("type")
 	input.Description = c.FormValue("description")
-	
+
 	amountStr := c.FormValue("amount")
 	amount, _ := strconv.ParseFloat(amountStr, 64)
 	input.Amount = amount
-	
+
 	walletIDStr := c.FormValue("wallet_id")
 	walletID, _ := strconv.Atoi(walletIDStr)
 	input.WalletID = uint(walletID)
-	
+
 	categoryIDStr := c.FormValue("category_id")
 	categoryID, _ := strconv.Atoi(categoryIDStr)
 	input.CategoryID = uint(categoryID)
-	
+
 	dateStr := c.FormValue("date")
 	if dateStr != "" {
 		date, err := time.Parse(time.RFC3339, dateStr)
 		if err == nil {
 			input.Date = date
 		} else {
-             date, err = time.Parse("2006-01-02", dateStr)
-             if err == nil {
-                 input.Date = date
-             } else {
-                 input.Date = time.Now()
-             }
-        }
+			date, err = time.Parse("2006-01-02", dateStr)
+			if err == nil {
+				input.Date = date
+			} else {
+				input.Date = time.Now()
+			}
+		}
 	} else {
 		input.Date = time.Now()
 	}
@@ -126,7 +130,10 @@ func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions [get]
 func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "10"))
@@ -134,7 +141,7 @@ func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 	endDate := c.Query("end_date")
 	search := c.Query("search")
 	transType := c.Query("type")
-	
+
 	walletID, _ := strconv.Atoi(c.Query("wallet_id", "0"))
 	categoryID, _ := strconv.Atoi(c.Query("category_id", "0"))
 
@@ -188,7 +195,10 @@ func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 // @Failure 404 {object} map[string]interface{}
 // @Router /api/transactions/{id} [get]
 func (h *transactionHandler) GetTransaction(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	transaction, err := h.service.GetTransaction(uint(id), userID)
@@ -212,19 +222,22 @@ func (h *transactionHandler) GetTransaction(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions/{id} [put]
 func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	var input service.CreateTransactionInput
 	input.Type = c.FormValue("type")
 	input.Description = c.FormValue("description")
-	
+
 	amountStr := c.FormValue("amount")
 	if amountStr != "" {
 		amount, _ := strconv.ParseFloat(amountStr, 64)
 		input.Amount = amount
 	}
-	
+
 	walletIDStr := c.FormValue("wallet_id")
 	if walletIDStr != "" {
 		walletID, _ := strconv.Atoi(walletIDStr)
@@ -236,20 +249,20 @@ func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 		categoryID, _ := strconv.Atoi(categoryIDStr)
 		input.CategoryID = uint(categoryID)
 	}
-	
+
 	dateStr := c.FormValue("date")
 	if dateStr != "" {
 		date, err := time.Parse(time.RFC3339, dateStr)
 		if err == nil {
 			input.Date = date
 		} else {
-             date, err = time.Parse("2006-01-02", dateStr)
-             if err == nil {
-                 input.Date = date
-             } else {
-                 input.Date = time.Now()
-             }
-        }
+			date, err = time.Parse("2006-01-02", dateStr)
+			if err == nil {
+				input.Date = date
+			} else {
+				input.Date = time.Now()
+			}
+		}
 	} else {
 		input.Date = time.Now()
 	}
@@ -282,10 +295,13 @@ func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions/{id} [delete]
 func (h *transactionHandler) DeleteTransaction(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	id, _ := strconv.Atoi(c.Params("id"))
 
-	err := h.service.DeleteTransaction(uint(id), userID)
+	err = h.service.DeleteTransaction(uint(id), userID)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -305,7 +321,10 @@ func (h *transactionHandler) DeleteTransaction(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions/transfer [post]
 func (h *transactionHandler) TransferTransaction(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 
 	var input service.TransferTransactionInput
 	if err := c.BodyParser(&input); err != nil {
@@ -335,7 +354,10 @@ func (h *transactionHandler) TransferTransaction(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/transactions/calendar [get]
 func (h *transactionHandler) GetCalendarData(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 	walletIDStr := c.Query("wallet_id")
@@ -388,7 +410,10 @@ func (h *transactionHandler) GetCalendarData(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/transactions/report [get]
 func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 	walletIDStr := c.Query("wallet_id")
@@ -401,7 +426,7 @@ func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
 	}
 
 	var walletIDs []uint
-	
+
 	type FilterQuery struct {
 		WalletIDs []uint `query:"wallet_ids"`
 	}
@@ -449,13 +474,16 @@ func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
 // @Param type query string false "Transaction Type"
 // @Router /api/transactions/export [get]
 func (h *transactionHandler) ExportTransactions(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 	search := c.Query("search")
 	transType := c.Query("type")
-	
+
 	walletID, _ := strconv.Atoi(c.Query("wallet_id", "0"))
 	categoryID, _ := strconv.Atoi(c.Query("category_id", "0"))
 
@@ -486,7 +514,7 @@ func (h *transactionHandler) ExportTransactions(c *fiber.Ctx) error {
 
 	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	c.Set("Content-Disposition", "attachment; filename=transactions_export.xlsx")
-	
+
 	return c.SendStream(buffer)
 }
 
@@ -501,7 +529,10 @@ func (h *transactionHandler) ExportTransactions(c *fiber.Ctx) error {
 // @Param type query string false "Filter Type"
 // @Router /api/transactions/report/export [get]
 func (h *transactionHandler) ExportReport(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 	walletIDStr := c.Query("wallet_id")
@@ -522,7 +553,7 @@ func (h *transactionHandler) ExportReport(c *fiber.Ctx) error {
 	if len(filterQuery.WalletIDs) > 0 {
 		walletIDs = filterQuery.WalletIDs
 	}
-	
+
 	if len(walletIDs) == 0 && walletIDStr != "" && walletIDStr != "all" {
 		if id, err := strconv.ParseUint(walletIDStr, 10, 32); err == nil {
 			walletIDs = append(walletIDs, uint(id))
@@ -540,10 +571,10 @@ func (h *transactionHandler) ExportReport(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-	
+
 	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	c.Set("Content-Disposition", "attachment; filename=report_export.xlsx")
-	
+
 	return c.SendStream(buffer)
 }
 
@@ -555,7 +586,7 @@ func (h *transactionHandler) WebhookReceiver(c *fiber.Ctx) error {
 
 func processAndSaveFile(fileHeader *multipart.FileHeader) (string, error) {
 	contentType := fileHeader.Header.Get("Content-Type")
-	
+
 	var subFolder string
 	isImage := false
 
@@ -570,7 +601,7 @@ func processAndSaveFile(fileHeader *multipart.FileHeader) (string, error) {
 
 	baseDir := "./uploads"
 	targetDir := filepath.Join(baseDir, subFolder)
-	
+
 	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(targetDir, 0755); err != nil {
 			return "", fmt.Errorf("failed to create directory: %v", err)
@@ -581,7 +612,7 @@ func processAndSaveFile(fileHeader *multipart.FileHeader) (string, error) {
 	if isImage {
 		ext = ".jpg"
 	}
-	
+
 	filename := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), strings.TrimSuffix(fileHeader.Filename, filepath.Ext(fileHeader.Filename)), ext)
 	outPath := filepath.Join(targetDir, filename)
 
@@ -613,7 +644,7 @@ func processAndSaveFile(fileHeader *multipart.FileHeader) (string, error) {
 				newH = maxDim
 				newW = (width * maxDim) / height
 			}
-			
+
 			dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
 			draw.CatmullRom.Scale(dst, dst.Bounds(), img, bounds, draw.Over, nil)
 			finalImg = dst

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"cuan-backend/internal/service"
+	"cuan-backend/pkg/utils"
 	"net/http"
 	"strconv"
 	"time"
@@ -26,7 +27,10 @@ func NewSavingGoalHandler(service service.SavingGoalService) *SavingGoalHandler 
 // @Success 200 {object} map[string]interface{}
 // @Router /api/saving-goals [get]
 func (h *SavingGoalHandler) GetGoals(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 
 	goals, err := h.service.GetGoals(userID)
 	if err != nil {
@@ -48,7 +52,10 @@ func (h *SavingGoalHandler) GetGoals(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/saving-goals [post]
 func (h *SavingGoalHandler) CreateGoal(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	var input service.CreateGoalInput
 	if err := c.BodyParser(&input); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
@@ -75,7 +82,10 @@ func (h *SavingGoalHandler) CreateGoal(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/saving-goals/{id}/contributions [post]
 func (h *SavingGoalHandler) AddContribution(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid goal ID"})
@@ -85,7 +95,7 @@ func (h *SavingGoalHandler) AddContribution(c *fiber.Ctx) error {
 	if err := c.BodyParser(&input); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
-	
+
 	if input.Date.IsZero() {
 		input.Date = time.Now()
 	}
@@ -111,7 +121,10 @@ func (h *SavingGoalHandler) AddContribution(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/saving-goals/{id} [put]
 func (h *SavingGoalHandler) UpdateGoal(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid goal ID"})
@@ -140,7 +153,10 @@ func (h *SavingGoalHandler) UpdateGoal(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/saving-goals/{id} [delete]
 func (h *SavingGoalHandler) DeleteGoal(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid goal ID"})
@@ -164,9 +180,12 @@ func (h *SavingGoalHandler) DeleteGoal(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Router /api/saving-goals/{id}/contributions/{contribution_id} [delete]
 func (h *SavingGoalHandler) DeleteContribution(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	// Goal ID not strictly needed if we look up by contribution ID but good for URL structure consistency
-	// id, _ := strconv.Atoi(c.Params("id")) 
+	// id, _ := strconv.Atoi(c.Params("id"))
 	contributionID, err := strconv.Atoi(c.Params("contribution_id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid contribution ID"})
@@ -191,7 +210,10 @@ func (h *SavingGoalHandler) DeleteContribution(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/saving-goals/{id}/finish [put]
 func (h *SavingGoalHandler) FinishGoal(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid goal ID"})

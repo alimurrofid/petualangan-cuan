@@ -2,6 +2,7 @@ package handler
 
 import (
 	"cuan-backend/internal/service"
+	"cuan-backend/pkg/utils"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -41,7 +42,10 @@ func (h *walletHandler) CreateWallet(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 
 	input.UserID = userID
 
@@ -63,7 +67,10 @@ func (h *walletHandler) CreateWallet(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]string
 // @Router /api/wallets [get]
 func (h *walletHandler) GetWallets(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 
 	wallets, err := h.walletService.GetUserWallets(userID)
 	if err != nil {
@@ -90,7 +97,10 @@ func (h *walletHandler) GetWallet(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 
 	wallet, err := h.walletService.GetWalletByID(uint(id), userID)
 	if err != nil {
@@ -124,7 +134,10 @@ func (h *walletHandler) UpdateWallet(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 
 	wallet, err := h.walletService.UpdateWallet(uint(id), userID, input)
 	if err != nil {
@@ -150,7 +163,10 @@ func (h *walletHandler) DeleteWallet(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
-	userID := c.Locals("userID").(uint)
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
 
 	err = h.walletService.DeleteWallet(uint(id), userID)
 	if err != nil {
