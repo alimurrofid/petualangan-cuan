@@ -4,9 +4,9 @@ import { useSavingGoalStore } from "@/stores/saving_goal";
 import { useWalletStore } from "@/stores/wallet";
 import { useCategoryStore } from "@/stores/category";
 import { useAuthStore } from "@/stores/auth";
-import { format } from "date-fns";
+
 import { Button } from "@/components/ui/button";
-import { Plus, PiggyBank, Target, Calendar, Pencil, Trash2, Eye, CheckCircle } from "lucide-vue-next";
+import { Plus, PiggyBank, Target, Calendar, Pencil, Trash2, Eye, CheckCircle, ClipboardClock } from "lucide-vue-next";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ import SearchableSelect from "@/components/ui/searchable-select/SearchableSelect
 import ManualTransactionDialog from "@/components/ManualTransactionDialog.vue";
 import Detail from "./Detail.vue";
 import { getEmoji, getIconComponent } from "@/lib/icons";
-import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/lib/utils";
+import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrencyLive, formatDate } from "@/lib/utils";
 import { useSwal } from "@/composables/useSwal";
 
 const store = useSavingGoalStore();
@@ -238,9 +238,16 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
                                     </div>
                                     {{ goal.name }}
                                 </CardTitle>
-                                <div v-if="goal.deadline"
-                                    class="flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground pl-1">
-                                    <Calendar class="w-3 h-3" /> Target: {{ format(new Date(goal.deadline), 'dd MM yyyy') }}
+                                <div
+                                    class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground pl-1">
+                                    <div class="flex items-center gap-1">
+                                        <Calendar class="w-3 h-3" /> Dibuat {{ formatDate(goal.created_at) }}
+                                    </div>
+                                    <span v-if="goal.deadline" class="opacity-30">·</span>
+                                    <div v-if="goal.deadline"
+                                        class="flex items-center gap-1 font-medium uppercase tracking-widest">
+                                        <ClipboardClock class="w-3 h-3" /> {{ formatDate(goal.deadline) }}
+                                    </div>
                                 </div>
                             </div>
 
@@ -361,8 +368,14 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
                                     <span class="line-through decoration-muted-foreground/50">{{ goal.name }}</span>
                                 </CardTitle>
                                 <div
-                                    class="flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground pl-1">
-                                    <Calendar class="w-3 h-3" /> Selesai
+                                    class="flex items-center gap-3 text-[10px] font-medium uppercase tracking-widest text-muted-foreground pl-1">
+                                    <div class="flex items-center gap-1">
+                                        <CheckCircle class="w-3 h-3 text-emerald-600" /> Selesai
+                                    </div>
+                                    <span class="opacity-30">·</span>
+                                    <div class="flex items-center gap-1">
+                                        <Calendar class="w-3 h-3" /> Dibuat {{ formatDate(goal.created_at) }}
+                                    </div>
                                 </div>
                             </div>
                             <Button variant="ghost" size="icon"
@@ -440,7 +453,7 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
                                 class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 @click="($event.target as HTMLInputElement).showPicker()" />
                             <Input type="text" readonly tabindex="-1"
-                                :value="newGoalDeadline ? format(new Date(newGoalDeadline), 'dd/MM/yyyy') : ''"
+                                :value="newGoalDeadline ? formatDate(newGoalDeadline, 'dd/MM/yyyy') : ''"
                                 placeholder="dd/mm/yyyy"
                                 class="h-11 rounded-xl bg-background shadow-sm w-full cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 text-foreground" />
                             <div

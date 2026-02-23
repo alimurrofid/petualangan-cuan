@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import SearchableSelect from "@/components/ui/searchable-select/SearchableSelect.vue";
 import { getEmoji, getIconComponent } from "@/lib/icons";
 import { Calendar } from "lucide-vue-next";
-import { parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/lib/utils";
+import { parseCurrencyInput, formatCurrencyInput, formatCurrencyLive, formatDate } from "@/lib/utils";
 import { useSwal } from "@/composables/useSwal";
 
 const props = defineProps<{
@@ -500,7 +500,7 @@ const onFeeBlur = () => {
                                 class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 :disabled="isSubmitting" @click="($event.target as HTMLInputElement).showPicker()" />
                             <Input type="text" readonly tabindex="-1"
-                                :value="date ? format(new Date(date), 'dd/MM/yyyy') : ''" placeholder="dd/mm/yyyy"
+                                :value="date ? formatDate(date, 'dd/MM/yyyy') : ''" placeholder="dd/mm/yyyy"
                                 :class="['block w-full bg-background cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2', errors.date ? 'border-red-500 ring-1 ring-red-500' : '']"
                                 :disabled="isSubmitting" />
                             <div

@@ -12,11 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SearchableSelect from "@/components/ui/searchable-select/SearchableSelect.vue";
 import MultiSelect from "@/components/ui/multi-select/MultiSelect.vue";
-import { Plus, ArrowUpRight, ArrowDownLeft, Pencil, Trash2, HandCoins, CircleFadingArrowUp, Eye, Calendar, CheckCircle, X } from "lucide-vue-next";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
+import { Plus, ArrowUpRight, ArrowDownLeft, Pencil, Trash2, HandCoins, CircleFadingArrowUp, Eye, Calendar, CheckCircle, X, ClipboardClock } from "lucide-vue-next";
 import { getEmoji, getIconComponent } from "@/lib/icons";
-import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/lib/utils";
+import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrencyLive, formatDate } from "@/lib/utils";
 import Swal from "sweetalert2";
 import Detail from "./Detail.vue";
 
@@ -352,7 +350,7 @@ const handleDelete = async (id: number) => {
             class="w-full sm:w-[200px]" />
 
           <Select v-model="filterType">
-            <SelectTrigger class="w-full sm:w-[180px] h-11 rounded-xl shadow-sm bg-background">
+            <SelectTrigger class="w-full sm:w-[180px] h-9 rounded-xl text-xs font-semibold bg-background">
               <SelectValue placeholder="Filter Tipe" />
             </SelectTrigger>
             <SelectContent>
@@ -432,18 +430,28 @@ const handleDelete = async (id: number) => {
                 </div>
               </div>
 
-              <div class="flex items-center gap-2 text-xs text-muted-foreground font-medium p-2">
-                <component v-if="item.wallet && getIconComponent(item.wallet.icon)"
-                  :is="getIconComponent(item.wallet.icon)" class="h-4 w-4" />
-                <span v-else-if="item.wallet">{{ getEmoji(item.wallet.icon) || '💼' }}</span>
-                <span v-else>💼</span>
-                <span>{{ item.wallet?.name || 'No Wallet' }}</span>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground font-medium p-2">
+                <div class="flex items-center gap-1.5">
+                  <component v-if="item.wallet && getIconComponent(item.wallet.icon)"
+                    :is="getIconComponent(item.wallet.icon)" class="h-4 w-4" />
+                  <span v-else-if="item.wallet">{{ getEmoji(item.wallet.icon) || '💼' }}</span>
+                  <span v-else>💼</span>
+                  <span>{{ item.wallet?.name || 'No Wallet' }}</span>
+                </div>
 
-                <span class="mx-1 opacity-50">|</span>
+                <span class="opacity-30">·</span>
 
-                <Calendar class="h-3.5 w-3.5" />
-                <span>{{ item.due_date ? format(new Date(item.due_date), "dd MM yyyy", { locale: id }) : 'Tanpa Tenggat'
-                }}</span>
+                <div class="flex items-center gap-1 text-[10px]">
+                  <Calendar class="h-3 w-3" />
+                  <span>Dibuat {{ formatDate(item.created_at) }}</span>
+                </div>
+
+                <span class="opacity-30">·</span>
+
+                <div class="flex items-center gap-1">
+                  <ClipboardClock class="h-3 w-3" />
+                  <span>{{ item.due_date ? formatDate(item.due_date) : 'Tanpa Tenggat' }}</span>
+                </div>
               </div>
 
               <div class="grid grid-cols-[1fr,auto] gap-2 pt-2">
@@ -507,11 +515,18 @@ const handleDelete = async (id: number) => {
                     class="text-lg font-bold tracking-tight text-muted-foreground line-through decoration-muted-foreground/50">
                     {{ item.name }}</CardTitle>
                   <div
-                    class="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                    <component v-if="item.wallet && getIconComponent(item.wallet.icon)"
-                      :is="getIconComponent(item.wallet.icon)" class="h-3 w-3" />
-                    <span v-else-if="item.wallet">{{ getEmoji(item.wallet.icon) || '💼' }}</span>
-                    <span>{{ item.wallet?.name }}</span>
+                    class="flex items-center gap-3 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                    <div class="flex items-center gap-1">
+                      <component v-if="item.wallet && getIconComponent(item.wallet.icon)"
+                        :is="getIconComponent(item.wallet.icon)" class="h-3 w-3" />
+                      <span v-else-if="item.wallet">{{ getEmoji(item.wallet.icon) || '💼' }}</span>
+                      <span>{{ item.wallet?.name }}</span>
+                    </div>
+                    <span class="opacity-30">·</span>
+                    <div class="flex items-center gap-1">
+                      <Calendar class="w-3 h-3" />
+                      <span>Dibuat {{ formatDate(item.created_at) }}</span>
+                    </div>
                   </div>
                 </div>
                 <Button variant="ghost" size="icon"
@@ -618,7 +633,7 @@ const handleDelete = async (id: number) => {
                 class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                 @click="($event.target as HTMLInputElement).showPicker()" />
               <Input type="text" readonly tabindex="-1"
-                :value="createForm.due_date ? format(new Date(createForm.due_date), 'dd/MM/yyyy') : ''"
+                :value="createForm.due_date ? formatDate(createForm.due_date, 'dd/MM/yyyy') : ''"
                 placeholder="dd/mm/yyyy"
                 class="h-11 shadow-sm rounded-xl bg-background block w-full cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 text-foreground" />
               <div

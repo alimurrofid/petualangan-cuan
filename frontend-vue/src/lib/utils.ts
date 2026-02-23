@@ -1,6 +1,17 @@
 import type { ClassValue } from "clsx"
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { format } from "date-fns"
+import { id as idLocale } from "date-fns/locale"
+
+export function formatDate(dateStr: string | null | undefined, fmt = 'dd MMM yyyy'): string {
+  if (!dateStr) return '-';
+  try {
+    return format(new Date(dateStr), fmt, { locale: idLocale });
+  } catch {
+    return '-';
+  }
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

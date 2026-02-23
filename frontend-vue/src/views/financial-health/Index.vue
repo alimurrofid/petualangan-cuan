@@ -3,7 +3,7 @@ import { computed, onMounted } from 'vue';
 import { useFinancialHealthStore } from '@/stores/financialHealth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RotateCcw, TrendingUp, Scale, HeartPulse, PiggyBank, ShieldCheck, AlertTriangle, AlertOctagon, ShieldPlus } from 'lucide-vue-next';
+import { RotateCw, TrendingUp, Scale, HeartPulse, PiggyBank, ShieldCheck, AlertTriangle, AlertOctagon, ShieldPlus } from 'lucide-vue-next';
 
 const store = useFinancialHealthStore();
 
@@ -125,7 +125,7 @@ const getStatusIcon = (status: string) => {
         <p class="text-muted-foreground mt-1 text-sm">Analisa kondisi finansial Anda secara objektif.</p>
       </div>
       <button @click="store.fetchFinancialHealth" class="group flex items-center gap-2 px-6 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all text-xs font-bold hover:scale-105 active:scale-95">
-        <RotateCcw class="w-4 h-4 text-emerald-600 group-hover:-rotate-180 transition-transform duration-500" :class="{'animate-spin': store.isLoading}" />
+        <RotateCw class="w-4 h-4 text-emerald-600 group-hover:rotate-180 transition-transform duration-500" :class="{'animate-spin': store.isLoading}" />
         <span>Refresh Analisa</span>
       </button>
     </div>
