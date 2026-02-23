@@ -10,6 +10,7 @@ type UserRepository interface {
 	Create(user *entity.User) error
 	FindByEmail(email string) (*entity.User, error)
 	FindByID(id uint) (*entity.User, error)
+	FindByPhone(phone string) (*entity.User, error)
 	Update(user *entity.User) error
 }
 
@@ -41,6 +42,14 @@ func (r *userRepository) FindByEmail(email string) (*entity.User, error) {
 func (r *userRepository) FindByID(id uint) (*entity.User, error) {
 	var user entity.User
 	err := r.db.First(&user, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+func (r *userRepository) FindByPhone(phone string) (*entity.User, error) {
+	var user entity.User
+	err := r.db.Where("phone = ?", phone).First(&user).Error
 	if err != nil {
 		return nil, err
 	}

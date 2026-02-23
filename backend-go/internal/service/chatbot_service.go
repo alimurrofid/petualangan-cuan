@@ -3,6 +3,7 @@ package service
 import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -205,8 +206,8 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 		for _, t := range txns {
 			walletName := t.Wallet.Name
 			categoryName := t.Category.Name
-			sb.WriteString(fmt.Sprintf("- %s: %s (%s, %s, %s)\n",
-				t.Description, formatRupiah(t.Amount), t.Type, walletName, categoryName))
+			sb.WriteString(fmt.Sprintf("- [ID: %d] %s: %s (%s, %s, %s)\n",
+				t.ID, t.Description, formatRupiah(t.Amount), t.Type, walletName, categoryName))
 		}
 	}
 
@@ -360,16 +361,42 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 
 func (s *ChatbotService) SaveTransactions(userID uint, items []entity.TransactionItemAI) ([]entity.SavedTransaction, error) {
 	var results []entity.SavedTransaction
+	var errs []string
+
 	for _, item := range items {
-		if item.Amount <= 0 {
+		action := strings.ToLower(item.Action)
+		
+		if item.Amount <= 0 && action != "delete" {
 			continue
 		}
-		saved, err := s.saveOne(userID, &item)
+		
+		var saved *entity.SavedTransaction
+		var err error
+		
+		switch action {
+		case "update":
+			saved, err = s.updateOne(userID, &item)
+		case "delete":
+			saved, err = s.deleteOne(userID, &item)
+		default:
+			saved, err = s.saveOne(userID, &item)
+			action = "create"
+		}
+
 		if err != nil {
-			fmt.Printf("[ERROR] SaveTransaction item '%s' failed: %v\n", item.Description, err)
+			fmt.Printf("[ERROR] %s Transaction item '%s' failed: %v\n", strings.ToUpper(action), item.Description, err)
+			errs = append(errs, fmt.Sprintf("- '%s': %v", item.Description, err))
 			continue
 		}
-		results = append(results, *saved)
+		
+		if saved != nil {
+			saved.Action = action
+			results = append(results, *saved)
+		}
+	}
+
+	if len(errs) > 0 {
+		return results, fmt.Errorf("Beberapa transaksi gagal diproses:\n%s", strings.Join(errs, "\n"))
 	}
 	return results, nil
 }
@@ -406,6 +433,75 @@ func (s *ChatbotService) saveOne(userID uint, tx *entity.TransactionItemAI) (*en
 		Type:         tx.Type,
 		CategoryName: categoryName,
 		WalletName:   walletName,
+	}, nil
+}
+
+func (s *ChatbotService) updateOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	if tx.ID == 0 {
+		return nil, errors.New("ID transaksi tidak valid untuk update")
+	}
+
+	walletID, walletName, err := s.resolveWallet(userID, tx.WalletName)
+	if err != nil {
+		return nil, fmt.Errorf("wallet '%s' tidak ditemukan: %w", tx.WalletName, err)
+	}
+
+	categoryID, categoryName, err := s.resolveCategory(userID, tx.CategoryName, tx.Type)
+	if err != nil {
+		return nil, fmt.Errorf("kategori '%s' tidak ditemukan: %w", tx.CategoryName, err)
+	}
+
+	existingTx, err := s.transactionSvc.GetTransaction(tx.ID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("transaksi tidak ditemukan: %w", err)
+	}
+
+	input := CreateTransactionInput{
+		WalletID:    walletID,
+		CategoryID:  categoryID,
+		Amount:      tx.Amount,
+		Type:        tx.Type,
+		Description: tx.Description,
+		Date:        existingTx.Date,
+	}
+
+	updated, err := s.transactionSvc.UpdateTransaction(tx.ID, userID, input)
+	if err != nil {
+		return nil, fmt.Errorf("gagal memperbarui transaksi: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		ID:           updated.ID,
+		Description:  tx.Description,
+		Amount:       tx.Amount,
+		Type:         tx.Type,
+		CategoryName: categoryName,
+		WalletName:   walletName,
+	}, nil
+}
+
+func (s *ChatbotService) deleteOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	if tx.ID == 0 {
+		return nil, errors.New("ID transaksi tidak valid untuk delete")
+	}
+
+	existingTx, err := s.transactionSvc.GetTransaction(tx.ID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("transaksi tidak ditemukan: %w", err)
+	}
+	
+	err = s.transactionSvc.DeleteTransaction(tx.ID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("gagal menghapus transaksi: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		ID:           tx.ID,
+		Description:  existingTx.Description,
+		Amount:       existingTx.Amount,
+		Type:         existingTx.Type,
+		CategoryName: existingTx.Category.Name,
+		WalletName:   existingTx.Wallet.Name,
 	}, nil
 }
 

@@ -35,3 +35,11 @@ func (m *UserRepositoryMock) Update(user *entity.User) error {
 	args := m.Called(user)
 	return args.Error(0)
 }
+
+func (m *UserRepositoryMock) FindByPhone(phone string) (*entity.User, error) {
+	args := m.Called(phone)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.User), args.Error(1)
+}

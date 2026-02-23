@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import SearchableSelect from "@/components/ui/searchable-select/SearchableSelect.vue";
 import { getEmoji, getIconComponent } from "@/lib/icons";
+import { Calendar } from "lucide-vue-next";
 import { parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/lib/utils";
 import { useSwal } from "@/composables/useSwal";
 
@@ -171,7 +172,7 @@ watch(() => props.initialData, (newVal) => {
         description.value = newVal.description || "";
         activeTab.value = "expense";
     }
-    
+
     if (props.wishlistItemId) {
         activeTab.value = "expense";
     }
@@ -181,7 +182,7 @@ watch(() => props.savingGoalTarget, (newVal) => {
     if (isSubmitting.value) {
         return;
     }
-    
+
     if (newVal) {
         activeTab.value = "saving";
         description.value = `Alokasi ke ${newVal.name}`;
@@ -295,7 +296,7 @@ const handleSave = async () => {
         if (activeTab.value === 'saving' && props.savingGoalTarget) {
             const { useSavingGoalStore } = await import("@/stores/saving_goal");
             const savingStore = useSavingGoalStore();
-            
+
             await savingStore.addContribution(props.savingGoalTarget.id, {
                 wallet_id: Number(selectedWallet.value),
                 amount: Number(amount.value),
@@ -305,7 +306,7 @@ const handleSave = async () => {
             swal.success('Berhasil menabung!');
             emit("update:open", false);
             emit("save", {});
-            
+
             return;
         }
 
@@ -374,7 +375,7 @@ const handleSave = async () => {
         emit("save", {});
     } catch (error: any) {
         console.error("Error in handleSave:", error);
-        
+
         const errMsg = error.response?.data?.error || "";
         if (errMsg.toLowerCase().includes('insufficient')) {
             return;
@@ -398,9 +399,9 @@ const resetForm = () => {
     if (!props.savingGoalTarget && !props.transactionToEdit) {
         activeTab.value = "expense";
     }
-    
+
     if (!props.savingGoalTarget) {
-         selectedCategory.value = "";
+        selectedCategory.value = "";
     }
 };
 
@@ -408,23 +409,23 @@ watch(amountDisplay, (val) => {
     const formatted = formatCurrencyLive(val);
     if (formatted !== val) {
         amountDisplay.value = formatted;
-        return; 
+        return;
     }
-    
+
     const num = parseCurrencyInput(val);
     amount.value = num.toString();
 });
 watch(amount, (val) => {
     const num = Number(val);
     const currentParsed = parseCurrencyInput(amountDisplay.value);
-    
+
     if (Math.abs(currentParsed - num) > 0.001) {
         amountDisplay.value = val ? formatCurrencyInput(val) : "";
     }
 });
 
 watch(transferFeeDisplay, (val) => {
-     const formatted = formatCurrencyLive(val);
+    const formatted = formatCurrencyLive(val);
     if (formatted !== val) {
         transferFeeDisplay.value = formatted;
         return;
@@ -437,7 +438,7 @@ watch(transferFee, (val) => {
     const num = Number(val);
     const currentParsed = parseCurrencyInput(transferFeeDisplay.value);
     if (Math.abs(currentParsed - num) > 0.001) {
-       transferFeeDisplay.value = val ? formatCurrencyInput(val) : "";
+        transferFeeDisplay.value = val ? formatCurrencyInput(val) : "";
     }
 });
 
@@ -467,7 +468,8 @@ const onFeeBlur = () => {
             </div>
 
             <Tabs v-model="activeTab" class="w-full">
-                <TabsList class="grid w-full grid-cols-3 mb-4 h-auto p-1 bg-muted/60 rounded-xl" v-if="activeTab !== 'saving' && !props.wishlistItemId">
+                <TabsList class="grid w-full grid-cols-3 mb-4 h-auto p-1 bg-muted/60 rounded-xl"
+                    v-if="activeTab !== 'saving' && !props.wishlistItemId">
                     <TabsTrigger value="expense"
                         class="rounded-lg py-2 data-[state=active]:bg-red-500 data-[state=active]:text-white dark:data-[state=active]:bg-red-600 dark:text-muted-foreground dark:data-[state=active]:text-white transition-all">
                         Pengeluaran</TabsTrigger>
@@ -475,15 +477,18 @@ const onFeeBlur = () => {
                         class="rounded-lg py-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-600 dark:text-muted-foreground dark:data-[state=active]:text-white transition-all">
                         Pemasukan</TabsTrigger>
                     <TabsTrigger value="transfer"
-                        class="rounded-lg py-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white dark:data-[state=active]:bg-blue-600 dark:text-muted-foreground dark:data-[state=active]:text-white transition-all">Transfer
+                        class="rounded-lg py-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white dark:data-[state=active]:bg-blue-600 dark:text-muted-foreground dark:data-[state=active]:text-white transition-all">
+                        Transfer
                     </TabsTrigger>
                 </TabsList>
-                
-                <div v-if="activeTab === 'saving'" class="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 p-3 rounded-lg mb-4 text-center font-medium border border-emerald-200 dark:border-emerald-800">
+
+                <div v-if="activeTab === 'saving'"
+                    class="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 p-3 rounded-lg mb-4 text-center font-medium border border-emerald-200 dark:border-emerald-800">
                     Menabung untuk: {{ props.savingGoalTarget?.name }}
                 </div>
 
-                <div v-if="props.wishlistItemId" class="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 p-3 rounded-lg mb-4 text-center font-medium border border-red-200 dark:border-red-800">
+                <div v-if="props.wishlistItemId"
+                    class="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 p-3 rounded-lg mb-4 text-center font-medium border border-red-200 dark:border-red-800">
                     Pembelian Wishlist
                 </div>
 
@@ -491,40 +496,48 @@ const onFeeBlur = () => {
                     <div class="space-y-2">
                         <Label>Tanggal</Label>
                         <div class="relative">
-                            <Input type="date" v-model="date"
-                                :class="['block w-full bg-background', errors.date ? 'border-red-500 ring-1 ring-red-500' : '']"
+                            <input type="date" v-model="date"
+                                class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                :disabled="isSubmitting" @click="($event.target as HTMLInputElement).showPicker()" />
+                            <Input type="text" readonly tabindex="-1"
+                                :value="date ? format(new Date(date), 'dd/MM/yyyy') : ''" placeholder="dd/mm/yyyy"
+                                :class="['block w-full bg-background cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2', errors.date ? 'border-red-500 ring-1 ring-red-500' : '']"
                                 :disabled="isSubmitting" />
+                            <div
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground z-20">
+                                <Calendar class="w-4 h-4" />
+                            </div>
                         </div>
                         <span v-if="errors.date" class="text-xs text-red-500 font-medium">Tanggal wajib diisi</span>
                     </div>
 
                     <div class="space-y-2">
                         <Label>Nominal</Label>
-                            <Input type="text" inputmode="decimal" placeholder="0" v-model="amountDisplay" @blur="onAmountBlur"
-                                :class="['bg-background', errors.amount ? 'border-red-500 ring-1 ring-red-500' : '']"
-                                :disabled="isSubmitting" />
+                        <Input type="text" inputmode="decimal" placeholder="0" v-model="amountDisplay"
+                            @blur="onAmountBlur"
+                            :class="['bg-background', errors.amount ? 'border-red-500 ring-1 ring-red-500' : '']"
+                            :disabled="isSubmitting" />
                         <span v-if="errors.amount" class="text-xs text-red-500 font-medium">Nominal wajib diisi</span>
                     </div>
 
                     <div class="space-y-2">
                         <Label>{{ activeTab === 'transfer' ? 'Dari Dompet' : 'Dompet' }}</Label>
-                        <SearchableSelect
-                            v-model="selectedWallet"
-                            :options="walletOptions"
-                            :disabled="isSubmitting"
-                            :error="errors.wallet"
-                            placeholder="Pilih Dompet"
-                        >
+                        <SearchableSelect v-model="selectedWallet" :options="walletOptions" :disabled="isSubmitting"
+                            :error="errors.wallet" placeholder="Pilih Dompet">
                             <template #option="{ option }">
                                 <div class="flex items-center gap-2 justify-between w-full">
                                     <div class="flex items-center gap-2">
-                                        <component v-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)"
-                                            class="h-4 w-4 shrink-0" />
+                                        <component v-if="getIconComponent(option.icon)"
+                                            :is="getIconComponent(option.icon)" class="h-4 w-4 shrink-0" />
                                         <span v-else class="text-xs shrink-0">{{ getEmoji(option.icon) || '💼' }}</span>
                                         <span>{{ option.label }}</span>
                                     </div>
-                                    <div v-if="option.available_balance !== undefined && option.available_balance !== option.balance" class="text-xs text-muted-foreground whitespace-nowrap">
-                                        (Tersedia: {{ new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(option.available_balance) }})
+                                    <div v-if="option.available_balance !== undefined && option.available_balance !== option.balance"
+                                        class="text-xs text-muted-foreground whitespace-nowrap">
+                                        (Tersedia: {{ new Intl.NumberFormat("id-ID", {
+                                            style: "currency", currency:
+                                                "IDR", maximumFractionDigits: 0
+                                        }).format(option.available_balance) }})
                                     </div>
                                 </div>
                             </template>
@@ -535,23 +548,22 @@ const onFeeBlur = () => {
 
                     <div v-if="activeTab === 'transfer'" class="space-y-2">
                         <Label>Ke Dompet</Label>
-                        <SearchableSelect
-                            v-model="toWallet"
-                            :options="walletOptions"
-                            :disabled="isSubmitting"
-                            :error="errors.toWallet"
-                            placeholder="Pilih Dompet Tujuan"
-                        >
-                             <template #option="{ option }">
+                        <SearchableSelect v-model="toWallet" :options="walletOptions" :disabled="isSubmitting"
+                            :error="errors.toWallet" placeholder="Pilih Dompet Tujuan">
+                            <template #option="{ option }">
                                 <div class="flex items-center gap-2 justify-between w-full">
                                     <div class="flex items-center gap-2">
-                                        <component v-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)"
-                                            class="h-4 w-4 shrink-0" />
+                                        <component v-if="getIconComponent(option.icon)"
+                                            :is="getIconComponent(option.icon)" class="h-4 w-4 shrink-0" />
                                         <span v-else class="text-xs shrink-0">{{ getEmoji(option.icon) || '💼' }}</span>
                                         <span>{{ option.label }}</span>
                                     </div>
-                                    <div v-if="option.available_balance !== undefined && option.available_balance !== option.balance" class="text-xs text-muted-foreground whitespace-nowrap">
-                                        (Tersedia: {{ new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(option.available_balance) }})
+                                    <div v-if="option.available_balance !== undefined && option.available_balance !== option.balance"
+                                        class="text-xs text-muted-foreground whitespace-nowrap">
+                                        (Tersedia: {{ new Intl.NumberFormat("id-ID", {
+                                            style: "currency", currency:
+                                                "IDR", maximumFractionDigits: 0
+                                        }).format(option.available_balance) }})
                                     </div>
                                 </div>
                             </template>
@@ -562,21 +574,17 @@ const onFeeBlur = () => {
 
                     <div v-if="activeTab === 'transfer'" class="space-y-2">
                         <Label>Biaya Admin (Opsional)</Label>
-                            <Input type="text" inputmode="decimal" placeholder="0" v-model="transferFeeDisplay" @blur="onFeeBlur"
-                                class="bg-background"
-                                :disabled="isSubmitting" />
-                        <span class="text-[10px] text-muted-foreground">Biaya ini akan ditarik dari dompet asal (Pengeluaran baru).</span>
+                        <Input type="text" inputmode="decimal" placeholder="0" v-model="transferFeeDisplay"
+                            @blur="onFeeBlur" class="bg-background" :disabled="isSubmitting" />
+                        <span class="text-[10px] text-muted-foreground">Biaya ini akan ditarik dari dompet asal
+                            (Pengeluaran baru).</span>
                     </div>
 
                     <div v-if="activeTab !== 'transfer'" class="space-y-2">
                         <Label>Kategori</Label>
-                        <SearchableSelect
-                            v-model="selectedCategory"
-                            :options="categoryOptions"
-                            :disabled="isSubmitting || activeTab === 'saving'"
-                            :error="errors.category"
-                            placeholder="Pilih Kategori"
-                        >
+                        <SearchableSelect v-model="selectedCategory" :options="categoryOptions"
+                            :disabled="isSubmitting || activeTab === 'saving'" :error="errors.category"
+                            placeholder="Pilih Kategori">
                             <template #option="{ option }">
                                 <div class="flex items-center gap-2">
                                     <component v-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)"
@@ -619,8 +627,7 @@ const onFeeBlur = () => {
                     :disabled="isSubmitting || isProcessingFile">Batal</Button>
                 <Button @click="handleSave"
                     class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400"
-                    :disabled="isSubmitting || isProcessingFile"
-                    :loading="isSubmitting || isProcessingFile">
+                    :disabled="isSubmitting || isProcessingFile" :loading="isSubmitting || isProcessingFile">
                     {{ isProcessingFile ? 'Memproses...' : (transactionToEdit ? 'Simpan Perubahan' : 'Simpan') }}
                 </Button>
             </DialogFooter>

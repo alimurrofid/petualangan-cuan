@@ -162,18 +162,39 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 		saved, err := h.chatbotService.SaveTransactions(userID, aiResponse.Transactions)
 		if err != nil {
 			fmt.Printf("[ERROR] SaveTransactions failed: %v\n", err)
-			response.Reply += "\n\n⚠️ Transaksi terdeteksi tapi gagal disimpan: " + err.Error()
+			response.Reply += "\n\n⚠️ Transaksi terdeteksi tapi gagal diproses: " + err.Error()
 		} else if len(saved) > 0 {
 			response.Transactions = saved
-			summary := "\n\n✅ Transaksi berhasil dicatat!"
+			summary := "\n\n"
+
+			hasCreate, hasUpdate, hasDelete := false, false, false
 			for _, s := range saved {
-				summary += fmt.Sprintf("\n📝 %s — Rp%s (%s) | 🏦 %s | 📂 %s",
-					s.Description,
-					formatCurrency(s.Amount),
-					s.Type,
-					s.WalletName,
-					s.CategoryName,
-				)
+				switch s.Action {
+				case "update":
+					hasUpdate = true
+				case "delete":
+					hasDelete = true
+				default:
+					hasCreate = true
+				}
+			}
+
+			if hasCreate {
+				summary += "✅ Transaksi berhasil dicatat!"
+			} else if hasUpdate {
+				summary += "✅ Transaksi berhasil diperbarui!"
+			} else if hasDelete {
+				summary += "✅ Transaksi berhasil dihapus!"
+			}
+
+			for _, s := range saved {
+				if s.Action == "update" {
+					summary += fmt.Sprintf("\n✏️ %s — Rp%s", s.Description, formatCurrency(s.Amount))
+				} else if s.Action == "delete" {
+					summary += fmt.Sprintf("\n🗑️ %s (Dihapus)", s.Description)
+				} else {
+					summary += fmt.Sprintf("\n📝 %s — Rp%s", s.Description, formatCurrency(s.Amount))
+				}
 			}
 			response.Reply += summary
 		}
@@ -312,18 +333,46 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		}
 
 		if aiResponse.IsTransaction && len(aiResponse.Transactions) > 0 {
-			writeSSE(w, "status", "Menyimpan transaksi...")
+			writeSSE(w, "status", "Memproses transaksi...")
 			saved, err := h.chatbotService.SaveTransactions(userID, aiResponse.Transactions)
 			if err != nil {
-				errMsg := "\n\n(Gagal menyimpan transaksi: " + err.Error() + ")"
+				errMsg := "\n\n(Gagal memproses transaksi: " + err.Error() + ")"
 				response.Reply += errMsg
 				safeToken, _ := json.Marshal(map[string]string{"content": errMsg})
 				writeSSE(w, "token", string(safeToken))
 			} else if len(saved) > 0 {
 				response.Transactions = saved
-				summary := "\n\n✅ Transaksi berhasil dicatat!"
+				
+				summary := "\n\n"
+				hasCreate, hasUpdate, hasDelete := false, false, false
+				
 				for _, s := range saved {
-					summary += fmt.Sprintf("\n📝 %s — Rp%s", s.Description, formatCurrency(s.Amount))
+					switch s.Action {
+					case "update":
+						hasUpdate = true
+					case "delete":
+						hasDelete = true
+					default:
+						hasCreate = true
+					}
+				}
+				
+				if hasCreate {
+					summary += "✅ Transaksi berhasil dicatat!"
+				} else if hasUpdate {
+					summary += "✅ Transaksi berhasil diperbarui!"
+				} else if hasDelete {
+					summary += "✅ Transaksi berhasil dihapus!"
+				}
+				
+				for _, s := range saved {
+					if s.Action == "update" {
+						summary += fmt.Sprintf("\n✏️ %s — Rp%s", s.Description, formatCurrency(s.Amount))
+					} else if s.Action == "delete" {
+						summary += fmt.Sprintf("\n🗑️ %s (Dihapus)", s.Description)
+					} else {
+						summary += fmt.Sprintf("\n📝 %s — Rp%s", s.Description, formatCurrency(s.Amount))
+					}
 				}
 
 				for _, char := range summary {
@@ -407,10 +456,19 @@ func writeSSE(w *bufio.Writer, event, data string) error {
 }
 
 func formatCurrency(amount float64) string {
-	if amount == float64(int64(amount)) {
-		return fmt.Sprintf("%d", int64(amount))
+	n := int64(amount)
+	if n < 0 {
+		return "-" + formatCurrency(-amount)
 	}
-	return fmt.Sprintf("%.0f", amount)
+	str := fmt.Sprintf("%d", n)
+	result := make([]byte, 0, len(str)+len(str)/3)
+	for i, c := range str {
+		if i > 0 && (len(str)-i)%3 == 0 {
+			result = append(result, '.')
+		}
+		result = append(result, byte(c))
+	}
+	return string(result)
 }
 
 func readFileAsBase64(path string) (string, error) {

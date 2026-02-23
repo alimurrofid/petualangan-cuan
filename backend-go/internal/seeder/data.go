@@ -15,7 +15,7 @@ var (
 
 	Wallets = []entity.Wallet{
 		{
-			Name:    "Cash",
+			Name:    "Uang Tunai",
 			Type:    "Cash",
 			Balance: 200_000,
 			Icon:    "Em_DollarBill",

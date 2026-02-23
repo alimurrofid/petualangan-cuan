@@ -24,6 +24,10 @@ services:
       - EXTERNAL_AI_URL=${EXTERNAL_AI_URL}
       - EXTERNAL_AI_API_KEY=${EXTERNAL_AI_API_KEY}
       - EXTERNAL_AI_MODEL=${EXTERNAL_AI_MODEL}
+      - WA_GATEWAY_URL=${WA_GATEWAY_URL}
+      - WA_GATEWAY_USERNAME=${WA_GATEWAY_USERNAME}
+      - WA_GATEWAY_PASSWORD=${WA_GATEWAY_PASSWORD}
+      - WHATSAPP_WEBHOOK_SECRET=${WHATSAPP_WEBHOOK_SECRET}
       - TZ=Asia/Jakarta
     ports:
       - "${PORT}:${PORT}"
@@ -95,14 +99,15 @@ services:
     build: 
       context: ./wa-gateway
       dockerfile: docker/golang.Dockerfile
-    container_name: petualangan_cuan_wa
+    container_name: petualangan_cuan_wa_gateway
     ports:
       - "3000:3000"
     environment:
-      - APP_BASIC_AUTH_USERNAME=${WA_GATEWAY_USERNAME}
-      - APP_BASIC_AUTH_PASSWORD=${WA_GATEWAY_PASSWORD}
-      - DB_DRIVER=${WA_DB_DRIVER}
+      - APP_BASIC_AUTH=${WA_GATEWAY_USERNAME}:${WA_GATEWAY_PASSWORD}
       - WHATSAPP_WEBHOOK=${WA_WEBHOOK_URL}
+      - WHATSAPP_WEBHOOK_SECRET=${WHATSAPP_WEBHOOK_SECRET}
+      - WHATSAPP_WEBHOOK_EVENTS=message
+      - WHATSAPP_AUTO_MARK_READ=true
     volumes:
       - ./wa-gateway-data:/app/data
     networks:
@@ -147,7 +152,7 @@ services:
     image: grafana/grafana-oss:10.4.1
     container_name: petualangan_cuan_grafana
     ports:
-      - "3000:3000"
+      - "3002:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admincuan

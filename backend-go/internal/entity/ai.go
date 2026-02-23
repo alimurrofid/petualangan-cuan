@@ -6,6 +6,8 @@ type ChatAIResponse struct {
 	Transactions  []TransactionItemAI `json:"transactions"`
 }
 type TransactionItemAI struct {
+	Action       string  `json:"action"` // create, update, delete
+	ID           uint    `json:"id"`     // target ID if action is update/delete
 	Type         string  `json:"type"`
 	Amount       float64 `json:"amount"`
 	Description  string  `json:"description"`
@@ -21,6 +23,7 @@ type ChatResponse struct {
 }
 type SavedTransaction struct {
 	ID           uint    `json:"id"`
+	Action       string  `json:"action"` // create, update, delete
 	Description  string  `json:"description"`
 	Amount       float64 `json:"amount"`
 	Type         string  `json:"type"`

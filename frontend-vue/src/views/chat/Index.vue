@@ -17,7 +17,6 @@ import {
   Pause,
   Volume2,
   Trash2,
-  Eraser,
 } from "lucide-vue-next";
 import { format } from "date-fns";
 import { useSwal } from "@/composables/useSwal";
@@ -614,6 +613,12 @@ const sendMessage = async () => {
 
   scrollToBottom();
 };
+
+const getMediaUrl = (url?: string) => {
+  if (!url) return "";
+  if (url.startsWith("blob:") || url.startsWith("http") || url.startsWith("data:")) return url;
+  return import.meta.env.VITE_API_BASE_URL + url;
+};
 </script>
 
 <template>
@@ -637,15 +642,11 @@ const sendMessage = async () => {
         </p>
       </div>
       <!-- Clear history button -->
-      <Button
-        v-if="messages.length > 0 && !isLoadingHistory"
-        variant="ghost"
-        size="icon"
+      <Button v-if="messages.length > 0 && !isLoadingHistory" variant="ghost" size="icon"
         title="Hapus riwayat percakapan"
         class="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 transition-colors"
-        @click="clearHistory"
-      >
-        <Eraser class="h-4 w-4" />
+        @click="clearHistory">
+        <Trash2 class="h-4 w-4" />
       </Button>
       <!-- Loading history indicator -->
       <div v-if="isLoadingHistory" class="flex items-center gap-2 text-xs text-muted-foreground">
@@ -679,7 +680,7 @@ const sendMessage = async () => {
               msg.role === 'user' ? 'items-end' : 'items-start',
             ]">
               <!-- Image preview in bubble -->
-              <img v-if="msg.imageUrl" :src="msg.imageUrl"
+              <img v-if="msg.imageUrl" :src="getMediaUrl(msg.imageUrl)"
                 class="max-w-[200px] rounded-xl mb-1 shadow-sm border border-border" alt="Uploaded image" />
 
               <!-- Audio player -->
@@ -691,7 +692,7 @@ const sendMessage = async () => {
                     : 'bg-card border border-border',
                 ]">
                   <!-- Play/Pause button -->
-                  <button @click="toggleMessageAudio(msg.id, msg.audioUrl!)"
+                  <button @click="toggleMessageAudio(msg.id, getMediaUrl(msg.audioUrl!))"
                     class="h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-colors"
                     :class="msg.role === 'user'
                       ? 'bg-white/20 hover:bg-white/30 text-white'

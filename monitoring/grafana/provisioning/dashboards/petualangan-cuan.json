@@ -2,7 +2,7 @@
   "title": "Petualangan Cuan Logs",
   "timezone": "browser",
   "schemaVersion": 38,
-  "version": 3,
+  "version": 4,
   "refresh": "10s",
   "panels": [
     {
@@ -13,12 +13,7 @@
       "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 10
-          },
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 10},
           "color": {"mode": "palette-classic"}
         },
         "overrides": []
@@ -33,12 +28,7 @@
       "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 10
-          },
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 10},
           "color": {"mode": "palette-classic"}
         },
         "overrides": []
@@ -53,12 +43,7 @@
       "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 10
-          },
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 10},
           "color": {"mode": "palette-classic"}
         },
         "overrides": []
@@ -73,12 +58,7 @@
       "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 10
-          },
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 10},
           "color": {"mode": "palette-classic"}
         },
         "overrides": []
@@ -87,18 +67,42 @@
     },
     {
       "type": "timeseries",
-      "title": "Uptime Kuma Log Volume per Minute",
+      "title": "WA Gateway Log Volume per Minute",
       "datasource": "Loki",
-      "targets": [{"expr": "sum(rate({container=\"petualangan_cuan_uptime\"}[1m])) by (container)"}],
+      "targets": [{"expr": "sum(rate({container=\"petualangan_cuan_wa_gateway\"}[1m])) by (container)"}],
       "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 10
-          },
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 10},
+          "color": {"mode": "fixed", "fixedColor": "green"}
+        },
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "type": "logs",
+      "title": "WA Gateway Logs (Live)",
+      "datasource": "Loki",
+      "targets": [{"expr": "{container=\"petualangan_cuan_wa_gateway\"}"}],
+      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+      "options": {
+        "dedupStrategy": "none",
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Uptime Kuma Log Volume per Minute",
+      "datasource": "Loki",
+      "targets": [{"expr": "sum(rate({container=\"petualangan_cuan_uptime\"}[1m])) by (container)"}],
+      "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 10},
           "color": {"mode": "palette-classic"}
         },
         "overrides": []
@@ -114,15 +118,10 @@
         {"expr": "sum(rate({container=\"petualangan_cuan_loki\"}[1m])) by (container)"},
         {"expr": "sum(rate({container=\"petualangan_cuan_promtail\"}[1m])) by (container)"}
       ],
-      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+      "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "fillOpacity": 10
-          },
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 10},
           "color": {"mode": "palette-classic"}
         },
         "overrides": []

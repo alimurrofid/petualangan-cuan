@@ -117,6 +117,10 @@ func main() {
 
 	aiHandler := handler.NewAIHandler(aiSvc, chatbotSvc, chatHistSvc)
 
+	waGatewayURL := os.Getenv("WA_GATEWAY_URL")
+	waWebhookSecret := os.Getenv("WHATSAPP_WEBHOOK_SECRET")
+	waSvc := service.NewWhatsAppService(userRepo, aiSvc, chatbotSvc, chatHistSvc, waGatewayURL)
+	waHandler := handler.NewWhatsAppHandler(waSvc, waWebhookSecret)
 
 	app := fiber.New(fiber.Config{
 		BodyLimit: 10 * 1024 * 1024, // 10MB
@@ -134,6 +138,7 @@ func main() {
 	app.Static("/uploads", "./uploads")
 
 	api.Post("/webhook", h.WebhookReceiver)
+	api.Post("/webhook/whatsapp", waHandler.HandleWebhook)
 
 	auth := api.Group("/auth")
 	auth.Post("/register", userHandler.Register)
