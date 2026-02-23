@@ -91,6 +91,24 @@ services:
       - app-network
     restart: always
 
+  wa-gateway:
+    build: 
+      context: ./wa-gateway
+      dockerfile: docker/golang.Dockerfile
+    container_name: petualangan_cuan_wa
+    ports:
+      - "3000:3000"
+    environment:
+      - APP_BASIC_AUTH_USERNAME=${WA_GATEWAY_USERNAME}
+      - APP_BASIC_AUTH_PASSWORD=${WA_GATEWAY_PASSWORD}
+      - DB_DRIVER=${WA_DB_DRIVER}
+      - WHATSAPP_WEBHOOK=${WA_WEBHOOK_URL}
+    volumes:
+      - ./wa-gateway-data:/app/data
+    networks:
+      - app-network
+    restart: always
+
   loki:
     image: grafana/loki:latest
     container_name: petualangan_cuan_loki
