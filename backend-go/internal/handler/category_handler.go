@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -32,11 +34,15 @@ func (h *CategoryHandler) CreateCategory(c *fiber.Ctx) error {
 
 	var input service.CreateCategoryInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 	}
 
 	category, err := h.service.CreateCategory(userID, input)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -57,6 +63,8 @@ func (h *CategoryHandler) GetCategories(c *fiber.Ctx) error {
 
 	categories, err := h.service.GetCategories(userID)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -103,11 +111,15 @@ func (h *CategoryHandler) UpdateCategory(c *fiber.Ctx) error {
 
 	var input service.UpdateCategoryInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 	}
 
 	category, err := h.service.UpdateCategory(uint(id), userID, input)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -130,6 +142,8 @@ func (h *CategoryHandler) DeleteCategory(c *fiber.Ctx) error {
 
 	err := h.service.DeleteCategory(uint(id), userID)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 

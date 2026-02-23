@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"log"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
@@ -13,7 +14,7 @@ import (
 func getSecretKey() []byte {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		log.Fatal("❌ FATAL: JWT_SECRET environment variable is not set!")
+		log.Fatal().Msg("❌ FATAL: JWT_SECRET environment variable is not set!")
 	}
 	return []byte(secret)
 }

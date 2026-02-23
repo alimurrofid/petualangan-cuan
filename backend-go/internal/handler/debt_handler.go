@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -42,11 +44,15 @@ func (h *debtHandler) CreateDebt(c *fiber.Ctx) error {
 
 	var input service.CreateDebtInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 	}
 
 	debt, err := h.service.CreateDebt(userID, input)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -68,6 +74,8 @@ func (h *debtHandler) GetDebts(c *fiber.Ctx) error {
 
 	debts, err := h.service.GetDebts(userID, debtType)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -114,11 +122,15 @@ func (h *debtHandler) PayDebt(c *fiber.Ctx) error {
 
 	var input service.PayDebtInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 	}
 
 	debt, err := h.service.PayDebt(uint(id), userID, input)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -144,11 +156,15 @@ func (h *debtHandler) UpdateDebt(c *fiber.Ctx) error {
 
 	var input service.UpdateDebtInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 	}
 
 	debt, err := h.service.UpdateDebt(uint(id), userID, input)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 

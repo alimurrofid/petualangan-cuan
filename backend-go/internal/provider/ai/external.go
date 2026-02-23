@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type ExternalProvider struct {
@@ -22,7 +23,8 @@ func NewExternalProvider(url, apiKey, model string) *ExternalProvider {
 }
 
 func (p *ExternalProvider) GenerateCompletion(ctx context.Context, req AIRequest) (string, error) {
-	log.Printf("[External AI] Sending request to %s (model: %s)", p.url, p.model)
+	reqID, _ := ctx.Value("request_id").(string)
+	log.Info().Str("request_id", reqID).Str("url", p.url).Str("model", p.model).Msg("[External AI] Sending request")
 
 	payload := buildExternalPayload(req)
 	payload.Model = p.model

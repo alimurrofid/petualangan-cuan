@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -82,6 +84,8 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 		}
 		savedPath, err := processAndSaveFile(voiceFile)
 		if err != nil {
+			reqID, _ := c.Locals("requestid").(string)
+			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to save audio")
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Gagal menyimpan audio: " + err.Error(),
 			})
@@ -91,6 +95,8 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 		diskPath := "." + savedPath
 		transcription, err := h.aiService.ProcessVoice(diskPath)
 		if err != nil {
+			reqID, _ := c.Locals("requestid").(string)
+			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to process audio")
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Gagal memproses audio: " + err.Error(),
 			})
@@ -111,6 +117,8 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 		}
 		savedPath, err := processAndSaveFile(imageFile)
 		if err != nil {
+			reqID, _ := c.Locals("requestid").(string)
+			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to save image")
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Gagal menyimpan gambar: " + err.Error(),
 			})
@@ -120,6 +128,8 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 		diskPath := "." + savedPath
 		b64, err := readFileAsBase64(diskPath)
 		if err != nil {
+			reqID, _ := c.Locals("requestid").(string)
+			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to process image")
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Gagal memproses gambar: " + err.Error(),
 			})
@@ -140,13 +150,14 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 	// Simpan pesan user ke history
 	userContent := message
 	if err := h.chatHistorySvc.SaveMessage(userID, "user", userContent, audioURL, savedImageURL); err != nil {
-		fmt.Printf("[WARN] Gagal menyimpan pesan user ke history: %v\n", err)
+		log.Warn().Err(err).Msg("Gagal menyimpan pesan user ke history")
 	}
 
 	userContext := h.chatbotService.GetUserContext(userID, message)
 	aiResponse, err := h.aiService.Chat(message, imageBase64, userContext)
 	if err != nil {
-		fmt.Printf("[ERROR] AI Chat failed: %v\n", err)
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("AI Chat failed")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Gagal mendapatkan respons AI: " + err.Error(),
 		})
@@ -161,7 +172,8 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 	if aiResponse.IsTransaction && len(aiResponse.Transactions) > 0 {
 		saved, err := h.chatbotService.SaveTransactions(userID, aiResponse.Transactions)
 		if err != nil {
-			fmt.Printf("[ERROR] SaveTransactions failed: %v\n", err)
+			reqID, _ := c.Locals("requestid").(string)
+			log.Error().Str("request_id", reqID).Err(err).Msg("SaveTransactions failed")
 			response.Reply += "\n\n⚠️ Transaksi terdeteksi tapi gagal diproses: " + err.Error()
 		} else if len(saved) > 0 {
 			response.Transactions = saved
@@ -202,7 +214,7 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 
 	// Simpan balasan AI ke history
 	if err := h.chatHistorySvc.SaveMessage(userID, "assistant", response.Reply, "", ""); err != nil {
-		fmt.Printf("[WARN] Gagal menyimpan balasan AI ke history: %v\n", err)
+		log.Warn().Err(err).Msg("Gagal menyimpan balasan AI ke history")
 	}
 
 	return c.JSON(response)
@@ -240,6 +252,8 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		}
 		savedPath, err := processAndSaveFile(voiceFile)
 		if err != nil {
+			reqID, _ := c.Locals("requestid").(string)
+			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to save audio")
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": fmt.Sprintf("Gagal menyimpan audio: %s", err.Error())})
 		}
 		audioURL = savedPath
@@ -253,6 +267,8 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		}
 		savedPath, err := processAndSaveFile(imageFile)
 		if err != nil {
+			reqID, _ := c.Locals("requestid").(string)
+			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to save image")
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": fmt.Sprintf("Gagal menyimpan gambar: %s", err.Error())})
 		}
 		savedImageURL = savedPath
@@ -303,7 +319,7 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 
 		// Simpan pesan user ke history
 		if err := h.chatHistorySvc.SaveMessage(userID, "user", message, audioURL, savedImageURL); err != nil {
-			fmt.Printf("[WARN] Gagal menyimpan pesan user ke history: %v\n", err)
+			log.Warn().Err(err).Msg("Gagal menyimpan pesan user ke history")
 		}
 
 		botStatus := "Sedang berpikir..."
@@ -320,7 +336,8 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		})
 
 		if err != nil {
-			fmt.Printf("[ERROR] Stream failed: %v\n", err)
+			reqID, _ := c.Locals("requestid").(string)
+			log.Error().Str("request_id", reqID).Err(err).Msg("Stream failed")
 			safeError, _ := json.Marshal(map[string]string{"error": err.Error()})
 			writeSSE(w, "error", string(safeError))
 			return
@@ -386,7 +403,7 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 
 		// Simpan balasan AI ke history setelah streaming selesai
 		if err := h.chatHistorySvc.SaveMessage(userID, "assistant", response.Reply, "", ""); err != nil {
-			fmt.Printf("[WARN] Gagal menyimpan balasan AI ke history: %v\n", err)
+			log.Warn().Err(err).Msg("Gagal menyimpan balasan AI ke history")
 		}
 
 		finalJSON, _ := json.Marshal(response)
@@ -420,6 +437,8 @@ func (h *aiHandler) GetChatHistory(c *fiber.Ctx) error {
 
 	messages, err := h.chatHistorySvc.GetHistory(userID, limit)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Failed to retrieve chat history")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal mengambil riwayat chat"})
 	}
 
@@ -441,6 +460,8 @@ func (h *aiHandler) ClearChatHistory(c *fiber.Ctx) error {
 	}
 
 	if err := h.chatHistorySvc.ClearHistory(userID); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Failed to clear chat history")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal menghapus riwayat chat"})
 	}
 

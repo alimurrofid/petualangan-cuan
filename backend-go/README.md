@@ -1,95 +1,123 @@
-# Petualangan Cuan - Backend (Go)
+<div align="center">
+  <h1>⚙️ Petualangan Cuan - Core API Service ⚙️</h1>
+  <p><i>The robust Go REST API orchestrating business logic, persistent data, and intelligent AI integrations.</i></p>
+</div>
 
-Backend service for Petualangan Cuan application, built with Go.
+---
 
-## Prerequisites
+## 📖 Overview
 
-- [Go](https://go.dev/dl/) (version 1.20+ recommended)
-- [Make](https://www.gnu.org/software/make/) (optional, for using Makefile commands)
-- Database (MySQL/PostgreSQL depending on config)
+The `backend-go` directory houses the core backend engine of the **Petualangan Cuan** platform. Built intentionally with a strictly layered Clean Architecture, it is responsible for handling all incoming HTTP requests, managing persistent data via PostgreSQL, computing interactive financial summaries, and seamlessly proxying multimodal assets to the Local AI Server for automated transaction categorization.
 
-## Installation
+## 🛠️ Tech Stack
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend-go
-   ```
-2. Install dependencies:
-   ```bash
-   go mod download
-   ```
+| Category | Technology | Description |
+|----------|------------|-------------|
+| **Language** | [Go (1.21+)](https://go.dev/) | High-performance, statically typed programming language. |
+| **Framework**| [Fiber v2](https://gofiber.io/) | Express-inspired web framework optimized for extreme speed. |
+| **ORM** | [GORM](https://gorm.io/) | Developer-friendly object-relational mapper for seamless DB transactions. |
+| **Database** | [PostgreSQL](https://www.postgresql.org/) | Reliable, mature open-source relational database. |
+| **Logging** | [Zerolog](https://github.com/rs/zerolog) | High-performance, allocation-free, structured JSON logging. |
+| **Documentation** | [Swagger](https://swagger.io/) | Auto-generated interactive API documentation endpoint. |
 
-## Configuration
+---
 
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-2. Open `.env` and configure your database credentials and server port.
-3. Generate a secure `JWT_SECRET` and add it to `.env`. You can generate one using:
-   ```bash
-   openssl rand -base64 32
-   ```
+## 🏗️ Architecture & Directory Structure
 
-## Running the Application
+The backend complies with strict Domain-Driven Design (DDD) layered architecture principles. Requests flow downwards (`Handler` -> `Service` -> `Repository`), and dependencies are injected explicitly.
 
-You can run the application using `go run` or the provided `Makefile`.
-
-### Using Makefile
-
-- **Run the application:**
-  ```bash
-  make run
-  ```
-- **Reset database (Fresh):**
-  ```bash
-  make fresh
-  ```
-- **Seed database:**
-  ```bash
-  make seed
-  ```
-- **Reset and Seed:**
-  ```bash
-  make fresh-seed
-  ```
-
-### Manual Commands
-
-If you don't have Make installed:
-
-- **Run:**
-  ```bash
-  go run cmd/api/main.go
-  ```
-- **Fresh (Reset DB):**
-  ```bash
-  go run cmd/api/main.go -fresh
-  ```
-- **Seed:**
-  ```bash
-  go run cmd/api/main.go -seed
-  ```
-
-## Project Structure
-
-```bash
+```text
 backend-go/
 ├── cmd/
-│   └── api/            # Application entry point
+│   └── api/                # 🚦 Application entry point (main.go)
+├── docs/                   # 📄 Auto-generated Swagger documentation assets
 ├── internal/
-│   ├── config/         # Configuration (Database, Env, etc.)
-│   ├── entity/         # Domain entities/models
-│   ├── handler/        # HTTP handlers (Controllers)
-│   ├── repository/     # Data access layer
-│   ├── seeder/         # Database seeding logic
-│   └── service/        # Business logic layer
+│   ├── config/             # ⚙️ Environment, Database, and Webhook configuration
+│   ├── entity/             # 🦴 Core domain models (GORM structs)
+│   ├── handler/            # 🌐 HTTP Delivery layer (Fiber route definitions & payload parsing)
+│   ├── provider/           # 🔌 External integrations
+│   │   └── ai/             # 🤖 Local LLM and Whisper connection abstractions (Strategy Pattern)
+│   ├── repository/         # 💾 Data Access layer (Direct database queries)
+│   ├── seeder/             # 🌱 Database snapshot seeding logic
+│   └── service/            # 🧠 Core Business logic orchestration
 ├── pkg/
-│   └── middleware/     # Shared middleware
-├── docs/               # Documentation
-├── .env                # Environment variables
-├── Makefile            # Build and run commands
-├── go.mod              # Go module definition
-└── go.sum              # Go module checksums
+│   ├── middleware/         # 🛡️ Global wrappers (JWT Auth, Request-ID injection)
+│   └── utils/              # 🧰 Cross-cutting helpers (Hashing, Formatting)
+├── tmp/                    # 🗑️ Air (Live-reload) binary builds
+├── uploads/                # 📂 Volume mount for persistent image & audio uploads
+├── .env.example            # 🔐 Sample environment variables
+├── Makefile                # 📜 Handy shortcuts for developer tasks
+└── go.mod                  # 📦 Dependency graph
 ```
 
+---
+
+## 💻 Local Development Setup
+
+To run this Go service locally _without_ Docker, ensure you meet the system prerequisites.
+
+### 1. Prerequisites
+- **Go >= 1.21** installed on your host machine.
+- A running **PostgreSQL** instance on your host or accessible network.
+
+### 2. Environment Configuration
+Copy the sample environment file to configure your local database connection and JWT secrets.
+
+```bash
+cp .env.example .env
+```
+Ensure you update the `DB_HOST`, `DB_USER`, `DB_PASSWORD`, and `DB_NAME` to map exactly to your local PostgreSQL instance credentials.
+
+**Generating a secure JWT Secret:**
+To ensure your authentication tokens are secure, generate a strong, random 256-bit base64 string and paste it into the `JWT_SECRET` variable in your `.env` file:
+```bash
+openssl rand -base64 32
+```
+
+### 3. Install Dependencies
+Pull all Go modules defined in the dependency graph:
+
+```bash
+go mod tidy
+```
+
+### 4. Run the Server
+You can boot the API directly using the Go toolchain:
+
+```bash
+go run cmd/api/main.go
+```
+
+*(Alternatively, use [Air](https://github.com/cosmtrek/air) if you prefer hot-reloading: `air`).*
+
+### 5. Makefile Shortcuts
+For developer convenience, the `Makefile` includes the following rapid execution commands:
+
+```bash
+make run          # Standard run
+make fresh        # Drop tables and run migrations
+make seed         # Inject dummy seed data into tables
+make fresh-seed   # Drop tables, migrate, AND seed data in one go
+```
+
+---
+
+## 📊 Observability & Tracing
+
+This service is equipped with advanced, production-grade observability infrastructure meant to seamlessly pipe telemetry into **Promtail, Loki, and Grafana (the PLG stack)**.
+
+- **Structured JSON Logging:** The default `log` package is entirely replaced by `zerolog`. All application milestones, errors, and system warnings are output securely as structured JSON rather than arbitrary text logs.
+- **Distributed Tracing Protocol:** An `X-Request-Id` (Correlation ID) is randomly generated by standard middleware and tagged onto every incoming request context (`c.Locals("requestid")`).
+- **Context Preservation:** This correlation identifier is explicitly extracted and injected into the `.Str("request_id", ...)` property of _every_ controller and service error log. This allows you to open Grafana Loki and search `request_id="YOUR_ID"` to stitch together the exact timeline of a failed interaction traversing through the application stack.
+
+---
+
+## 📜 API Documentation
+
+All available API endpoints, payloads, response schemas, and authentication mechanisms are strictly documented via interactive Open API (Swagger).
+
+Once your local server is successfully bound to port `8080`, simply navigate your browser to:
+
+👉 **[http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)**
+
+You can use the built-in UI to securely authorize your Bearer token and manually dry-run database queries before writing frontend logic.

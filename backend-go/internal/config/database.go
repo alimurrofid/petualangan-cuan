@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"cuan-backend/internal/entity"
 
 	"gorm.io/driver/postgres"
@@ -38,13 +40,13 @@ func Connect() (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	fmt.Println("✅ Terhubung ke Database dengan Connection Pool!")
+	log.Info().Msg("✅ Terhubung ke Database dengan Connection Pool!")
 
 	return db, nil
 }
 
 func MigrateFresh(db *gorm.DB) {
-	fmt.Println("🚧 Dropping all tables...")
+	log.Info().Msg("🚧 Dropping all tables...")
 	db.Migrator().DropTable(&entity.SavingContribution{})
 	db.Migrator().DropTable(&entity.SavingGoal{})
 	db.Migrator().DropTable(&entity.WishlistItem{})
@@ -56,12 +58,12 @@ func MigrateFresh(db *gorm.DB) {
 	db.Migrator().DropTable(&entity.User{})
 	db.Migrator().DropTable(&entity.ChatMessage{})
 
-	fmt.Println("✅ All tables dropped!")
-	fmt.Println("🆕 Re-running Auto Migration...")
+	log.Info().Msg("✅ All tables dropped!")
+	log.Info().Msg("🆕 Re-running Auto Migration...")
 	db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{}, &entity.WishlistItem{}, &entity.SavingGoal{}, &entity.SavingContribution{}, &entity.ChatMessage{})
 }
 
 func RunMigration(db *gorm.DB) error {
-	fmt.Println("Running Auto Migration...")
+	log.Info().Msg("Running Auto Migration...")
 	return db.AutoMigrate(&entity.Transaction{}, &entity.User{}, &entity.Wallet{}, &entity.Category{}, &entity.Debt{}, &entity.DebtPayment{}, &entity.WishlistItem{}, &entity.SavingGoal{}, &entity.SavingContribution{}, &entity.ChatMessage{})
 }

@@ -4,8 +4,9 @@ import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
 	"errors"
-	"fmt"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"gorm.io/gorm"
 )
@@ -105,9 +106,11 @@ func (s *debtService) UpdateDebt(id uint, userID uint, input UpdateDebtInput) (*
 	}
 
 	if err := tx.Commit().Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("debt_id", id).Msg("Failed to commit db transaction for UpdateDebt")
 		return nil, err
 	}
 
+	log.Info().Uint("user_id", userID).Uint("debt_id", debt.ID).Msg("Debt updated successfully")
 	return debt, nil
 }
 
@@ -156,7 +159,7 @@ func (s *debtService) CreateDebt(userID uint, input CreateDebtInput) (*entity.De
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Recovered in CreateDebt:", r)
+			log.Error().Interface("panic", r).Msg("Recovered in CreateDebt")
 			tx.Rollback()
 		}
 	}()
@@ -238,9 +241,11 @@ func (s *debtService) CreateDebt(userID uint, input CreateDebtInput) (*entity.De
 	}
 
 	if err := tx.Commit().Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to commit db transaction for CreateDebt")
 		return nil, err
 	}
 
+	log.Info().Uint("user_id", userID).Uint("debt_id", debt.ID).Msg("Debt created successfully")
 	return debt, nil
 }
 
@@ -370,9 +375,11 @@ func (s *debtService) PayDebt(id uint, userID uint, input PayDebtInput) (*entity
 	}
 
 	if err := tx.Commit().Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("debt_id", id).Msg("Failed to commit db transaction for PayDebt")
 		return nil, err
 	}
 
+	log.Info().Uint("user_id", userID).Uint("debt_id", debt.ID).Msg("Debt payment successfully processed")
 	return debt, nil
 }
 
@@ -425,7 +432,13 @@ func (s *debtService) DeleteDebt(id uint, userID uint) error {
 		return err
 	}
 
-	return tx.Commit().Error
+	err = tx.Commit().Error
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("debt_id", id).Msg("Failed to commit db transaction for DeleteDebt")
+	} else {
+		log.Info().Uint("user_id", userID).Uint("debt_id", id).Msg("Debt deleted successfully")
+	}
+	return err
 }
 
 func (s *debtService) DeletePayment(id uint, userID uint) error {
@@ -492,5 +505,11 @@ func (s *debtService) DeletePayment(id uint, userID uint) error {
 		return err
 	}
 
-	return tx.Commit().Error
+	err = tx.Commit().Error
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("payment_id", id).Msg("Failed to commit db transaction for DeletePayment")
+	} else {
+		log.Info().Uint("user_id", userID).Uint("payment_id", id).Msg("Debt payment deleted successfully")
+	}
+	return err
 }

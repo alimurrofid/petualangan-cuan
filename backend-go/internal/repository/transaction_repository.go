@@ -4,6 +4,7 @@ import (
 	"cuan-backend/internal/entity"
 	"fmt"
 
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -33,7 +34,11 @@ func (r *transactionRepository) WithTx(tx *gorm.DB) TransactionRepository {
 }
 
 func (r *transactionRepository) Create(transaction *entity.Transaction) error {
-	return r.db.Create(transaction).Error
+	if err := r.db.Create(transaction).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", transaction.UserID).Msg("Database operation failed")
+		return err
+	}
+	return nil
 }
 
 func (r *transactionRepository) FindAll(userID uint, params entity.TransactionFilterParams) ([]entity.Transaction, int64, error) {
@@ -65,6 +70,7 @@ func (r *transactionRepository) FindAll(userID uint, params entity.TransactionFi
 	}
 
 	if err := query.Count(&total).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Database operation failed")
 		return nil, 0, err
 	}
 
@@ -78,8 +84,12 @@ func (r *transactionRepository) FindAll(userID uint, params entity.TransactionFi
 		Preload("Category").
 		Order("date desc, created_at desc").
 		Find(&transactions).Error
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Database operation failed")
+		return nil, 0, err
+	}
 
-	return transactions, total, err
+	return transactions, total, nil
 }
 
 func (r *transactionRepository) FindByID(id uint, userID uint) (*entity.Transaction, error) {
@@ -88,15 +98,27 @@ func (r *transactionRepository) FindByID(id uint, userID uint) (*entity.Transact
 		Preload("Wallet").
 		Preload("Category").
 		First(&transaction).Error
-	return &transaction, err
+	if err != nil {
+		log.Error().Err(err).Uint("transaction_id", id).Uint("user_id", userID).Msg("Database operation failed")
+		return nil, err
+	}
+	return &transaction, nil
 }
 
 func (r *transactionRepository) Update(transaction *entity.Transaction) error {
-	return r.db.Save(transaction).Error
+	if err := r.db.Save(transaction).Error; err != nil {
+		log.Error().Err(err).Uint("transaction_id", transaction.ID).Uint("user_id", transaction.UserID).Msg("Database operation failed")
+		return err
+	}
+	return nil
 }
 
 func (r *transactionRepository) Delete(id uint, userID uint) error {
-	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&entity.Transaction{}).Error
+	if err := r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&entity.Transaction{}).Error; err != nil {
+		log.Error().Err(err).Uint("transaction_id", id).Uint("user_id", userID).Msg("Database operation failed")
+		return err
+	}
+	return nil
 }
 
 func (r *transactionRepository) FindSummaryByDateRange(userID uint, startDate, endDate string, walletID *uint, categoryID *uint, search string) ([]entity.TransactionSummary, error) {
@@ -128,6 +150,9 @@ func (r *transactionRepository) FindSummaryByDateRange(userID uint, startDate, e
 	err := query.Group(dateExpr).
         Order("1 ASC").
 		Scan(&results).Error
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Database operation failed")
+	}
 
 	return results, err
 }
@@ -152,6 +177,7 @@ func (r *transactionRepository) GetCategoryBreakdown(userID uint, startDate, end
 
 	err := query.Group("c.name, c.icon, t.type, c.budget_limit").Scan(&results).Error
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Database operation failed")
 		return nil, err
 	}
 
@@ -175,6 +201,9 @@ func (r *transactionRepository) GetMonthlyTrend(userID uint, startDate, endDate 
 		Group("TO_CHAR(date, 'YYYY-MM')").
 		Order("date ASC").
 		Scan(&results).Error
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Database operation failed")
+	}
 
 	return results, err
 }
@@ -187,5 +216,8 @@ func (r *transactionRepository) GetRecentTransactions(userID uint, limit int) ([
 		Order("date desc, created_at desc").
 		Limit(limit).
 		Find(&transactions).Error
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Database operation failed")
+	}
 	return transactions, err
 }

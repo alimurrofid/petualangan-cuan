@@ -3,6 +3,7 @@ package repository
 import (
 	"cuan-backend/internal/entity"
 
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -29,21 +30,34 @@ func (r *debtRepository) WithTx(tx *gorm.DB) DebtRepository {
 }
 
 func (r *debtRepository) Create(debt *entity.Debt) error {
-	return r.db.Create(debt).Error
+	if err := r.db.Create(debt).Error; err != nil {
+		log.Error().Err(err).Uint("user_id", debt.UserID).Msg("Database operation failed")
+		return err
+	}
+	return nil
 }
 
 func (r *debtRepository) Update(debt *entity.Debt) error {
-	return r.db.Save(debt).Error
+	if err := r.db.Save(debt).Error; err != nil {
+		log.Error().Err(err).Uint("debt_id", debt.ID).Uint("user_id", debt.UserID).Msg("Database operation failed")
+		return err
+	}
+	return nil
 }
 
 func (r *debtRepository) Delete(id uint, userID uint) error {
-	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&entity.Debt{}).Error
+	if err := r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&entity.Debt{}).Error; err != nil {
+		log.Error().Err(err).Uint("debt_id", id).Uint("user_id", userID).Msg("Database operation failed")
+		return err
+	}
+	return nil
 }
 
 func (r *debtRepository) FindByID(id uint, userID uint) (*entity.Debt, error) {
 	var debt entity.Debt
 	err := r.db.Preload("Wallet").Preload("Payments").Preload("Payments.Wallet").Where("id = ? AND user_id = ?", id, userID).First(&debt).Error
 	if err != nil {
+		log.Error().Err(err).Uint("debt_id", id).Uint("user_id", userID).Msg("Database operation failed")
 		return nil, err
 	}
 	return &debt, nil
@@ -56,6 +70,9 @@ func (r *debtRepository) FindByUserID(userID uint, debtType string) ([]entity.De
 		query = query.Where("type = ?", debtType)
 	}
 	err := query.Order("created_at desc").Find(&debts).Error
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Database operation failed")
+	}
 	return debts, err
 }
 
@@ -66,5 +83,8 @@ func (r *debtRepository) GetTotalPayments(userID uint, startDate, endDate string
 		Where("debts.user_id = ? AND debts.type = ? AND debt_payments.date BETWEEN ? AND ?", userID, entity.DebtTypePayable, startDate, endDate).
 		Select("COALESCE(SUM(debt_payments.amount), 0)").
 		Scan(&total).Error
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Database operation failed")
+	}
 	return total, err
 }

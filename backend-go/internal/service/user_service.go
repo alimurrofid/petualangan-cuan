@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -78,6 +80,7 @@ func getTokenDurations() (time.Duration, time.Duration) {
 }
 
 func (s *userService) Register(input RegisterInput) (*entity.User, string, string, error) {
+	log.Info().Str("email", input.Email).Msg("Starting user registration")
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, "", "", err
@@ -109,10 +112,12 @@ func (s *userService) Register(input RegisterInput) (*entity.User, string, strin
 		return nil, "", "", err
 	}
 
+	log.Info().Uint("user_id", user.ID).Str("email", user.Email).Msg("Completed user registration")
 	return user, accessToken, refreshToken, nil
 }
 
 func (s *userService) Login(input LoginInput) (*entity.User, string, string, error) {
+	log.Info().Str("email", input.Email).Msg("Starting user login")
 	user, err := s.userRepository.FindByEmail(input.Email)
 	if err != nil {
 		return nil, "", "", errors.New("invalid email or password")

@@ -7,9 +7,10 @@ import (
 	"cuan-backend/internal/service"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -61,7 +62,7 @@ func (h *whatsAppHandler) HandleWebhook(c *fiber.Ctx) error {
 	}
 	go func() {
 		if err := h.waSvc.ProcessMessage(event); err != nil {
-			fmt.Printf("[WA][ERROR] ProcessMessage gagal: %v\n", err)
+			log.Error().Err(err).Msg("[WA] ProcessMessage gagal")
 		}
 	}()
 

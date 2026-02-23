@@ -4,6 +4,8 @@ import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type DashboardService interface {
@@ -27,6 +29,7 @@ func NewDashboardService(transactionRepo repository.TransactionRepository, walle
 func (s *dashboardService) GetDashboardData(userID uint) (*entity.DashboardData, error) {
 	wallets, err := s.walletRepo.FindByUserID(userID)
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to retrieve wallets for dashboard")
 		return nil, err
 	}
 	var totalBalance float64
@@ -35,6 +38,7 @@ func (s *dashboardService) GetDashboardData(userID uint) (*entity.DashboardData,
 	for i := range wallets {
 		activeContributions, err := s.savingGoalRepo.GetActiveContributions(wallets[i].ID)
 		if err != nil {
+			log.Error().Err(err).Uint("wallet_id", wallets[i].ID).Msg("Failed to get active contributions")
 			return nil, err
 		}
 		
@@ -50,6 +54,7 @@ func (s *dashboardService) GetDashboardData(userID uint) (*entity.DashboardData,
 	expenseFilter := "expense"
 	expenseBreakdown, err := s.transactionRepo.GetCategoryBreakdown(userID, startOfMonth, endOfMonth, nil, &expenseFilter)
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to get expense breakdown")
 		return nil, err
 	}
 
@@ -61,6 +66,7 @@ func (s *dashboardService) GetDashboardData(userID uint) (*entity.DashboardData,
 	incomeFilter := "income"
 	incomeBreakdown, err := s.transactionRepo.GetCategoryBreakdown(userID, startOfMonth, endOfMonth, nil, &incomeFilter)
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to get income breakdown")
 		return nil, err
 	}
 	var totalIncomeMonth float64
@@ -70,12 +76,14 @@ func (s *dashboardService) GetDashboardData(userID uint) (*entity.DashboardData,
 
 	recentTransactions, err := s.transactionRepo.GetRecentTransactions(userID, 5)
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to get recent transactions")
 		return nil, err
 	}
 	startOfTrend := now.AddDate(0, -5, 0)
 	startOfTrendStr := time.Date(startOfTrend.Year(), startOfTrend.Month(), 1, 0, 0, 0, 0, time.Local).Format("2006-01-02")
 	monthlyTrend, err := s.transactionRepo.GetMonthlyTrend(userID, startOfTrendStr, endOfMonth)
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to get monthly trend")
 		return nil, err
 	}
 

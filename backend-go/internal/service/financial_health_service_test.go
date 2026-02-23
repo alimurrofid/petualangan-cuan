@@ -50,13 +50,13 @@ func TestGetFinancialHealth(t *testing.T) {
 	
 	assert.Len(t, response.Ratios, 3)
 	
-	assert.Equal(t, "Savings Rate", response.Ratios[0].Name)
+	assert.Equal(t, "Rasio Tabungan", response.Ratios[0].Name)
 	assert.Equal(t, 0.5, response.Ratios[0].Value)
 	assert.Equal(t, entity.StatusHealthy, response.Ratios[0].Status)
 	assert.Equal(t, "Dana Darurat", response.Ratios[1].Name)
 	assert.Equal(t, 6.0, response.Ratios[1].Value)
 	assert.Equal(t, entity.StatusHealthy, response.Ratios[1].Status)
-	assert.Equal(t, "Debt-to-Income", response.Ratios[2].Name)
+	assert.Equal(t, "Rasio Utang Terhadap Pendapatan", response.Ratios[2].Name)
 	assert.Equal(t, 0.1, response.Ratios[2].Value)
 	assert.Equal(t, entity.StatusHealthy, response.Ratios[2].Status)
 

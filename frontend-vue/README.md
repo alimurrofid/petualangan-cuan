@@ -1,91 +1,108 @@
-# Petualangan Cuan - Frontend (Vue 3)
+<div align="center">
+  <h1>🌐 Petualangan Cuan - Frontend Web Client 🌐</h1>
+  <p><i>The high-performance, responsive Vue.js Single Page Application (SPA) for managing personal finance and tracking wealth.</i></p>
+</div>
 
-Frontend application for Petualangan Cuan, built with Vue 3, TypeScript, and Vite.
+---
 
-## Tech Stack
+## 📖 Overview
 
-- **Framework:** Vue 3
-- **Build Tool:** Vite
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS
-- **State Management:** Pinia
-- **Icons:** Lucide Vue
-- **Package Manager:** pnpm
+The `frontend-vue` directory contains the client-side Web UI for the **Petualangan Cuan** ecosystem. Built as a fast and modern Single Page Application (SPA), it provides users with an intuitive dashboard to track transactions, manage debts, set saving goals, converse with an AI Financial Advisor, and visualize their financial health seamlessly.
 
-## Prerequisites
+## 🛠️ Tech Stack
 
-- [Node.js](https://nodejs.org/) (LTS recommended)
-- [pnpm](https://pnpm.io/) (Package manager)
+This project leverages a modern web development stack to ensure type safety, performance, and an elegant UI:
 
-## Installation
+| Category | Technology | Description |
+|----------|------------|-------------|
+| **Core Framework** | [Vue 3](https://vuejs.org/) | Utilizing the Composition API and `<script setup>` syntax for scalable logic. |
+| **Language** | [TypeScript](https://www.typescriptlang.org/) | Strict typing for robust, bug-resistant code. |
+| **Tooling** | [Vite](https://vitejs.dev/) | Lightning-fast development server and optimized production builds. |
+| **Styling & UI** | [Tailwind CSS v4](https://tailwindcss.com/) <br> [shadcn-vue](https://www.shadcn-vue.com/) | Utility-first CSS framework combined with beautifully designed, accessible components. |
+| **State Management**| [Pinia](https://pinia.vuejs.org/) | Intuitive, type-safe state management (replacing Vuex). |
+| **Routing** | [Vue Router](https://router.vuejs.org/) | Official router for single-page application navigation. |
+| **Package Manager** | [pnpm](https://pnpm.io/) | Fast, disk space efficient package manager. |
+| **Data Viz** | [ApexCharts](https://apexcharts.com/) | Interactive, responsive charting for financial health metrics. |
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend-vue
-   ```
+---
 
-2. Install dependencies:
-   ```bash
-   pnpm install
-   ```
+## 🗂️ Directory Structure
 
-## Configuration
+The `src/` directory is organized modularly to separate business logic, UI components, and views:
 
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-2. Configure environment variables (e.g., API Base URL).
-
-## Development
-
-Start the development server:
-
-```bash
-pnpm dev
+```text
+src/
+├── assets/         # Static assets like images, custom icons, and global CSS
+├── components/     # Reusable UI elements (shadcn-vue components, Layout parts)
+├── composables/    # Shared Vue Composition functions (hooks)
+├── layouts/        # Application shell layouts (e.g., Sidebar + Topbar structure)
+├── lib/            # Utility functions (utils.ts) and Axios interceptor configurations
+├── router/         # Vue Router configurations and navigation guards
+├── stores/         # Pinia state definition files (API integration layer)
+│   ├── auth.ts
+│   ├── transaction.ts
+│   ├── saving_goal.ts
+│   └── ...
+└── views/          # Top-level Page components mapped to routes
+    ├── Dashboard.vue
+    ├── transaction/
+    ├── chat/
+    └── ...
 ```
 
-The application will be available at `http://localhost:5173` (by default).
+---
 
-## Production Build
+## 🚀 Local Development Setup
 
-Build the application for production:
+To run the frontend client entirely isolated or connected to your local backend, follow these steps.
 
-```bash
-pnpm build
-```
+### 1. Prerequisites
+Ensure you have the following installed on your machine:
+- **Node.js** (v18 or higher recommended)
+- **pnpm** (Install globally via `npm install -g pnpm`)
 
-Preview the production build locally:
-
-```bash
-pnpm preview
-```
-
-## Project Structure
+### 2. Environment Configuration
+Copy the sample environment file to configure your local backend endpoint.
 
 ```bash
-frontend-vue/
-├── src/
-│   ├── assets/          # Static assets (images, fonts)
-│   ├── components/      # Reusable UI components
-│   ├── composables/     # Vue composables
-│   ├── layouts/         # Layout components
-│   ├── lib/             # Utilities and configurations
-│   ├── router/          # Vue Router configuration
-│   ├── stores/          # Pinia state stores
-│   ├── views/           # Page components
-│   │   ├── auth/        # Authentication pages
-│   │   ├── calendar/    # Calendar view
-│   │   ├── category/    # Category management
-│   │   ├── transaction/ # Transaction management
-│   │   ├── wallet/      # Wallet management
-│   │   └── ...
-│   ├── App.vue          # Root component
-│   └── main.ts          # Application entry point
-├── public/              # Public static files
-├── index.html           # HTML entry point
-├── package.json         # Dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-└── vite.config.ts       # Vite configuration
+cp .env.example .env
+```
+Inside `.env`, ensure the `VITE_API_URL` points to your backend instance (typically `http://localhost:8080/api`).
+
+### 3. Install Dependencies
+Install all required node modules securely generated by `pnpm-lock.yaml`:
+
+```bash
+pnpm install
 ```
 
+### 4. Run Development Server
+Spin up the Vite development server with Hot Module Replacement (HMR):
+
+```bash
+pnpm run dev
+```
+Navigate to `http://localhost:5173` in your browser.
+
+### 5. Build for Production
+To compile and minify the application for production deployment:
+
+```bash
+pnpm run build
+```
+*(This command will first run `vue-tsc` to type-check your application before allowing Vite to bundle it).*
+
+---
+
+## 🎯 Key Features & Views
+
+The UI is divided into several powerful core modules built inside the `views` directory and backed by mapped `stores`:
+
+- 📊 **Dashboard:** Consolidated overview of the user's latest expenses, income balance, and quick actions.
+- 💸 **Transactions:** Granular tracking of all categorized cash flows with extensive filtering.
+- 💳 **Wallets:** Balance management for diversified accounts (Cash, Bank, E-Wallet).
+- 🤖 **AI Chat Advisor:** Context-aware interactive interface conversing with the backend's Local LLM for querying finances and processing voice/image receipts.
+- 🎯 **Saving Goals:** Visual progress tracking for long-term targets.
+- 🤝 **Debts:** Tracking who owes you and whom you owe.
+- 🛍️ **Wishlist:** Compile a list of desired items against wallet balances.
+- 📈 **Financial Health & Report:** Deep analytical dives and generated metric visualizations powered by ApexCharts.

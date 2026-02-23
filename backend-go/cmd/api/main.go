@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"log"
 	"os"
+	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"cuan-backend/internal/config"
 	"cuan-backend/internal/handler"
@@ -17,6 +21,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/gofiber/swagger"
 	"github.com/joho/godotenv"
 )
@@ -31,20 +36,22 @@ func main() {
 	seedPtr := flag.Bool("seed", false, "Seed database with dummy data")
 	flag.Parse()
 
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
 	if err := godotenv.Load(); err != nil {
-		log.Println("Info: No .env file found, relying on system env")
+		log.Info().Msg("No .env file found, relying on system env")
 	}
 
 	db, err := config.Connect()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("Database connection failed")
 	}
 
 	if *freshPtr {
 		config.MigrateFresh(db)
 	} else {
 		if err := config.RunMigration(db); err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err).Msg("Database migration failed")
 		}
 	}
 
@@ -61,11 +68,11 @@ func main() {
 		apiKey := os.Getenv("EXTERNAL_AI_API_KEY")
 		model := os.Getenv("EXTERNAL_AI_MODEL")
 		llmProvider = aiprovider.NewExternalProvider(externalURL, apiKey, model)
-		log.Printf("[AI] Provider: External (%s, model: %s)", externalURL, model)
+		log.Info().Str("provider", "External").Str("url", externalURL).Str("model", model).Msg("AI Provider Configured")
 	default:
 		localLLMURL := os.Getenv("LOCAL_LLM_URL")
 		llmProvider = aiprovider.NewLocalProvider(localLLMURL)
-		log.Printf("[AI] Provider: Local (%s)", localLLMURL)
+		log.Info().Str("provider", "Local").Str("url", localLLMURL).Msg("AI Provider Configured")
 	}
 
 	whisperURL := os.Getenv("LOCAL_WHISPER_URL")
@@ -124,6 +131,45 @@ func main() {
 
 	app := fiber.New(fiber.Config{
 		BodyLimit: 10 * 1024 * 1024, // 10MB
+	})
+
+	app.Use(requestid.New())
+
+	app.Use(func(c *fiber.Ctx) error {
+		reqID := c.Locals("requestid").(string)
+
+		log.Info().
+			Str("request_id", reqID).
+			Str("method", c.Method()).
+			Str("path", c.Path()).
+			Msg("Incoming Request")
+
+		ctx := context.WithValue(c.Context(), "request_id", reqID)
+		c.SetUserContext(ctx)
+
+		start := time.Now()
+		err := c.Next()
+
+		status := c.Response().StatusCode()
+		duration := time.Since(start)
+
+		if err != nil {
+			log.Error().
+				Err(err).
+				Str("request_id", reqID).
+				Int("status", status).
+				Dur("duration", duration).
+				Msg("Request Failed")
+			return err
+		}
+
+		log.Info().
+			Str("request_id", reqID).
+			Int("status", status).
+			Dur("duration", duration).
+			Msg("Request Completed")
+
+		return nil
 	})
 
 	app.Use(cors.New(cors.Config{
@@ -221,5 +267,5 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	log.Fatal(app.Listen(":" + port))
+	log.Fatal().Err(app.Listen(":" + port)).Msg("Server interrupted")
 }

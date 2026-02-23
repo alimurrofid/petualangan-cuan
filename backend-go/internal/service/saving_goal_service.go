@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -61,9 +62,11 @@ func (s *savingGoalService) CreateGoal(userID uint, input CreateGoalInput) (*ent
 	}
 	
 	if err := s.repo.Create(goal); err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to create saving goal")
 		return nil, err
 	}
 	
+	log.Info().Uint("user_id", userID).Uint("goal_id", goal.ID).Str("name", goal.Name).Msg("Saving goal created successfully")
 	return goal, nil
 }
 
@@ -153,9 +156,11 @@ func (s *savingGoalService) AddContribution(userID uint, goalID uint, input Cont
 	}
 
 	if err := tx.Commit().Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("goal_id", goalID).Msg("Failed to commit db transaction for AddContribution")
 		return nil, err
 	}
 
+	log.Info().Uint("user_id", userID).Uint("goal_id", goalID).Uint("contribution_id", contribution.ID).Msg("Saving goal contribution added successfully")
 	return contribution, nil
 }
 
@@ -172,9 +177,11 @@ func (s *savingGoalService) UpdateGoal(userID uint, goalID uint, input CreateGoa
 	goal.Icon = input.Icon
 
 	if err := s.repo.Update(goal); err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("goal_id", goalID).Msg("Failed to update saving goal")
 		return nil, err
 	}
 
+	log.Info().Uint("user_id", userID).Uint("goal_id", goalID).Msg("Saving goal updated successfully")
 	return goal, nil
 }
 
@@ -188,7 +195,13 @@ func (s *savingGoalService) DeleteGoal(userID uint, goalID uint) error {
 		return err
 	}
 
-	return s.repo.Delete(goal)
+	err = s.repo.Delete(goal)
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("goal_id", goalID).Msg("Failed to delete saving goal")
+	} else {
+		log.Info().Uint("user_id", userID).Uint("goal_id", goalID).Msg("Saving goal deleted successfully")
+	}
+	return err
 }
 
 func (s *savingGoalService) DeleteContribution(userID uint, contributionID uint) error {
@@ -229,9 +242,11 @@ func (s *savingGoalService) DeleteContribution(userID uint, contributionID uint)
 	}
 
 	if err := tx.Commit().Error; err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("contribution_id", contributionID).Msg("Failed to commit db transaction for DeleteContribution")
 		return err
 	}
 
+	log.Info().Uint("user_id", userID).Uint("contribution_id", contributionID).Msg("Saving goal contribution deleted successfully")
 	return nil
 }
 
@@ -250,5 +265,11 @@ func (s *savingGoalService) FinishGoal(userID uint, goalID uint) error {
 	}
 
 	goal.IsFinished = true
-	return s.repo.Update(goal)
+	err = s.repo.Update(goal)
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("goal_id", goalID).Msg("Failed to mark saving goal as finished")
+	} else {
+		log.Info().Uint("user_id", userID).Uint("goal_id", goalID).Msg("Saving goal marked as finished successfully")
+	}
+	return err
 }

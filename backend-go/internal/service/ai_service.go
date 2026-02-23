@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type AIService interface {
@@ -77,7 +79,7 @@ func (s *aiService) Chat(message string, imageBase64 string, userContext string)
 	}
 
 	systemPrompt := fmt.Sprintf(SystemPromptChat, userContext)
-	fmt.Printf("[DEBUG] User Context sent to LLM:\n%s\n", userContext)
+	log.Debug().Str("context", userContext).Msg("User Context sent to LLM")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
@@ -93,7 +95,7 @@ func (s *aiService) Chat(message string, imageBase64 string, userContext string)
 		return nil, fmt.Errorf("provider error: %w", err)
 	}
 
-	fmt.Printf("[DEBUG] AI Raw Response: %q\n", content)
+	log.Debug().Str("response", content).Msg("AI Raw Response")
 
 	return parseAIResponse(content), nil
 }
@@ -158,7 +160,7 @@ func (s *aiService) ChatStream(message string, imageBase64 string, userContext s
 	}
 
 	systemPrompt := fmt.Sprintf(SystemPromptChat, userContext)
-	fmt.Printf("[DEBUG] User Context sent to LLM (Stream):\n%s\n", userContext)
+	log.Debug().Str("context", userContext).Msg("User Context sent to LLM (Stream)")
 
 	payload := chatCompletionRequest{
 		Messages:    buildMessages(systemPrompt, message, imageBase64),
@@ -197,7 +199,7 @@ func parseAIResponse(content string) *entity.ChatAIResponse {
 	jsonPart := content[startIdx : endIdx+1]
 	var response entity.ChatAIResponse
 	if err := json.Unmarshal([]byte(jsonPart), &response); err != nil {
-		fmt.Printf("[WARN] Failed to parse AI JSON: %v, raw: %s\n", err, jsonPart)
+		log.Warn().Err(err).Str("raw", jsonPart).Msg("Failed to parse AI JSON")
 		return &entity.ChatAIResponse{Reply: content, IsTransaction: false}
 	}
 	return &response
@@ -279,7 +281,7 @@ func (s *aiService) chatStreamViaProvider(payload chatCompletionRequest, onToken
 		return nil, fmt.Errorf("provider error: %w", err)
 	}
 
-	fmt.Printf("[DEBUG] AI Stream (via provider) Final Content: %q\n", content)
+	log.Debug().Str("content", content).Msg("AI Stream (via provider) Final Content")
 
 	response := parseAIResponse(content)
 	for _, char := range response.Reply {
@@ -390,7 +392,7 @@ func parseSSEStream(body io.Reader, onToken func(string) error) (*entity.ChatAIR
 	}
 
 	finalContent := fullContent.String()
-	fmt.Printf("[DEBUG] AI Stream Final Content: %q\n", finalContent)
+	log.Debug().Str("content", finalContent).Msg("AI Stream Final Content")
 
 	startIdx := strings.Index(finalContent, "{")
 	endIdx := strings.LastIndex(finalContent, "}")

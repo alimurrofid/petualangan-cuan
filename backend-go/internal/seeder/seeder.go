@@ -2,65 +2,65 @@ package seeder
 
 import (
 	"cuan-backend/internal/entity"
-	"fmt"
-	"log"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 func SeedAll(db *gorm.DB) {
-	fmt.Println("🌱 Seeding Users...")
+	log.Info().Msg("🌱 Seeding Users...")
 	plantedUsers := []entity.User{}
 	
 	// Create Users
 	for _, user := range Users {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 		if err != nil {
-			log.Fatal("Failed to hash password")
+			log.Fatal().Msg("Failed to hash password")
 		}
 		user.Password = string(hashedPassword)
 		
 		if err := db.FirstOrCreate(&user, entity.User{Email: user.Email}).Error; err != nil {
-			log.Printf("Failed to seed user %s: %v\n", user.Email, err)
+			log.Error().Err(err).Str("email", user.Email).Msg("Failed to seed user")
 		} else {
 			plantedUsers = append(plantedUsers, user)
 		}
 	}
 
 	if len(plantedUsers) == 0 {
-		log.Println("⚠️ No users seeded/found to attach data to")
+		log.Warn().Msg("⚠️ No users seeded/found to attach data to")
 		return
 	}
 	
 	mainUser := plantedUsers[0]
-	fmt.Printf("👤 Using user: %s (ID: %d) for related data\n", mainUser.Name, mainUser.ID)
+	log.Info().Str("name", mainUser.Name).Uint("id", mainUser.ID).Msg("👤 Using user for related data")
 
-	fmt.Println("🌱 Seeding Wallets...")
+	log.Info().Msg("🌱 Seeding Wallets...")
 	plantedWallets := []entity.Wallet{}
 	for _, wallet := range Wallets {
 		wallet.UserID = mainUser.ID
 		if err := db.Create(&wallet).Error; err != nil {
-			log.Printf("Failed to seed wallet %s: %v\n", wallet.Name, err)
+			log.Error().Err(err).Str("wallet", wallet.Name).Msg("Failed to seed wallet")
 		} else {
 			plantedWallets = append(plantedWallets, wallet)
 		}
 	}
 
-	fmt.Println("🌱 Seeding Categories...")
+	log.Info().Msg("🌱 Seeding Categories...")
 	plantedCategories := []entity.Category{}
 	for _, cat := range Categories {
 		cat.UserID = mainUser.ID
 		if err := db.Create(&cat).Error; err != nil {
-			log.Printf("Failed to seed category %s: %v\n", cat.Name, err)
+			log.Error().Err(err).Str("category", cat.Name).Msg("Failed to seed category")
 		} else {
 			plantedCategories = append(plantedCategories, cat)
 		}
 	}
 
-	fmt.Println("🌱 Seeding Transactions...")
+	log.Info().Msg("🌱 Seeding Transactions...")
 	if len(plantedWallets) > 0 && len(plantedCategories) > 0 {
 		for i, tx := range Transactions {
 			tx.UserID = mainUser.ID
@@ -93,10 +93,10 @@ func SeedAll(db *gorm.DB) {
 			}
 			
 			if err := db.Create(&tx).Error; err != nil {
-				log.Printf("Failed to seed transaction %s: %v\n", tx.Description, err)
+				log.Error().Err(err).Str("transaction", tx.Description).Msg("Failed to seed transaction")
 			}
 		}
 	}
 
-	fmt.Println("✅ Seeding Finished!")
+	log.Info().Msg("✅ Seeding Finished!")
 }

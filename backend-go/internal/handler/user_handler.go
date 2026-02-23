@@ -3,12 +3,14 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"os"
 	"time"
 
 	"cuan-backend/internal/service"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -62,6 +64,8 @@ func (h *userHandler) setRefreshCookie(c *fiber.Ctx, refreshToken string) {
 func (h *userHandler) Register(c *fiber.Ctx) error {
 	var input service.RegisterInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
@@ -91,6 +95,8 @@ func (h *userHandler) Register(c *fiber.Ctx) error {
 func (h *userHandler) Login(c *fiber.Ctx) error {
 	var input service.LoginInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
@@ -176,6 +182,8 @@ func (h *userHandler) UpdateProfile(c *fiber.Ctx) error {
 
 	var input service.UpdateProfileInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
@@ -209,6 +217,8 @@ func (h *userHandler) ChangePassword(c *fiber.Ctx) error {
 
 	var input service.ChangePasswordInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
@@ -266,22 +276,36 @@ func (h *userHandler) GoogleCallback(c *fiber.Ctx) error {
 	client := conf.Client(context.Background(), token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Failed to get user info from Google")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to get user info"})
 	}
 	defer resp.Body.Close()
 
-	var googleUser struct {
+	// Make sure the body is fully read as we've fixed the syntax issue here
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Failed to read response body from Google")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to read user info"})
+	}
+
+	var userInfo struct {
 		Email string `json:"email"`
 		Name  string `json:"name"`
 		ID    string `json:"id"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
+	if err := json.Unmarshal(body, &userInfo); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Failed to parse user info from Google")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to parse user info"})
 	}
 
-	user, jwtToken, refreshToken, err := h.userService.LoginOrRegisterGoogle(googleUser.Email, googleUser.Name, googleUser.ID)
+	user, jwtToken, refreshToken, err := h.userService.LoginOrRegisterGoogle(userInfo.Email, userInfo.Name, userInfo.ID)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	

@@ -3,6 +3,8 @@ package service
 import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
+
+	"github.com/rs/zerolog/log"
 )
 
 type CreateWalletInput struct {
@@ -48,10 +50,12 @@ func (s *walletService) CreateWallet(input CreateWalletInput) (*entity.Wallet, e
 
 	err := s.walletRepository.Create(wallet)
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", input.UserID).Msg("Failed to create wallet")
 		return nil, err
 	}
 	
 	wallet.AvailableBalance = wallet.Balance
+	log.Info().Uint("user_id", input.UserID).Uint("wallet_id", wallet.ID).Msg("Wallet created successfully")
 	return wallet, nil
 }
 
@@ -102,6 +106,7 @@ func (s *walletService) UpdateWallet(id uint, userID uint, input UpdateWalletInp
 
 	err = s.walletRepository.Update(wallet)
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("wallet_id", id).Msg("Failed to update wallet")
 		return nil, err
 	}
 	
@@ -112,9 +117,16 @@ func (s *walletService) UpdateWallet(id uint, userID uint, input UpdateWalletInp
 		wallet.AvailableBalance = wallet.Balance
 	}
 
+	log.Info().Uint("user_id", userID).Uint("wallet_id", id).Msg("Wallet updated successfully")
 	return wallet, nil
 }
 
 func (s *walletService) DeleteWallet(id uint, userID uint) error {
-	return s.walletRepository.Delete(id, userID)
+	err := s.walletRepository.Delete(id, userID)
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("wallet_id", id).Msg("Failed to delete wallet")
+		return err
+	}
+	log.Info().Uint("user_id", userID).Uint("wallet_id", id).Msg("Wallet deleted successfully")
+	return nil
 }

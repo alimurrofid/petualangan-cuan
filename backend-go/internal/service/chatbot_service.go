@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"golang.org/x/sync/errgroup"
 )
 
@@ -384,7 +386,7 @@ func (s *ChatbotService) SaveTransactions(userID uint, items []entity.Transactio
 		}
 
 		if err != nil {
-			fmt.Printf("[ERROR] %s Transaction item '%s' failed: %v\n", strings.ToUpper(action), item.Description, err)
+			log.Error().Err(err).Str("action", action).Str("description", item.Description).Msg("Transaction item failed")
 			errs = append(errs, fmt.Sprintf("- '%s': %v", item.Description, err))
 			continue
 		}
@@ -392,6 +394,7 @@ func (s *ChatbotService) SaveTransactions(userID uint, items []entity.Transactio
 		if saved != nil {
 			saved.Action = action
 			results = append(results, *saved)
+			log.Info().Uint("user_id", userID).Str("action", action).Uint("transaction_id", saved.ID).Msg("AI transaction processed successfully")
 		}
 	}
 

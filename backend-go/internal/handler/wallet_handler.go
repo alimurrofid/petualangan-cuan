@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 type WalletHandler interface {
@@ -39,11 +40,15 @@ func NewWalletHandler(walletService service.WalletService) WalletHandler {
 func (h *walletHandler) CreateWallet(c *fiber.Ctx) error {
 	var input service.CreateWalletInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Failed to get user ID from context")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 
@@ -51,6 +56,8 @@ func (h *walletHandler) CreateWallet(c *fiber.Ctx) error {
 
 	wallet, err := h.walletService.CreateWallet(input)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -74,6 +81,8 @@ func (h *walletHandler) GetWallets(c *fiber.Ctx) error {
 
 	wallets, err := h.walletService.GetUserWallets(userID)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -141,6 +150,8 @@ func (h *walletHandler) UpdateWallet(c *fiber.Ctx) error {
 
 	wallet, err := h.walletService.UpdateWallet(uint(id), userID, input)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -170,6 +181,8 @@ func (h *walletHandler) DeleteWallet(c *fiber.Ctx) error {
 
 	err = h.walletService.DeleteWallet(uint(id), userID)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 

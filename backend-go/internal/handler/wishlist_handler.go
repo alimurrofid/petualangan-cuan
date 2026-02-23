@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 type WishlistHandler struct {
@@ -29,6 +30,8 @@ func NewWishlistHandler(wishlistService service.WishlistService) *WishlistHandle
 func (h *WishlistHandler) Create(c *fiber.Ctx) error {
 	var req service.StoreWishlistRequest
 	if err := c.BodyParser(&req); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 	
@@ -54,6 +57,8 @@ func (h *WishlistHandler) FindAll(c *fiber.Ctx) error {
 
 	items, err := h.wishlistService.FindAll(userID)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 

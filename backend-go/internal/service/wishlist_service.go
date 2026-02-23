@@ -3,6 +3,8 @@ package service
 import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
+
+	"github.com/rs/zerolog/log"
 )
 
 type WishlistService interface {
@@ -40,7 +42,13 @@ func (s *wishlistService) Create(userID uint, req *StoreWishlistRequest) error {
 	if req.Priority == "" {
 		item.Priority = entity.WishlistPriorityMedium
 	}
-	return s.wishlistRepo.Create(item)
+	err := s.wishlistRepo.Create(item)
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to create wishlist item")
+		return err
+	}
+	log.Info().Uint("user_id", userID).Uint("wishlist_id", item.ID).Msg("Wishlist item created successfully")
+	return nil
 }
 
 func (s *wishlistService) FindAll(userID uint) ([]entity.WishlistItem, error) {
@@ -54,6 +62,7 @@ func (s *wishlistService) FindByID(id uint, userID uint) (*entity.WishlistItem, 
 func (s *wishlistService) Update(id uint, userID uint, req *StoreWishlistRequest) error {
 	item, err := s.wishlistRepo.FindByID(id, userID)
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("wishlist_id", id).Msg("Failed to find wishlist item")
 		return err
 	}
 
@@ -64,13 +73,31 @@ func (s *wishlistService) Update(id uint, userID uint, req *StoreWishlistRequest
 		item.Priority = entity.WishlistPriority(req.Priority)
 	}
 
-	return s.wishlistRepo.Update(item)
+	err = s.wishlistRepo.Update(item)
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("wishlist_id", id).Msg("Failed to update wishlist item")
+		return err
+	}
+	log.Info().Uint("user_id", userID).Uint("wishlist_id", id).Msg("Wishlist item updated successfully")
+	return nil
 }
 
 func (s *wishlistService) Delete(id uint, userID uint) error {
-	return s.wishlistRepo.Delete(id, userID)
+	err := s.wishlistRepo.Delete(id, userID)
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("wishlist_id", id).Msg("Failed to delete wishlist item")
+		return err
+	}
+	log.Info().Uint("user_id", userID).Uint("wishlist_id", id).Msg("Wishlist item deleted successfully")
+	return nil
 }
 
 func (s *wishlistService) MarkAsBought(id uint, userID uint) error {
-	return s.wishlistRepo.MarkAsBought(id, userID)
+	err := s.wishlistRepo.MarkAsBought(id, userID)
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("wishlist_id", id).Msg("Failed to mark wishlist item as bought")
+		return err
+	}
+	log.Info().Uint("user_id", userID).Uint("wishlist_id", id).Msg("Wishlist item marked as bought")
+	return nil
 }

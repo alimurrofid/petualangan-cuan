@@ -3,6 +3,8 @@ package service
 import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
+
+	"github.com/rs/zerolog/log"
 )
 
 type CategoryService interface {
@@ -44,7 +46,12 @@ func (s *categoryService) CreateCategory(userID uint, input CreateCategoryInput)
 		BudgetLimit: input.BudgetLimit,
 	}
 	err := s.repo.Create(category)
-	return category, err
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Str("category_name", category.Name).Msg("Failed to create category")
+		return nil, err
+	}
+	log.Info().Uint("user_id", userID).Str("category_name", category.Name).Msg("Category created successfully")
+	return category, nil
 }
 
 func (s *categoryService) GetCategories(userID uint) ([]entity.Category, error) {
@@ -58,6 +65,7 @@ func (s *categoryService) GetCategory(id uint, userID uint) (*entity.Category, e
 func (s *categoryService) UpdateCategory(id uint, userID uint, input UpdateCategoryInput) (*entity.Category, error) {
 	category, err := s.repo.FindByID(id, userID)
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("category_id", id).Msg("Failed to find category for update")
 		return nil, err
 	}
 
@@ -72,9 +80,20 @@ func (s *categoryService) UpdateCategory(id uint, userID uint, input UpdateCateg
 	category.BudgetLimit = input.BudgetLimit
 
 	err = s.repo.Update(category)
-	return category, err
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("category_id", id).Msg("Failed to update category")
+		return nil, err
+	}
+	log.Info().Uint("user_id", userID).Uint("category_id", id).Msg("Category updated successfully")
+	return category, nil
 }
 
 func (s *categoryService) DeleteCategory(id uint, userID uint) error {
-	return s.repo.Delete(id, userID)
+	err := s.repo.Delete(id, userID)
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Uint("category_id", id).Msg("Failed to delete category")
+		return err
+	}
+	log.Info().Uint("user_id", userID).Uint("category_id", id).Msg("Category deleted successfully")
+	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"cuan-backend/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 type FinancialHealthHandler struct {
@@ -27,6 +28,8 @@ func NewFinancialHealthHandler(service service.FinancialHealthService) *Financia
 func (h *FinancialHealthHandler) GetFinancialHealth(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Failed to get user ID from context")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"status": "error",
 			"error":  "Unauthorized",
@@ -35,10 +38,9 @@ func (h *FinancialHealthHandler) GetFinancialHealth(c *fiber.Ctx) error {
 
 	data, err := h.service.GetFinancialHealth(userID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status": "error",
-			"error":  err.Error(),
-		})
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.JSON(fiber.Map{

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type FinancialHealthService interface {
@@ -44,6 +46,7 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 	// Savings Rate : (Total Income - Total Expense) / Total Income (Current Month)
 	summary, err := s.transactionRepo.FindSummaryByDateRange(userID, startDate, endDate, nil, nil, "")
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to fetch transaction summary")
 		return entity.FinancialHealthResponse{}, err
 	}
 
@@ -79,6 +82,7 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 	// Liquidity Ratio (Emergency Fund) : Total Wallet Balance / Avg Monthly Expense (Last 3 Months)
 	wallets, err := s.walletRepo.FindByUserID(userID)
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to fetch wallets")
 		return entity.FinancialHealthResponse{}, err
 	}
 
@@ -92,6 +96,7 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
     
 	trend, err := s.transactionRepo.GetMonthlyTrend(userID, startOf3MonthsAgo.Format("2006-01-02"), endOfLastMonth.Format("2006-01-02"))
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to fetch monthly trend")
 		return entity.FinancialHealthResponse{}, err
 	}
 
@@ -142,6 +147,7 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 	// Debt-to-Income Ratio : Total Debt Installments / Total Income (Current Month)
 	debtPayments, err := s.debtRepo.GetTotalPayments(userID, startDate, endDate)
 	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to fetch total debt payments")
 		return entity.FinancialHealthResponse{}, err
 	}
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 type SavingGoalHandler struct {
@@ -29,11 +30,15 @@ func NewSavingGoalHandler(service service.SavingGoalService) *SavingGoalHandler 
 func (h *SavingGoalHandler) GetGoals(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Failed to get user ID from context")
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 
 	goals, err := h.service.GetGoals(userID)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -54,15 +59,21 @@ func (h *SavingGoalHandler) GetGoals(c *fiber.Ctx) error {
 func (h *SavingGoalHandler) CreateGoal(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Failed to get user ID from context")
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 	var input service.CreateGoalInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	goal, err := h.service.CreateGoal(userID, input)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -84,6 +95,8 @@ func (h *SavingGoalHandler) CreateGoal(c *fiber.Ctx) error {
 func (h *SavingGoalHandler) AddContribution(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Failed to get user ID from context")
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 	id, err := strconv.Atoi(c.Params("id"))
@@ -93,6 +106,8 @@ func (h *SavingGoalHandler) AddContribution(c *fiber.Ctx) error {
 
 	var input service.ContributionInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -102,6 +117,8 @@ func (h *SavingGoalHandler) AddContribution(c *fiber.Ctx) error {
 
 	contribution, err := h.service.AddContribution(userID, uint(id), input)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -123,6 +140,8 @@ func (h *SavingGoalHandler) AddContribution(c *fiber.Ctx) error {
 func (h *SavingGoalHandler) UpdateGoal(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Failed to get user ID from context")
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 	id, err := strconv.Atoi(c.Params("id"))
@@ -132,11 +151,15 @@ func (h *SavingGoalHandler) UpdateGoal(c *fiber.Ctx) error {
 
 	var input service.CreateGoalInput
 	if err := c.BodyParser(&input); err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Warn().Str("request_id", reqID).Err(err).Msg("Invalid request body payload")
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	goal, err := h.service.UpdateGoal(userID, uint(id), input)
 	if err != nil {
+		reqID, _ := c.Locals("requestid").(string)
+		log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 

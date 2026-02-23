@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 func writeFile(path string, data []byte) error {
@@ -91,7 +93,7 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 	if msg.Audio != "" {
 		audioData, err := s.downloadMediaFromGateway(msg.Audio)
 		if err != nil {
-			fmt.Printf("[WA] Gagal download audio: %v\n", err)
+			log.Error().Err(err).Msg("[WA] Gagal download audio")
 			_ = s.sendWAMessage(msg.ChatID, event.DeviceID, "❌ Gagal mengunduh pesan suara. Coba kirim ulang.")
 			return err
 		}
@@ -103,12 +105,12 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 		if err := os.WriteFile(audioPath, audioData, 0644); err == nil {
 			savedAudioURL = "/uploads/audio/" + audioFilename
 		} else {
-			fmt.Printf("[WA][WARN] Gagal menyimpan audio WA ke disk: %v\n", err)
+			log.Warn().Err(err).Msg("[WA] Gagal menyimpan audio WA ke disk")
 		}
 
 		transcription, err := s.transcribeAudio(audioData, msg.Audio)
 		if err != nil {
-			fmt.Printf("[WA] Gagal transkripsi audio: %v\n", err)
+			log.Error().Err(err).Msg("[WA] Gagal transkripsi audio")
 			_ = s.sendWAMessage(msg.ChatID, event.DeviceID, "❌ Gagal membaca pesan suara. Coba kirim ulang atau ketik pesannya.")
 			return err
 		}
@@ -118,7 +120,7 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 	if msg.Image != "" {
 		imgData, err := s.downloadMediaFromGateway(msg.Image)
 		if err != nil {
-			fmt.Printf("[WA] Gagal download gambar: %v\n", err)
+			log.Error().Err(err).Msg("[WA] Gagal download gambar")
 			_ = s.sendWAMessage(msg.ChatID, event.DeviceID, "❌ Gagal mengunduh gambar. Coba kirim ulang.")
 			return err
 		}
@@ -130,7 +132,7 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 		if err := os.WriteFile(imagePath, imgData, 0644); err == nil {
 			savedImageURL = "/uploads/images/" + imageFilename
 		} else {
-			fmt.Printf("[WA][WARN] Gagal menyimpan gambar WA ke disk: %v\n", err)
+			log.Warn().Err(err).Msg("[WA] Gagal menyimpan gambar WA ke disk")
 		}
 
 		imageBase64 = base64.StdEncoding.EncodeToString(imgData)
@@ -153,14 +155,14 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 	}
 
 	if err := s.chatHistSvc.SaveMessage(user.ID, "user", text, savedAudioURL, savedImageURL); err != nil {
-		fmt.Printf("[WA][WARN] Gagal simpan pesan user: %v\n", err)
+		log.Warn().Err(err).Msg("[WA] Gagal simpan pesan user")
 	}
 
 	userContext := s.chatbotSvc.GetUserContext(user.ID, text)
 
 	aiResp, err := s.aiSvc.Chat(text, imageBase64, userContext)
 	if err != nil {
-		fmt.Printf("[WA][ERROR] AI Chat gagal: %v\n", err)
+		log.Error().Err(err).Msg("[WA] AI Chat gagal")
 		_ = s.sendWAMessage(msg.ChatID, event.DeviceID,
 			"❌ AI tidak dapat merespons saat ini. Mohon coba beberapa saat lagi. 🙏")
 		return err
@@ -171,7 +173,7 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 	if aiResp.IsTransaction && len(aiResp.Transactions) > 0 {
 		saved, err := s.chatbotSvc.SaveTransactions(user.ID, aiResp.Transactions)
 		if err != nil {
-			fmt.Printf("[WA][ERROR] SaveTransactions gagal: %v\n", err)
+			log.Error().Err(err).Msg("[WA] SaveTransactions gagal")
 			replyText += "\n\n⚠️ Transaksi terdeteksi tapi gagal disimpan."
 		} else if len(saved) > 0 {
 			summary := "\n\n✅ Transaksi berhasil dicatat!"
@@ -184,7 +186,7 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 	}
 
 	if err := s.chatHistSvc.SaveMessage(user.ID, "assistant", replyText, "", ""); err != nil {
-		fmt.Printf("[WA][WARN] Gagal simpan balasan AI: %v\n", err)
+		log.Warn().Err(err).Msg("[WA] Gagal simpan balasan AI")
 	}
 	return s.sendWAMessage(msg.ChatID, event.DeviceID, replyText)
 }
@@ -247,7 +249,7 @@ func (s *whatsAppService) sendWAMessage(chatID, deviceID, text string) error {
 	}
 
 	url := s.waGatewayURL + "/send/message"
-	fmt.Printf("[WA][DEBUG] sendWAMessage -> chatID:%s, deviceID:%s\n", chatID, deviceID)
+	log.Debug().Str("chatID", chatID).Str("deviceID", deviceID).Msg("[WA] sendWAMessage")
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {

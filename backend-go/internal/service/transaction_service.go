@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/xuri/excelize/v2"
 
 	"gorm.io/gorm"
@@ -60,6 +61,7 @@ type TransferTransactionInput struct {
 }
 
 func (s *transactionService) CreateTransaction(userID uint, input CreateTransactionInput) (*entity.Transaction, error) {
+	log.Info().Uint("user_id", userID).Str("type", input.Type).Msg("Starting transaction creation")
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -114,6 +116,7 @@ func (s *transactionService) CreateTransaction(userID uint, input CreateTransact
 		return nil, err
 	}
 
+	log.Info().Uint("transaction_id", transaction.ID).Uint("user_id", userID).Msg("Completed transaction creation")
 	return s.repo.FindByID(transaction.ID, userID)
 }
 
@@ -328,6 +331,7 @@ func (s *transactionService) DeleteTransaction(id uint, userID uint) error {
 }
 
 func (s *transactionService) TransferTransaction(userID uint, input TransferTransactionInput) error {
+	log.Info().Uint("user_id", userID).Uint("from_wallet", input.FromWalletID).Uint("to_wallet", input.ToWalletID).Msg("Starting transaction transfer")
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -444,7 +448,11 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 		return err
 	}
 
-	return tx.Commit().Error
+	err = tx.Commit().Error
+	if err == nil {
+		log.Info().Uint("user_id", userID).Msg("Completed transaction transfer")
+	}
+	return err
 }
 
 func (s *transactionService) getCategoryForTransfer(userID uint) (uint, error) {
@@ -493,7 +501,7 @@ func (s *transactionService) ExportTransactions(userID uint, params entity.Trans
 	f := excelize.NewFile()
 	defer func() {
 		if err := f.Close(); err != nil {
-			fmt.Println(err)
+			log.Error().Err(err).Msg("Failed to close Excel file")
 		}
 	}()
 
@@ -546,7 +554,7 @@ func (s *transactionService) ExportReport(userID uint, startDate, endDate string
 	f := excelize.NewFile()
 	defer func() {
 		if err := f.Close(); err != nil {
-			fmt.Println(err)
+			log.Error().Err(err).Msg("Failed to close Excel file")
 		}
 	}()
 

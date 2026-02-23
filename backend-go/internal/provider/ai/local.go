@@ -6,10 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type LocalProvider struct {
@@ -25,7 +26,8 @@ func (p *LocalProvider) GetURL() string {
 }
 
 func (p *LocalProvider) GenerateCompletion(ctx context.Context, req AIRequest) (string, error) {
-	log.Printf("[Local AI] Sending request to %s", p.url)
+	reqID, _ := ctx.Value("request_id").(string)
+	log.Info().Str("request_id", reqID).Str("url", p.url).Msg("[Local AI] Sending request")
 
 	payload := buildChatPayload(req)
 	jsonPayload, err := json.Marshal(payload)
