@@ -1,9 +1,18 @@
 services:
+  frontend:
+    image: ghcr.io/alimurrofid/petualangan-cuan/frontend:staging
+    container_name: staging_frontend
+    environment:
+      - VITE_API_URL=${FRONTEND_URL}/api
+    ports:
+      - "${FRONTEND_PORT:-3300}:80"
+    networks:
+      - staging-network
+    restart: always
+
   backend:
-    build: 
-      context: ./backend-go
-      dockerfile: Dockerfile
-    container_name: local_backend
+    image: ghcr.io/alimurrofid/petualangan-cuan/backend:staging
+    container_name: staging_backend
     environment:
       - PORT=${PORT}
       - DB_HOST=${DB_HOST:-postgres}
@@ -30,9 +39,9 @@ services:
       - WHATSAPP_WEBHOOK_SECRET=${WHATSAPP_WEBHOOK_SECRET}
       - TZ=Asia/Jakarta
     ports:
-      - "${BACKEND_PORT:-8080}:${PORT}"
+      - "${BACKEND_PORT:-8888}:${PORT}"
     volumes:
-      - ./uploads:/app/uploads
+      - ./uploads_staging:/app/uploads
     depends_on:
       postgres:
         condition: service_started
@@ -41,89 +50,87 @@ services:
       whisper-server:
         condition: service_started
     networks:
-      - app-network
+      - staging-network
     restart: always
     user: appuser
   
   postgres:
     image: postgres:15-alpine
-    container_name: local_db
+    container_name: staging_db
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "${DB_PORT}:5432"
+      - "${DB_PORT:-5555}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_staging:/var/lib/postgresql/data
     networks:
-      - app-network
+      - staging-network
     restart: always
 
   llm-server:
     image: ghcr.io/ggml-org/llama.cpp:server
-    container_name: local_llm
+    container_name: staging_llm
     volumes:
-      - ./ai-models:/models
+      - ../shared/ai-models:/models
     command: >
       -m /models/google_gemma-3-4b-it-Q4_K_M.gguf
       --mmproj /models/mmproj-google_gemma-3-4b-it-f16.gguf
       --host 0.0.0.0
       --port 8080
       -c 4096
-      -t 8
+      -t 2
     deploy:
       resources:
         limits:
-          memory: 8G
+          memory: 4G
     ports:
-      - "${LLM_PORT:-8081}:8080"
+      - "${LLM_PORT:-8881}:8080"
     networks:
-      - app-network
+      - staging-network
     restart: always
 
   whisper-server:
     image: fedirz/faster-whisper-server:latest-cpu
-    container_name: local_whisper
+    container_name: staging_whisper
     ports:
-      - "${WHISPER_PORT:-8000}:8000"
+      - "${WHISPER_PORT:-8800}:8000"
     volumes:
-      - ./ai-models/whisper:/root/.cache/huggingface
+      - ../shared/ai-models/whisper:/root/.cache/huggingface
     environment:
       - WHISPER_MODEL=small
     networks:
-      - app-network
+      - staging-network
     restart: always
 
   wa-gateway:
-    build: 
-      context: ./wa-gateway
-      dockerfile: docker/golang.Dockerfile
-    container_name: local_wa_gateway
+    image: ghcr.io/alimurrofid/petualangan-cuan/wa-gateway:staging
+    container_name: staging_wa_gateway
     ports:
-      - "${WA_GATEWAY_PORT:-3000}:3000"
+      - "${WA_GATEWAY_PORT:-3330}:3000"
     environment:
-      - APP_BASIC_AUTH=${WA_GATEWAY_USERNAME}:${WA_GATEWAY_PASSWORD}
+      - APP_BASIC_AUTH=${WA_GATEWAY_USERNAME:-admin}:${WA_GATEWAY_PASSWORD:-admin}
       - WHATSAPP_WEBHOOK=${WA_WEBHOOK_URL}
       - WHATSAPP_WEBHOOK_SECRET=${WHATSAPP_WEBHOOK_SECRET}
       - WHATSAPP_WEBHOOK_EVENTS=message
       - WHATSAPP_AUTO_MARK_READ=true
     volumes:
-      - ./wa-gateway-data:/app/data
+      - ./wa-gateway-data_staging:/app/data
     networks:
-      - app-network
+      - staging-network
     restart: always
 
   loki:
     image: grafana/loki:latest
-    container_name: local_loki
+    container_name: staging_loki
     ports:
-      - "${LOKI_PORT:-3100}:3100"
+      - "${LOKI_PORT:-3110}:3100"
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
-      - loki_data:/loki
+      - loki_data_staging:/loki
     networks:
-      - app-network
+      - staging-network
     restart: unless-stopped
     deploy:
       resources:
@@ -132,7 +139,7 @@ services:
 
   promtail:
     image: grafana/promtail:latest
-    container_name: local_promtail
+    container_name: staging_promtail
     user: root
     privileged: true
     volumes:
@@ -141,7 +148,7 @@ services:
       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
     networks:
-      - app-network
+      - staging-network
     restart: unless-stopped
     deploy:
       resources:
@@ -150,9 +157,9 @@ services:
 
   grafana:
     image: grafana/grafana-oss:10.4.1
-    container_name: local_grafana
+    container_name: staging_grafana
     ports:
-      - "${GRAFANA_PORT:-3002}:3000"
+      - "${GRAFANA_PORT:-3302}:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
@@ -160,12 +167,12 @@ services:
       - GF_ANALYTICS_REPORTING_ENABLED=false
       - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/petualangan-cuan.json
     volumes:
-      - grafana_data:/var/lib/grafana
+      - grafana_data_staging:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - loki
     networks:
-      - app-network
+      - staging-network
     restart: unless-stopped
     deploy:
       resources:
@@ -174,13 +181,13 @@ services:
 
   uptime-kuma:
     image: louislam/uptime-kuma:1
-    container_name: local_uptime
+    container_name: staging_uptime
     ports:
-      - "${UPTIME_KUMA_PORT:-3001}:3001"
+      - "${UPTIME_KUMA_PORT:-3301}:3001"
     volumes:
-      - uptime_kuma_data:/app/data
+      - uptime_kuma_data_staging:/app/data
     networks:
-      - app-network
+      - staging-network
     restart: unless-stopped
     deploy:
       resources:
@@ -188,12 +195,11 @@ services:
           memory: 256M
 
 networks:
-  app-network:
+  staging-network:
     driver: bridge
 
 volumes:
-  postgres_data:
-  loki_data:
-  grafana_data:
-  uptime_kuma_data:
-
+  postgres_data_staging:
+  loki_data_staging:
+  grafana_data_staging:
+  uptime_kuma_data_staging:

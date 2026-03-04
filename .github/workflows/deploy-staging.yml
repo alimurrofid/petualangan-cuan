@@ -1,8 +1,8 @@
-name: Build and Deploy
+name: Build and Deploy Staging
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "staging" ]
 
 env:
   REGISTRY: ghcr.io
@@ -33,7 +33,7 @@ jobs:
         with:
           context: ./backend-go
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:staging
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -42,7 +42,7 @@ jobs:
         with:
           context: ./frontend-vue
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:staging
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -54,7 +54,7 @@ jobs:
           context: ./wa-gateway
           file: ./wa-gateway/docker/golang.Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/wa-gateway:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/wa-gateway:staging
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -69,17 +69,17 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/${{ secrets.SERVER_USER }}/petualangan-cuan/production
+            cd /home/${{ secrets.SERVER_USER }}/petualangan-cuan/staging
             
             # Login ke registry di server (jika private)
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Pull image terbaru
-            docker compose -f docker-compose.prod.yml -p cuan-prod pull
+            docker compose -f docker-compose.staging.yml -p cuan-staging pull
             
-            # Update container dengan image baru (Rolling update minimal downtime)
-            # Pastikan .env production sudah ada di server secara manual atau via mechanism lain (JANGAN commit .env)
-            docker compose -f docker-compose.prod.yml -p cuan-prod up -d --remove-orphans
+            # Update container dengan image baru
+            # Pastikan .env staging sudah ada di server secara manual atau via mechanism lain
+            docker compose -f docker-compose.staging.yml -p cuan-staging up -d --remove-orphans
             
             # Bersihkan image lama untuk hemat space
             docker image prune -f
