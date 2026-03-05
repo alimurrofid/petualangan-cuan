@@ -75,7 +75,7 @@
         "definition": "label_values(container)",
         "hide": 0, "includeAll": true, "multi": true, "name": "container",
         "options": [], "query": "label_values(container)", "refresh": 1,
-        "regex": "petualangan_cuan_(.*)", "skipUrlSync": false, "sort": 1, "type": "query"
+        "regex": "local_(.*)", "skipUrlSync": false, "sort": 1, "type": "query"
       },
       {
         "current": { "selected": true, "text": ["All"], "value": ["$__all"] },

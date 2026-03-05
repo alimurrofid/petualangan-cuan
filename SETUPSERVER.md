@@ -251,28 +251,28 @@ mkdir -p uploads
 Sebelum mengatur permission, pastikan user yang digunakan di dalam container backend.
 
 ```bash
-docker exec petualangan_cuan_backend id
+docker exec -it local_backend id appuser
 ```
 
 Output yang **diharapkan**:
 
 ```text
-uid=1000(appuser) gid=1000(appgroup)
+uid=100(appuser) gid=101(appgroup)
 ```
 
 Jika UID/GID **berbeda**:
 
 * Sesuaikan `chown` dengan UID/GID yang muncul
-* Atau pastikan Dockerfile backend menggunakan user `1000:1000`
+* Atau pastikan Dockerfile backend menggunakan user `100:101`
 
 ---
 
 #### 3️⃣ Atur Ownership & Permission Folder
 
-Jika UID/GID container adalah **1000:1000**, jalankan:
+Jika UID/GID container adalah **100:101**, jalankan:
 
 ```bash
-sudo chown -R 1000:1000 uploads
+sudo chown -R 100:101 uploads
 sudo chmod -R 755 uploads
 ```
 

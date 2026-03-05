@@ -20,7 +20,7 @@ scrape_configs:
     pipeline_stages:
       - docker: {}
       - match:
-          selector: '{container="petualangan_cuan_backend"}'
+          selector: '{container="local_backend"}'
           stages:
             - json:
                 expressions:
