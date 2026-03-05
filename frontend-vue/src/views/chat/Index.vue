@@ -101,9 +101,8 @@ const loadHistory = async () => {
   isLoadingHistory.value = true;
   try {
     const token = localStorage.getItem("token");
-    const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
     const res = await fetch(
-      baseUrl + "/api/ai/chat/history?limit=100",
+      import.meta.env.VITE_API_BASE_URL + "api/ai/chat/history?limit=100",
       { headers: { Authorization: `Bearer ${token}` } }
     );
     if (!res.ok) throw new Error("Gagal memuat history");
@@ -158,8 +157,7 @@ const clearHistory = async () => {
 
   try {
     const token = localStorage.getItem("token");
-    const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
-    await fetch(baseUrl + "/api/ai/chat/history", {
+    await fetch(import.meta.env.VITE_API_BASE_URL + "api/ai/chat/history", {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -511,8 +509,7 @@ const sendMessage = async () => {
 
   try {
     const token = localStorage.getItem("token");
-    const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
-    const response = await fetch(baseUrl + "/api/ai/chat/stream", {
+    const response = await fetch(import.meta.env.VITE_API_BASE_URL + "api/ai/chat/stream", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
@@ -620,8 +617,7 @@ const sendMessage = async () => {
 const getMediaUrl = (url?: string) => {
   if (!url) return "";
   if (url.startsWith("blob:") || url.startsWith("http") || url.startsWith("data:")) return url;
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
-  return baseUrl + url;
+  return import.meta.env.VITE_API_BASE_URL + url;
 };
 </script>
 
