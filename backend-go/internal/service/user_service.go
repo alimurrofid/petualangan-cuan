@@ -189,7 +189,11 @@ func (s *userService) UpdateProfile(id uint, input UpdateProfileInput) (*entity.
 	user.Email = input.Email
 	// Phone pointer: nil = tidak diubah, non-nil = update (termasuk string kosong untuk clear)
 	if input.Phone != nil {
-		user.Phone = *input.Phone
+		if *input.Phone == "" {
+			user.Phone = nil
+		} else {
+			user.Phone = input.Phone
+		}
 	}
 
 	err = s.userRepository.Update(user)
@@ -221,15 +225,15 @@ func (s *userService) LoginOrRegisterGoogle(email string, name string, googleID 
 		user = &entity.User{
 			Name:     name,
 			Email:    email,
-			GoogleID: googleID,
+			GoogleID: &googleID,
 		}
 		err = s.userRepository.Create(user)
 		if err != nil {
 			return nil, "", "", err
 		}
 	} else {
-		if user.GoogleID == "" {
-			user.GoogleID = googleID
+		if user.GoogleID == nil || *user.GoogleID == "" {
+			user.GoogleID = &googleID
 			err = s.userRepository.Update(user)
 			if err != nil {
 				return nil, "", "", err
