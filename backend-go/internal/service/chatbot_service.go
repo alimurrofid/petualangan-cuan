@@ -3,6 +3,7 @@ package service
 import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
+	pkgutils "cuan-backend/pkg/utils"
 	"errors"
 	"fmt"
 	"math"
@@ -39,6 +40,7 @@ type ChatbotService struct {
 	savingGoalRepo  repository.SavingGoalRepository
 	dashboardSvc    DashboardService
 	financialHealth FinancialHealthService
+	userRepo        repository.UserRepository
 }
 
 func NewChatbotService(
@@ -50,6 +52,7 @@ func NewChatbotService(
 	savingGoalRepo repository.SavingGoalRepository,
 	dashboardSvc DashboardService,
 	financialHealth FinancialHealthService,
+	userRepo repository.UserRepository,
 ) *ChatbotService {
 	return &ChatbotService{
 		walletRepo:      walletRepo,
@@ -60,6 +63,7 @@ func NewChatbotService(
 		savingGoalRepo:  savingGoalRepo,
 		dashboardSvc:    dashboardSvc,
 		financialHealth: financialHealth,
+		userRepo:        userRepo,
 	}
 }
 
@@ -68,6 +72,12 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 
 	if intent == IntentSmallTalk {
 		return ""
+	}
+
+	// Resolve payday for dynamic billing cycle
+	payday := 1
+	if user, err := s.userRepo.FindByID(userID); err == nil && user.Payday != nil {
+		payday = *user.Payday
 	}
 
 	var eg errgroup.Group
@@ -91,7 +101,9 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 	startOfWeek := now.AddDate(0, 0, -offset)
 	weekStart := startOfWeek.Format("2006-01-02")
 
-	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, wib).Format("2006-01-02")
+	// Dynamic billing cycle
+	startCycle, _ := pkgutils.GetBillingCycle(now, payday)
+	startOfMonth := startCycle.Format("2006-01-02")
 	endOfMonth := today + " 23:59:59"
 
 	// Dashboard — selalu dibutuhkan (saldo, income, expense bulan ini).

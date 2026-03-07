@@ -32,7 +32,8 @@ const formData = ref({
 
 const profileForm = ref({
     name: "",
-    email: ""
+    email: "",
+    payday: 1 as number
 });
 
 const passwordForm = ref({
@@ -56,6 +57,7 @@ const initProfile = () => {
     if (authStore.user) {
         profileForm.value.name = authStore.user.name;
         profileForm.value.email = authStore.user.email;
+        profileForm.value.payday = authStore.user.payday || 1;
         // Sync phone ke whatsappForm
         whatsappForm.value.phone = authStore.user.phone || "";
     }
@@ -173,7 +175,10 @@ const handleUpdateProfile = async () => {
 
     isLoading.value = true;
     try {
-        await authStore.updateProfile(profileForm.value);
+        await authStore.updateProfile({
+            ...profileForm.value,
+            payday: profileForm.value.payday
+        });
         swal.success("Berhasil Update", "Profil berhasil diperbarui!");
     } catch (error: any) {
         swal.error("Gagal", error.response?.data?.error || "Gagal memperbarui profil");
@@ -330,6 +335,23 @@ const handleUpdatePassword = async () => {
                                 :class="errors.profile.email ? 'border-red-500 ring-1 ring-red-500' : ''" />
                             <span v-if="errors.profile.email" class="text-xs text-red-500 font-medium">Email wajib
                                 diisi</span>
+                        </div>
+
+                        <!-- Payday Setting -->
+                        <div class="grid w-full items-center gap-1.5">
+                            <Label for="payday">Tanggal Gajian</Label>
+                            <div class="flex items-center gap-3">
+                                <Input id="payday" type="number" min="1" max="31" v-model.number="profileForm.payday"
+                                    class="w-24 text-center font-bold text-lg" placeholder="1" />
+                                <span class="text-sm text-muted-foreground">setiap bulan</span>
+                            </div>
+                            <p class="text-xs text-muted-foreground">
+                                Atur tanggal gajian Anda (<b>1–31</b>). Semua laporan "Bulanan" dihitung dari tanggal
+                                ini.
+                                Di bulan yang lebih pendek, sistem otomatis pakai hari terakhir (mis. tgl 31 di Feb →
+                                28/29).
+                                Contoh: gajian tgl 25 → siklus <b>25 Feb – 24 Mar</b>.
+                            </p>
                         </div>
                     </div>
                     <Button

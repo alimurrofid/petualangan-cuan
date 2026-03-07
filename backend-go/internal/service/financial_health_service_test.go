@@ -4,6 +4,7 @@ import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository/mock"
 	"cuan-backend/internal/service"
+	"fmt"
 	"testing"
 	"time"
 
@@ -15,8 +16,13 @@ func TestGetFinancialHealth(t *testing.T) {
 	mockRepo := new(mock.TransactionRepositoryMock)
 	mockWalletRepo := new(mock.WalletRepositoryMock)
 	mockDebtRepo := new(mock.DebtRepositoryMock)
+	mockUserRepo := new(mock.UserRepositoryMock)
+	mockSavingGoalRepo := new(mock.SavingGoalRepositoryMock)
+	
+	mockUserRepo.On("FindByID", uint(1)).Return((*entity.User)(nil), fmt.Errorf("not found"))
+	mockSavingGoalRepo.On("FindAll", uint(1)).Return([]entity.SavingGoal{}, nil)
 
-	svc := service.NewFinancialHealthService(mockRepo, mockWalletRepo, mockDebtRepo)
+	svc := service.NewFinancialHealthService(mockRepo, mockWalletRepo, mockDebtRepo, mockUserRepo, mockSavingGoalRepo)
 	userID := uint(1)
 
 	now := time.Now()
@@ -39,7 +45,10 @@ func TestGetFinancialHealth(t *testing.T) {
 	}
 	mockRepo.On("GetMonthlyTrend", userID, testMock.Anything, testMock.Anything).Return(mockTrend, nil)
 
-	mockDebtRepo.On("GetTotalPayments", userID, testMock.Anything, testMock.Anything).Return(100.0, nil)
+	mockDebts := []entity.Debt{
+		{Remaining: 300, IsPaid: false, Type: entity.DebtTypePayable},
+	}
+	mockDebtRepo.On("FindByUserID", userID, "").Return(mockDebts, nil)
 
 	response, err := svc.GetFinancialHealth(userID)
 
@@ -56,7 +65,7 @@ func TestGetFinancialHealth(t *testing.T) {
 	assert.Equal(t, "Dana Darurat", response.Ratios[1].Name)
 	assert.Equal(t, 6.0, response.Ratios[1].Value)
 	assert.Equal(t, entity.StatusHealthy, response.Ratios[1].Status)
-	assert.Equal(t, "Rasio Utang Terhadap Pendapatan", response.Ratios[2].Name)
+	assert.Equal(t, "Rasio Hutang Terhadap Aset", response.Ratios[2].Name)
 	assert.Equal(t, 0.1, response.Ratios[2].Value)
 	assert.Equal(t, entity.StatusHealthy, response.Ratios[2].Status)
 
@@ -69,8 +78,13 @@ func TestGetFinancialHealth_Warning(t *testing.T) {
 	mockRepo := new(mock.TransactionRepositoryMock)
 	mockWalletRepo := new(mock.WalletRepositoryMock)
 	mockDebtRepo := new(mock.DebtRepositoryMock)
+	mockUserRepo := new(mock.UserRepositoryMock)
+	mockSavingGoalRepo := new(mock.SavingGoalRepositoryMock)
+	
+	mockUserRepo.On("FindByID", uint(1)).Return((*entity.User)(nil), fmt.Errorf("not found"))
+	mockSavingGoalRepo.On("FindAll", uint(1)).Return([]entity.SavingGoal{}, nil)
 
-	svc := service.NewFinancialHealthService(mockRepo, mockWalletRepo, mockDebtRepo)
+	svc := service.NewFinancialHealthService(mockRepo, mockWalletRepo, mockDebtRepo, mockUserRepo, mockSavingGoalRepo)
 	userID := uint(1)
 
 	mockSummary := []entity.TransactionSummary{
@@ -88,7 +102,10 @@ func TestGetFinancialHealth_Warning(t *testing.T) {
 	}
 	mockRepo.On("GetMonthlyTrend", userID, testMock.Anything, testMock.Anything).Return(mockTrend, nil)
 
-	mockDebtRepo.On("GetTotalPayments", userID, testMock.Anything, testMock.Anything).Return(400.0, nil)
+	mockDebts := []entity.Debt{
+		{Remaining: 400, IsPaid: false, Type: entity.DebtTypePayable},
+	}
+	mockDebtRepo.On("FindByUserID", userID, "").Return(mockDebts, nil)
 
 	response, err := svc.GetFinancialHealth(userID)
 

@@ -46,9 +46,10 @@ func (s *userService) GetProfile(id uint) (*entity.User, error) {
 }
 
 type UpdateProfileInput struct {
-	Name  string  `json:"name"`
-	Email string  `json:"email"`
-	Phone *string `json:"phone"`
+	Name   string  `json:"name"`
+	Email  string  `json:"email"`
+	Phone  *string `json:"phone"`
+	Payday *int    `json:"payday"` // Tanggal gajian (1-28), nil = tidak diubah
 }
 
 type ChangePasswordInput struct {
@@ -194,6 +195,14 @@ func (s *userService) UpdateProfile(id uint, input UpdateProfileInput) (*entity.
 		} else {
 			user.Phone = input.Phone
 		}
+	}
+	// Payday: nil = tidak diubah; nilai di luar 1-31 = reset ke 1
+	if input.Payday != nil {
+		p := *input.Payday
+		if p < 1 || p > 31 {
+			p = 1
+		}
+		user.Payday = &p
 	}
 
 	err = s.userRepository.Update(user)

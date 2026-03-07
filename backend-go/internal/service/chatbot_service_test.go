@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
+	"fmt"
 	"testing"
 
 	"gorm.io/gorm"
@@ -162,6 +163,20 @@ func (m *mockFinancialHealthService) GetFinancialHealth(userID uint) (entity.Fin
 	return args.Get(0).(entity.FinancialHealthResponse), args.Error(1)
 }
 
+type mockUserRepository struct{ mock.Mock }
+
+func (m *mockUserRepository) Create(user *entity.User) error { return nil }
+func (m *mockUserRepository) FindByEmail(email string) (*entity.User, error) { return nil, nil }
+func (m *mockUserRepository) FindByPhone(phone string) (*entity.User, error) { return nil, nil }
+func (m *mockUserRepository) Update(user *entity.User) error                 { return nil }
+func (m *mockUserRepository) FindByID(id uint) (*entity.User, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.User), args.Error(1)
+}
+
 func TestChatbotService_GetUserContext(t *testing.T) {
 	mockWalletRepo := new(mockWalletRepository)
 	mockCategoryRepo := new(mockCategoryRepository)
@@ -172,8 +187,11 @@ func TestChatbotService_GetUserContext(t *testing.T) {
 	mockDashSvc := new(mockDashboardService)
 	mockHealthSvc := new(mockFinancialHealthService)
 
+	mockUserRepo := &mockUserRepository{}
+	mockUserRepo.On("FindByID", uint(1)).Return((*entity.User)(nil), fmt.Errorf("not found"))
+
 	service := NewChatbotService(
-		mockWalletRepo, mockCategoryRepo, mockTxSvc, mockTransactionRepo, mockDebtRepo, mockGoalRepo, mockDashSvc, mockHealthSvc,
+		mockWalletRepo, mockCategoryRepo, mockTxSvc, mockTransactionRepo, mockDebtRepo, mockGoalRepo, mockDashSvc, mockHealthSvc, mockUserRepo,
 	)
 
 	mockDashSvc.On("GetDashboardData", uint(1)).Return(&entity.DashboardData{TotalBalance: 1000}, nil)

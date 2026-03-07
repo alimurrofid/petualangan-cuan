@@ -97,7 +97,7 @@ func main() {
 	categorySvc := service.NewCategoryService(categoryRepo)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 
-	dashboardSvc := service.NewDashboardService(repo, walletRepo, savingGoalRepo)
+	dashboardSvc := service.NewDashboardService(repo, walletRepo, savingGoalRepo, userRepo)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
 
 	debtRepo := repository.NewDebtRepository(db)
@@ -110,13 +110,13 @@ func main() {
 	savingGoalSvc := service.NewSavingGoalService(savingGoalRepo, walletRepo, svc, db)
 	savingGoalHandler := handler.NewSavingGoalHandler(savingGoalSvc)
 
-	financialHealthSvc := service.NewFinancialHealthService(repo, walletRepo, debtRepo)
+	financialHealthSvc := service.NewFinancialHealthService(repo, walletRepo, debtRepo, userRepo, savingGoalRepo)
 	financialHealthHandler := handler.NewFinancialHealthHandler(financialHealthSvc)
 
 	chatbotSvc := service.NewChatbotService(
 		walletRepo, categoryRepo, svc,
 		repo, debtRepo, savingGoalRepo,
-		dashboardSvc, financialHealthSvc,
+		dashboardSvc, financialHealthSvc, userRepo,
 	)
 
 	chatRepo := repository.NewChatRepository(db)
