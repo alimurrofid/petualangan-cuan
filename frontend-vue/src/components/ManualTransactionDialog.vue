@@ -42,6 +42,7 @@ const swal = useSwal();
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
 const isSubmitting = ref(false);
+const dateInputRef = ref<HTMLInputElement | null>(null);
 
 const activeTab = ref<"expense" | "income" | "transfer" | "saving">("expense");
 const date = ref(format(new Date(), "yyyy-MM-dd"));
@@ -395,6 +396,7 @@ const resetForm = () => {
     description.value = "";
     file.value = null;
     existingAttachment.value = "";
+    date.value = format(new Date(), "yyyy-MM-dd");
 
     if (!props.savingGoalTarget && !props.transactionToEdit) {
         activeTab.value = "expense";
@@ -496,15 +498,16 @@ const onFeeBlur = () => {
                     <div class="space-y-2">
                         <Label>Tanggal</Label>
                         <div class="relative">
-                            <input type="date" v-model="date"
-                                class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                :disabled="isSubmitting" @click="($event.target as HTMLInputElement).showPicker()" />
-                            <Input type="text" readonly tabindex="-1"
-                                :value="date ? formatDate(date, 'dd/MM/yyyy') : ''" placeholder="dd/mm/yyyy"
-                                :class="['block w-full bg-background cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2', errors.date ? 'border-red-500 ring-1 ring-red-500' : '']"
+                            <input type="date" v-model="date" ref="dateInputRef" tabindex="-1" class="sr-only"
                                 :disabled="isSubmitting" />
+                            <Input type="text" readonly :value="date ? formatDate(date, 'dd/MM/yyyy') : ''"
+                                placeholder="dd/MM/yyyy"
+                                :class="['bg-background cursor-pointer pr-10', errors.date ? 'border-red-500 ring-1 ring-red-500' : '']"
+                                :disabled="isSubmitting" @click="dateInputRef?.showPicker()"
+                                @keydown.enter.prevent="dateInputRef?.showPicker()"
+                                @keydown.space.prevent="dateInputRef?.showPicker()" />
                             <div
-                                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground z-20">
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
                                 <Calendar class="w-4 h-4" />
                             </div>
                         </div>

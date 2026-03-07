@@ -4,7 +4,7 @@ import { twMerge } from "tailwind-merge"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 
-export function formatDate(dateStr: string | null | undefined, fmt = 'dd MMM yyyy'): string {
+export function formatDate(dateStr: string | null | undefined, fmt = 'dd MM yyyy'): string {
   if (!dateStr) return '-';
   try {
     return format(new Date(dateStr), fmt, { locale: idLocale });

@@ -17,6 +17,7 @@ import Detail from "./Detail.vue";
 import { getEmoji, getIconComponent } from "@/lib/icons";
 import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrencyLive, formatDate } from "@/lib/utils";
 import { useSwal } from "@/composables/useSwal";
+import { format } from "date-fns";
 
 const store = useSavingGoalStore();
 const walletStore = useWalletStore();
@@ -31,6 +32,7 @@ const editingId = ref<number | null>(null);
 const selectedGoalForContribution = ref<any>(null);
 const selectedGoal = ref<any>(null);
 const isSubmitting = ref(false);
+const deadlineInputRef = ref<HTMLInputElement | null>(null);
 
 const newGoalName = ref("");
 const newGoalTarget = ref("");
@@ -84,7 +86,7 @@ const openCreateDialog = () => {
     newGoalName.value = "";
     newGoalTarget.value = "";
     newGoalTargetDisplay.value = "";
-    newGoalDeadline.value = "";
+    newGoalDeadline.value = format(new Date(), 'yyyy-MM-dd');
     newGoalCategory.value = "";
     isCreateOpen.value = true;
 };
@@ -449,15 +451,17 @@ const categoryOptions = computed(() => categoryStore.categories.filter(c => c.ty
                         <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Batas Waktu
                             (Opsional)</Label>
                         <div class="relative">
-                            <input type="date" v-model="newGoalDeadline"
-                                class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                @click="($event.target as HTMLInputElement).showPicker()" />
-                            <Input type="text" readonly tabindex="-1"
+                            <input type="date" v-model="newGoalDeadline" ref="deadlineInputRef" tabindex="-1"
+                                class="sr-only" />
+                            <Input type="text" readonly
                                 :value="newGoalDeadline ? formatDate(newGoalDeadline, 'dd/MM/yyyy') : ''"
-                                placeholder="dd/mm/yyyy"
-                                class="h-11 rounded-xl bg-background shadow-sm w-full cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 text-foreground" />
+                                placeholder="dd/MM/yyyy"
+                                class="h-11 rounded-xl bg-background shadow-sm w-full cursor-pointer pr-10 text-foreground"
+                                @click="deadlineInputRef?.showPicker()"
+                                @keydown.enter.prevent="deadlineInputRef?.showPicker()"
+                                @keydown.space.prevent="deadlineInputRef?.showPicker()" />
                             <div
-                                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground z-20">
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
                                 <Calendar class="w-4 h-4" />
                             </div>
                         </div>

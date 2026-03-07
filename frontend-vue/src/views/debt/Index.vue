@@ -15,6 +15,7 @@ import MultiSelect from "@/components/ui/multi-select/MultiSelect.vue";
 import { Plus, ArrowUpRight, ArrowDownLeft, Pencil, Trash2, HandCoins, CircleFadingArrowUp, Eye, Calendar, CheckCircle, X, ClipboardClock } from "lucide-vue-next";
 import { getEmoji, getIconComponent } from "@/lib/icons";
 import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrencyLive, formatDate } from "@/lib/utils";
+import { format } from "date-fns";
 import Swal from "sweetalert2";
 import Detail from "./Detail.vue";
 
@@ -74,6 +75,7 @@ const isDetailOpen = ref(false);
 const activeTab = ref("debt");
 const selectedDebt = ref<Debt | null>(null);
 const isSubmitting = ref(false);
+const dueDateInputRef = ref<HTMLInputElement | null>(null);
 
 const createAmountDisplay = ref("");
 const payAmountDisplay = ref("");
@@ -157,7 +159,7 @@ const openCreateDialog = () => {
   createForm.amount = 0;
   createForm.wallet_id = walletStore.wallets.length > 0 ? walletStore.wallets[0]!.id : 0;
   createForm.description = "";
-  createForm.due_date = "";
+  createForm.due_date = format(new Date(), 'yyyy-MM-dd');
   isCreateOpen.value = true;
 };
 
@@ -629,15 +631,15 @@ const handleDelete = async (id: number) => {
             <Label>Jatuh Tempo</Label>
             <div class="relative">
               <input type="date" :value="createForm.due_date || ''"
-                @input="(e) => createForm.due_date = (e.target as HTMLInputElement).value"
-                class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                @click="($event.target as HTMLInputElement).showPicker()" />
-              <Input type="text" readonly tabindex="-1"
+                @input="(e) => createForm.due_date = (e.target as HTMLInputElement).value" ref="dueDateInputRef"
+                tabindex="-1" class="sr-only" />
+              <Input type="text" readonly
                 :value="createForm.due_date ? formatDate(createForm.due_date, 'dd/MM/yyyy') : ''"
-                placeholder="dd/mm/yyyy"
-                class="h-11 shadow-sm rounded-xl bg-background block w-full cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 text-foreground" />
-              <div
-                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground z-20">
+                placeholder="dd/MM/yyyy"
+                class="h-11 shadow-sm rounded-xl bg-background cursor-pointer pr-10 text-foreground"
+                @click="dueDateInputRef?.showPicker()" @keydown.enter.prevent="dueDateInputRef?.showPicker()"
+                @keydown.space.prevent="dueDateInputRef?.showPicker()" />
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
                 <Calendar class="w-4 h-4" />
               </div>
             </div>
