@@ -28,6 +28,7 @@ func NewCategoryHandler(service service.CategoryService) *CategoryHandler {
 // @Success 201 {object} entity.Category
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/categories [post]
 func (h *CategoryHandler) CreateCategory(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
@@ -57,6 +58,7 @@ func (h *CategoryHandler) CreateCategory(c *fiber.Ctx) error {
 // @Produce json
 // @Success 200 {array} entity.Category
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/categories [get]
 func (h *CategoryHandler) GetCategories(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
@@ -80,6 +82,7 @@ func (h *CategoryHandler) GetCategories(c *fiber.Ctx) error {
 // @Param id path int true "Category ID"
 // @Success 200 {object} entity.Category
 // @Failure 404 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/categories/{id} [get]
 func (h *CategoryHandler) GetCategory(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
@@ -104,6 +107,7 @@ func (h *CategoryHandler) GetCategory(c *fiber.Ctx) error {
 // @Success 200 {object} entity.Category
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/categories/{id} [put]
 func (h *CategoryHandler) UpdateCategory(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
@@ -135,6 +139,7 @@ func (h *CategoryHandler) UpdateCategory(c *fiber.Ctx) error {
 // @Param id path int true "Category ID"
 // @Success 200 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/categories/{id} [delete]
 func (h *CategoryHandler) DeleteCategory(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)

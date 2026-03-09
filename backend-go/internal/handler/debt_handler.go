@@ -38,6 +38,7 @@ func NewDebtHandler(service service.DebtService) DebtHandler {
 // @Success 201 {object} entity.Debt
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/debts [post]
 func (h *debtHandler) CreateDebt(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
@@ -67,6 +68,7 @@ func (h *debtHandler) CreateDebt(c *fiber.Ctx) error {
 // @Produce json
 // @Param type query string false "Type (debt/receivable)"
 // @Success 200 {object} []entity.Debt
+// @Security BearerAuth
 // @Router /api/debts [get]
 func (h *debtHandler) GetDebts(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
@@ -91,6 +93,7 @@ func (h *debtHandler) GetDebts(c *fiber.Ctx) error {
 // @Param id path int true "Debt ID"
 // @Success 200 {object} entity.Debt
 // @Failure 404 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/debts/{id} [get]
 func (h *debtHandler) GetDebt(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
@@ -115,6 +118,7 @@ func (h *debtHandler) GetDebt(c *fiber.Ctx) error {
 // @Success 200 {object} entity.Debt
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/debts/{id}/pay [post]
 func (h *debtHandler) PayDebt(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
@@ -149,6 +153,7 @@ func (h *debtHandler) PayDebt(c *fiber.Ctx) error {
 // @Success 200 {object} entity.Debt
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/debts/{id} [put]
 func (h *debtHandler) UpdateDebt(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
@@ -179,6 +184,7 @@ func (h *debtHandler) UpdateDebt(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path int true "Debt ID"
 // @Success 200 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/debts/{id} [delete]
 func (h *debtHandler) DeleteDebt(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
@@ -199,6 +205,7 @@ func (h *debtHandler) DeleteDebt(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path int true "Payment ID"
 // @Success 200 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/debts/payments/{id} [delete]
 func (h *debtHandler) DeletePayment(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)

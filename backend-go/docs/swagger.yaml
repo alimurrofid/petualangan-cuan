@@ -19,6 +19,37 @@ definitions:
       user_id:
         type: integer
     type: object
+  entity.ChatMessage:
+    properties:
+      audio_url:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      role:
+        description: '"user" | "assistant"'
+        type: string
+      user_id:
+        type: integer
+    type: object
+  entity.ChatResponse:
+    properties:
+      audio_url:
+        type: string
+      image_url:
+        type: string
+      reply:
+        type: string
+      transactions:
+        items:
+          $ref: '#/definitions/entity.SavedTransaction'
+        type: array
+    type: object
   entity.Debt:
     properties:
       amount:
@@ -73,9 +104,7 @@ definitions:
       updated_at:
         type: string
       wallet:
-        allOf:
-        - $ref: '#/definitions/entity.Wallet'
-        description: Wallet used for THIS payment
+        $ref: '#/definitions/entity.Wallet'
       wallet_id:
         type: integer
     type: object
@@ -93,6 +122,24 @@ definitions:
     x-enum-varnames:
     - DebtTypePayable
     - DebtTypeReceivable
+  entity.SavedTransaction:
+    properties:
+      action:
+        description: create, update, delete
+        type: string
+      amount:
+        type: number
+      category_name:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      type:
+        type: string
+      wallet_name:
+        type: string
+    type: object
   entity.Transaction:
     properties:
       amount:
@@ -139,7 +186,6 @@ definitions:
       name:
         type: string
       type:
-        description: Bank, E-Wallet, Cash
         type: string
       updated_at:
         type: string
@@ -266,7 +312,6 @@ definitions:
       description:
         type: string
       type:
-        description: income, expense
         type: string
       wallet_id:
         type: integer
@@ -293,8 +338,10 @@ definitions:
   service.LoginInput:
     properties:
       email:
+        example: budiono@example.com
         type: string
       password:
+        example: password
         type: string
     type: object
   service.PayDebtInput:
@@ -350,7 +397,6 @@ definitions:
       to_wallet_id:
         type: integer
       transfer_fee:
-        description: Opsional
         type: number
     required:
     - amount
@@ -392,6 +438,11 @@ definitions:
         type: string
       name:
         type: string
+      payday:
+        description: Tanggal gajian (1-28), nil = tidak diubah
+        type: integer
+      phone:
+        type: string
     type: object
   service.UpdateWalletInput:
     properties:
@@ -411,6 +462,239 @@ info:
   title: Petualangan Cuan API
   version: "1.0"
 paths:
+  /api/ai/chat:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Send text, image, or voice message to the AI chatbot
+      parameters:
+      - description: Text message
+        in: formData
+        name: message
+        type: string
+      - description: Image attachment
+        in: formData
+        name: image
+        type: file
+      - description: Voice attachment
+        in: formData
+        name: voice
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.ChatResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Send chat message
+      tags:
+      - ai
+  /api/ai/chat/history:
+    delete:
+      description: Delete all chat messages for the authenticated user
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Clear chat history
+      tags:
+      - ai
+    get:
+      description: Get the chat message history for the authenticated user
+      parameters:
+      - description: Number of messages to return (default 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.ChatMessage'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get chat history
+      tags:
+      - ai
+  /api/ai/chat/stream:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Stream AI chatbot response using Server-Sent Events (SSE)
+      parameters:
+      - description: Text message
+        in: formData
+        name: message
+        type: string
+      - description: Image attachment
+        in: formData
+        name: image
+        type: file
+      - description: Voice attachment
+        in: formData
+        name: voice
+        type: file
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Send chat message via stream
+      tags:
+      - ai
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login with email and password to get JWT token
+      parameters:
+      - description: Login Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - auth
+  /api/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout current user (Invalidate token client-side)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Logout user
+      tags:
+      - auth
+  /api/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Get a new access and refresh token pair using valid refresh token
+      parameters:
+      - description: Refresh Token Request
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh Access Token
+      tags:
+      - auth
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with name, email and password
+      parameters:
+      - description: Register Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - auth
   /api/categories:
     get:
       consumes:
@@ -430,6 +714,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Get all categories
       tags:
       - categories
@@ -461,6 +747,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Create a new category
       tags:
       - categories
@@ -488,6 +776,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete a category
       tags:
       - categories
@@ -513,6 +803,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Get a category by ID
       tags:
       - categories
@@ -549,6 +841,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Update a category
       tags:
       - categories
@@ -567,7 +861,7 @@ paths:
             additionalProperties: true
             type: object
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Get dashboard data
       tags:
       - dashboard
@@ -590,6 +884,8 @@ paths:
             items:
               $ref: '#/definitions/entity.Debt'
             type: array
+      security:
+      - BearerAuth: []
       summary: Get all debts/receivables
       tags:
       - debts
@@ -621,6 +917,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Create a new debt or receivable
       tags:
       - debts
@@ -643,6 +941,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete a debt record
       tags:
       - debts
@@ -668,6 +968,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Get a single debt
       tags:
       - debts
@@ -704,6 +1006,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Update a debt record
       tags:
       - debts
@@ -741,6 +1045,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Pay a debt installment
       tags:
       - debts
@@ -763,6 +1069,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete a debt payment
       tags:
       - debts
@@ -785,6 +1093,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Get financial health analysis
       tags:
       - financial_health
@@ -801,6 +1111,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Get all saving goals
       tags:
       - saving_goals
@@ -833,6 +1145,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Create a new saving goal
       tags:
       - saving_goals
@@ -855,6 +1169,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete a saving goal
       tags:
       - saving_goals
@@ -892,6 +1208,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Update a saving goal
       tags:
       - saving_goals
@@ -930,6 +1248,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Add contribution to a saving goal
       tags:
       - saving_goals
@@ -957,6 +1277,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete a saving contribution
       tags:
       - saving_goals
@@ -989,6 +1311,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Finish and cash out a saving goal
       tags:
       - saving_goals
@@ -1046,6 +1370,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Get all transactions
       tags:
       - transactions
@@ -1077,6 +1403,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Create a new transaction
       tags:
       - transactions
@@ -1104,6 +1432,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete a transaction
       tags:
       - transactions
@@ -1129,6 +1459,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Get a transaction
       tags:
       - transactions
@@ -1165,6 +1497,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Update a transaction
       tags:
       - transactions
@@ -1215,6 +1549,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Get aggregated calendar data
       tags:
       - transactions
@@ -1247,6 +1583,8 @@ paths:
         name: type
         type: string
       responses: {}
+      security:
+      - BearerAuth: []
       summary: Export transactions to Excel
       tags:
       - transactions
@@ -1283,7 +1621,7 @@ paths:
             additionalProperties: true
             type: object
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Get category breakdown for report
       tags:
       - transactions
@@ -1310,6 +1648,8 @@ paths:
         name: type
         type: string
       responses: {}
+      security:
+      - BearerAuth: []
       summary: Export report to Excel
       tags:
       - transactions
@@ -1343,6 +1683,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Transfer money between wallets
       tags:
       - transactions
@@ -1576,6 +1918,28 @@ paths:
       summary: Update a wallet
       tags:
       - wallets
+  /api/webhook/whatsapp:
+    post:
+      consumes:
+      - application/json
+      description: Receives events from wa-gateway and processes incoming messages
+        through AI chatbot
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Handle WhatsApp webhook
+      tags:
+      - webhook
   /api/wishlists:
     get:
       consumes:
@@ -1590,6 +1954,8 @@ paths:
             items:
               $ref: '#/definitions/entity.WishlistItem'
             type: array
+      security:
+      - BearerAuth: []
       summary: Get all wishlist items
       tags:
       - wishlist
@@ -1622,6 +1988,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Create a new wishlist item
       tags:
       - wishlist
@@ -1644,6 +2012,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete a wishlist item
       tags:
       - wishlist
@@ -1669,6 +2039,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Get a wishlist item
       tags:
       - wishlist
@@ -1706,6 +2078,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Update a wishlist item
       tags:
       - wishlist
@@ -1728,84 +2102,15 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: Mark a wishlist item as bought
       tags:
       - wishlist
-  /auth/login:
-    post:
-      consumes:
-      - application/json
-      description: Login with email and password to get JWT token
-      parameters:
-      - description: Login Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/service.LoginInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Login user
-      tags:
-      - auth
-  /auth/logout:
-    post:
-      consumes:
-      - application/json
-      description: Logout current user (Invalidate token client-side)
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Logout user
-      tags:
-      - auth
-  /auth/register:
-    post:
-      consumes:
-      - application/json
-      description: Register a new user with name, email and password
-      parameters:
-      - description: Register Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/service.RegisterInput'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Register a new user
-      tags:
-      - auth
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

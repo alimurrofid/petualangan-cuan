@@ -26,6 +26,7 @@ func NewWishlistHandler(wishlistService service.WishlistService) *WishlistHandle
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/wishlists [post]
 func (h *WishlistHandler) Create(c *fiber.Ctx) error {
 	var req service.StoreWishlistRequest
@@ -51,6 +52,7 @@ func (h *WishlistHandler) Create(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Success 200 {object} []entity.WishlistItem
+// @Security BearerAuth
 // @Router /api/wishlists [get]
 func (h *WishlistHandler) FindAll(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uint)
@@ -74,6 +76,7 @@ func (h *WishlistHandler) FindAll(c *fiber.Ctx) error {
 // @Param id path int true "Item ID"
 // @Success 200 {object} entity.WishlistItem
 // @Failure 404 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/wishlists/{id} [get]
 func (h *WishlistHandler) FindByID(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
@@ -102,6 +105,7 @@ func (h *WishlistHandler) FindByID(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/wishlists/{id} [put]
 func (h *WishlistHandler) Update(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
@@ -131,6 +135,7 @@ func (h *WishlistHandler) Update(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path int true "Item ID"
 // @Success 200 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/wishlists/{id} [delete]
 func (h *WishlistHandler) Delete(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
@@ -155,6 +160,7 @@ func (h *WishlistHandler) Delete(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path int true "Item ID"
 // @Success 200 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/wishlists/{id}/bought [patch]
 func (h *WishlistHandler) MarkAsBought(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))

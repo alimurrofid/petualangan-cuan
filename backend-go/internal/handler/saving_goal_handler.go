@@ -26,6 +26,7 @@ func NewSavingGoalHandler(service service.SavingGoalService) *SavingGoalHandler 
 // @Accept json
 // @Produce json
 // @Success 200 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/saving-goals [get]
 func (h *SavingGoalHandler) GetGoals(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -55,6 +56,7 @@ func (h *SavingGoalHandler) GetGoals(c *fiber.Ctx) error {
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/saving-goals [post]
 func (h *SavingGoalHandler) CreateGoal(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -91,6 +93,7 @@ func (h *SavingGoalHandler) CreateGoal(c *fiber.Ctx) error {
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/saving-goals/{id}/contributions [post]
 func (h *SavingGoalHandler) AddContribution(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -136,6 +139,7 @@ func (h *SavingGoalHandler) AddContribution(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/saving-goals/{id} [put]
 func (h *SavingGoalHandler) UpdateGoal(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -174,6 +178,7 @@ func (h *SavingGoalHandler) UpdateGoal(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path int true "Goal ID"
 // @Success 200 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/saving-goals/{id} [delete]
 func (h *SavingGoalHandler) DeleteGoal(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -201,6 +206,7 @@ func (h *SavingGoalHandler) DeleteGoal(c *fiber.Ctx) error {
 // @Param id path int true "Goal ID"
 // @Param contribution_id path int true "Contribution ID"
 // @Success 200 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/saving-goals/{id}/contributions/{contribution_id} [delete]
 func (h *SavingGoalHandler) DeleteContribution(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -231,6 +237,7 @@ func (h *SavingGoalHandler) DeleteContribution(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/saving-goals/{id}/finish [put]
 func (h *SavingGoalHandler) FinishGoal(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)

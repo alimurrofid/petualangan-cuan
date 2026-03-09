@@ -22,8 +22,8 @@ type RegisterInput struct {
 }
 
 type LoginInput struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" example:"budiono@example.com"`
+	Password string `json:"password" example:"password"`
 }
 
 type UserService interface {

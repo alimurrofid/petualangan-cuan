@@ -56,6 +56,7 @@ func NewTransactionHandler(service service.TransactionService) TransactionHandle
 // @Success 201 {object} entity.Transaction
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/transactions [post]
 func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -135,6 +136,7 @@ func (h *transactionHandler) CreateTransaction(c *fiber.Ctx) error {
 // @Param type query string false "Transaction Type"
 // @Success 200 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/transactions [get]
 func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -200,6 +202,7 @@ func (h *transactionHandler) GetTransactions(c *fiber.Ctx) error {
 // @Param id path int true "Transaction ID"
 // @Success 200 {object} entity.Transaction
 // @Failure 404 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/transactions/{id} [get]
 func (h *transactionHandler) GetTransaction(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -227,6 +230,7 @@ func (h *transactionHandler) GetTransaction(c *fiber.Ctx) error {
 // @Success 200 {object} entity.Transaction
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/transactions/{id} [put]
 func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -304,6 +308,7 @@ func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 // @Param id path int true "Transaction ID"
 // @Success 200 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/transactions/{id} [delete]
 func (h *transactionHandler) DeleteTransaction(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -332,6 +337,7 @@ func (h *transactionHandler) DeleteTransaction(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/transactions/transfer [post]
 func (h *transactionHandler) TransferTransaction(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -367,6 +373,7 @@ func (h *transactionHandler) TransferTransaction(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/transactions/calendar [get]
 func (h *transactionHandler) GetCalendarData(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -423,7 +430,7 @@ func (h *transactionHandler) GetCalendarData(c *fiber.Ctx) error {
 // @Param end_date query string true "End Date (YYYY-MM-DD)"
 // @Param wallet_id query int false "Wallet ID"
 // @Param type query string false "Transaction Type (income, expense, all)"
-// @Security ApiKeyAuth
+// @Security BearerAuth
 // @Success 200 {object} map[string]interface{}
 // @Router /api/transactions/report [get]
 func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
@@ -489,6 +496,7 @@ func (h *transactionHandler) GetReport(c *fiber.Ctx) error {
 // @Param category_id query int false "Category ID"
 // @Param search query string false "Search Term"
 // @Param type query string false "Transaction Type"
+// @Security BearerAuth
 // @Router /api/transactions/export [get]
 func (h *transactionHandler) ExportTransactions(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
@@ -544,6 +552,7 @@ func (h *transactionHandler) ExportTransactions(c *fiber.Ctx) error {
 // @Param end_date query string true "End Date"
 // @Param wallet_id query int false "Wallet ID"
 // @Param type query string false "Filter Type"
+// @Security BearerAuth
 // @Router /api/transactions/report/export [get]
 func (h *transactionHandler) ExportReport(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)

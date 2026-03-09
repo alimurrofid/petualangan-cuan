@@ -24,6 +24,7 @@ func NewFinancialHealthHandler(service service.FinancialHealthService) *Financia
 // @Produce json
 // @Success 200 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
 // @Router /api/financial-health [get]
 func (h *FinancialHealthHandler) GetFinancialHealth(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)

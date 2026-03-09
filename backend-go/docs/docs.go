@@ -15,8 +15,374 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/ai/chat": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send text, image, or voice message to the AI chatbot",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Send chat message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Text message",
+                        "name": "message",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Image attachment",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Voice attachment",
+                        "name": "voice",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.ChatResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/ai/chat/history": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the chat message history for the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Get chat history",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Number of messages to return (default 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entity.ChatMessage"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete all chat messages for the authenticated user",
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Clear chat history",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/ai/chat/stream": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stream AI chatbot response using Server-Sent Events (SSE)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Send chat message via stream",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Text message",
+                        "name": "message",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Image attachment",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Voice attachment",
+                        "name": "voice",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "description": "Login with email and password to get JWT token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login user",
+                "parameters": [
+                    {
+                        "description": "Login Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.LoginInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Logout current user (Invalidate token client-side)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logout user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/refresh": {
+            "post": {
+                "description": "Get a new access and refresh token pair using valid refresh token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh Access Token",
+                "parameters": [
+                    {
+                        "description": "Refresh Token Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/register": {
+            "post": {
+                "description": "Register a new user with name, email and password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "Register Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.RegisterInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/categories": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get all categories for the logged in user",
                 "consumes": [
                     "application/json"
@@ -48,6 +414,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new category for transactions",
                 "consumes": [
                     "application/json"
@@ -96,6 +467,11 @@ const docTemplate = `{
         },
         "/api/categories/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get a specific category",
                 "consumes": [
                     "application/json"
@@ -133,6 +509,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update category details",
                 "consumes": [
                     "application/json"
@@ -186,6 +567,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a category by ID",
                 "consumes": [
                     "application/json"
@@ -228,7 +614,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get total balance, monthly summary, recent transactions, trend, and breakdown",
@@ -255,6 +641,11 @@ const docTemplate = `{
         },
         "/api/debts": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get list of debts filtered by type",
                 "consumes": [
                     "application/json"
@@ -287,6 +678,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new debt record and automatically create associated transaction",
                 "consumes": [
                     "application/json"
@@ -335,6 +731,11 @@ const docTemplate = `{
         },
         "/api/debts/payments/{id}": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a debt payment and revert balance/debt remaining",
                 "consumes": [
                     "application/json"
@@ -368,6 +769,11 @@ const docTemplate = `{
         },
         "/api/debts/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get details of a specific debt",
                 "consumes": [
                     "application/json"
@@ -405,6 +811,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update name, description, and due date of a debt",
                 "consumes": [
                     "application/json"
@@ -458,6 +869,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a debt record (CAUTION: does not revert transactions)",
                 "consumes": [
                     "application/json"
@@ -491,6 +907,11 @@ const docTemplate = `{
         },
         "/api/debts/{id}/pay": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Record a payment for a debt and update remaining amount",
                 "consumes": [
                     "application/json"
@@ -546,6 +967,11 @@ const docTemplate = `{
         },
         "/api/financial-health": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get comprehensive financial health check including savings rate, liquidity, and debt ratio",
                 "consumes": [
                     "application/json"
@@ -577,6 +1003,11 @@ const docTemplate = `{
         },
         "/api/saving-goals": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get list of saving goals for the authenticated user",
                 "consumes": [
                     "application/json"
@@ -599,6 +1030,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new saving goal record",
                 "consumes": [
                     "application/json"
@@ -648,6 +1084,11 @@ const docTemplate = `{
         },
         "/api/saving-goals/{id}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update details of a saving goal",
                 "consumes": [
                     "application/json"
@@ -702,6 +1143,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a saving goal",
                 "consumes": [
                     "application/json"
@@ -735,6 +1181,11 @@ const docTemplate = `{
         },
         "/api/saving-goals/{id}/contributions": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Add money to a saving goal",
                 "consumes": [
                     "application/json"
@@ -791,6 +1242,11 @@ const docTemplate = `{
         },
         "/api/saving-goals/{id}/contributions/{contribution_id}": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a saving contribution",
                 "consumes": [
                     "application/json"
@@ -831,6 +1287,11 @@ const docTemplate = `{
         },
         "/api/saving-goals/{id}/finish": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Mark a saving goal as finished and release funds to available balance",
                 "consumes": [
                     "application/json"
@@ -878,6 +1339,11 @@ const docTemplate = `{
         },
         "/api/transactions": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get all transactions for the logged in user with pagination and filtering",
                 "consumes": [
                     "application/json"
@@ -959,6 +1425,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new income or expense transaction",
                 "consumes": [
                     "application/json"
@@ -1007,6 +1478,11 @@ const docTemplate = `{
         },
         "/api/transactions/calendar": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get total income and expense per day for a specific date range with filters",
                 "consumes": [
                     "application/json"
@@ -1079,6 +1555,11 @@ const docTemplate = `{
         },
         "/api/transactions/export": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Export all matched transactions",
                 "tags": [
                     "transactions"
@@ -1129,7 +1610,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get comprehensive report of expenses/income by category",
@@ -1184,6 +1665,11 @@ const docTemplate = `{
         },
         "/api/transactions/report/export": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Export category breakdown report",
                 "tags": [
                     "transactions"
@@ -1222,6 +1708,11 @@ const docTemplate = `{
         },
         "/api/transactions/transfer": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a transfer comprising an expense and an income",
                 "consumes": [
                     "application/json"
@@ -1271,6 +1762,11 @@ const docTemplate = `{
         },
         "/api/transactions/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get a single transaction by ID",
                 "consumes": [
                     "application/json"
@@ -1308,6 +1804,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update an existing transaction and adjust wallet balances",
                 "consumes": [
                     "application/json"
@@ -1361,6 +1862,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a transaction by ID and revert balance",
                 "consumes": [
                     "application/json"
@@ -1759,8 +2265,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/webhook/whatsapp": {
+            "post": {
+                "description": "Receives events from wa-gateway and processes incoming messages through AI chatbot",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhook"
+                ],
+                "summary": "Handle WhatsApp webhook",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/wishlists": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get list of all wishlist items for the user",
                 "consumes": [
                     "application/json"
@@ -1785,6 +2327,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new prospective purchase item",
                 "consumes": [
                     "application/json"
@@ -1834,6 +2381,11 @@ const docTemplate = `{
         },
         "/api/wishlists/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get details of a specific wishlist item",
                 "consumes": [
                     "application/json"
@@ -1871,6 +2423,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update details of a wishlist item",
                 "consumes": [
                     "application/json"
@@ -1925,6 +2482,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a wishlist item",
                 "consumes": [
                     "application/json"
@@ -1958,6 +2520,11 @@ const docTemplate = `{
         },
         "/api/wishlists/{id}/bought": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Mark item as purchased",
                 "consumes": [
                     "application/json"
@@ -1984,125 +2551,6 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/login": {
-            "post": {
-                "description": "Login with email and password to get JWT token",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Login user",
-                "parameters": [
-                    {
-                        "description": "Login Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/service.LoginInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/logout": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Logout current user (Invalidate token client-side)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Logout user",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/register": {
-            "post": {
-                "description": "Register a new user with name, email and password",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Register a new user",
-                "parameters": [
-                    {
-                        "description": "Register Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/service.RegisterInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
                         }
                     }
                 }
@@ -2136,6 +2584,53 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "entity.ChatMessage": {
+            "type": "object",
+            "properties": {
+                "audio_url": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "role": {
+                    "description": "\"user\" | \"assistant\"",
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "entity.ChatResponse": {
+            "type": "object",
+            "properties": {
+                "audio_url": {
+                    "type": "string"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "reply": {
+                    "type": "string"
+                },
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.SavedTransaction"
+                    }
                 }
             }
         },
@@ -2220,12 +2715,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "wallet": {
-                    "description": "Wallet used for THIS payment",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entity.Wallet"
-                        }
-                    ]
+                    "$ref": "#/definitions/entity.Wallet"
                 },
                 "wallet_id": {
                     "type": "integer"
@@ -2250,6 +2740,33 @@ const docTemplate = `{
                 "DebtTypePayable",
                 "DebtTypeReceivable"
             ]
+        },
+        "entity.SavedTransaction": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "description": "create, update, delete",
+                    "type": "string"
+                },
+                "amount": {
+                    "type": "number"
+                },
+                "category_name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "wallet_name": {
+                    "type": "string"
+                }
+            }
         },
         "entity.Transaction": {
             "type": "object",
@@ -2320,7 +2837,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "description": "Bank, E-Wallet, Cash",
                     "type": "string"
                 },
                 "updated_at": {
@@ -2514,7 +3030,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "description": "income, expense",
                     "type": "string"
                 },
                 "wallet_id": {
@@ -2546,10 +3061,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "budiono@example.com"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "password"
                 }
             }
         },
@@ -2637,7 +3154,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "transfer_fee": {
-                    "description": "Opsional",
                     "type": "number"
                 }
             }
@@ -2692,6 +3208,13 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "payday": {
+                    "description": "Tanggal gajian (1-28), nil = tidak diubah",
+                    "type": "integer"
+                },
+                "phone": {
+                    "type": "string"
                 }
             }
         },
@@ -2711,6 +3234,14 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

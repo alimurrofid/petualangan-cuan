@@ -31,6 +31,10 @@ import (
 // @description API for Petualangan Cuan Application
 // @host localhost:8080
 // @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 func main() {
 	freshPtr := flag.Bool("fresh", false, "Drop all tables and re-migrate")
 	seedPtr := flag.Bool("seed", false, "Seed database with dummy data")
@@ -261,7 +265,9 @@ func main() {
 	ai.Get("/chat/history", aiHandler.GetChatHistory)
 	ai.Delete("/chat/history", aiHandler.ClearChatHistory)
 
-	app.Get("/swagger/*", swagger.HandlerDefault) 
+	app.Get("/swagger/*", swagger.New(swagger.Config{
+		PersistAuthorization: true,
+	}))
 
 	port := os.Getenv("PORT")
 	if port == "" {

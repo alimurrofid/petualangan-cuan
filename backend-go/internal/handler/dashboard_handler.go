@@ -26,7 +26,7 @@ func NewDashboardHandler(service service.DashboardService) DashboardHandler {
 // @Tags dashboard
 // @Accept json
 // @Produce json
-// @Security ApiKeyAuth
+// @Security BearerAuth
 // @Success 200 {object} map[string]interface{}
 // @Router /api/dashboard [get]
 func (h *dashboardHandler) GetDashboard(c *fiber.Ctx) error {
