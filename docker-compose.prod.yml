@@ -1,7 +1,7 @@
 services:
   frontend:
     image: ghcr.io/alimurrofid/petualangan-cuan/frontend:latest
-    container_name: prod_frontend
+    container_name: prod_cuan_frontend
     environment:
       - VITE_API_URL=${FRONTEND_URL}/api
     ports:
@@ -12,7 +12,7 @@ services:
 
   backend:
     image: ghcr.io/alimurrofid/petualangan-cuan/backend:latest
-    container_name: prod_backend
+    container_name: prod_cuan_backend
     environment:
       - PORT=${PORT}
       - DB_HOST=${DB_HOST:-postgres}
@@ -56,7 +56,7 @@ services:
   
   postgres:
     image: postgres:15-alpine
-    container_name: prod_db
+    container_name: prod_cuan_db
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -71,7 +71,7 @@ services:
 
   llm-server:
     image: ghcr.io/ggml-org/llama.cpp:server
-    container_name: prod_llm
+    container_name: prod_cuan_llm
     volumes:
       - ../shared/ai-models:/models
     command: >
@@ -93,7 +93,7 @@ services:
 
   whisper-server:
     image: fedirz/faster-whisper-server:latest-cpu
-    container_name: prod_whisper
+    container_name: prod_cuan_whisper
     ports:
       - "${WHISPER_PORT:-8000}:8000"
     volumes:
@@ -106,7 +106,7 @@ services:
 
   wa-gateway:
     image: ghcr.io/alimurrofid/petualangan-cuan/wa-gateway:latest
-    container_name: prod_wa_gateway
+    container_name: prod_cuan_wa_gateway
     ports:
       - "${WA_GATEWAY_PORT:-3003}:3000"
     environment:
@@ -123,7 +123,7 @@ services:
 
   loki:
     image: grafana/loki:latest
-    container_name: prod_loki
+    container_name: prod_cuan_loki
     ports:
       - "${LOKI_PORT:-3100}:3100"
     command: -config.file=/etc/loki/local-config.yaml
@@ -139,7 +139,7 @@ services:
 
   promtail:
     image: grafana/promtail:latest
-    container_name: prod_promtail
+    container_name: prod_cuan_promtail
     user: root
     privileged: true
     volumes:
@@ -157,7 +157,7 @@ services:
 
   grafana:
     image: grafana/grafana-oss:10.4.1
-    container_name: prod_grafana
+    container_name: prod_cuan_grafana
     ports:
       - "${GRAFANA_PORT:-3002}:3000"
     environment:
@@ -181,7 +181,7 @@ services:
 
   uptime-kuma:
     image: louislam/uptime-kuma:1
-    container_name: prod_uptime
+    container_name: prod_cuan_uptime
     ports:
       - "${UPTIME_KUMA_PORT:-3001}:3001"
     volumes:

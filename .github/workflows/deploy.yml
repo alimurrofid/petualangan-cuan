@@ -75,11 +75,11 @@ jobs:
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Pull image terbaru
-            docker compose -f docker-compose.prod.yml -p cuan-prod pull
+            docker compose --env-file .env.prod -f docker-compose.prod.yml -p cuan-prod pull
             
             # Update container dengan image baru (Rolling update minimal downtime)
-            # Pastikan .env production sudah ada di server secara manual atau via mechanism lain (JANGAN commit .env)
-            docker compose -f docker-compose.prod.yml -p cuan-prod up -d --remove-orphans
+            # Pastikan .env.prod sudah ada di server secara manual atau via mechanism lain (JANGAN commit .env.prod)
+            docker compose --env-file .env.prod -f docker-compose.prod.yml -p cuan-prod up -d --remove-orphans
             
             # Bersihkan image lama untuk hemat space
             docker image prune -f

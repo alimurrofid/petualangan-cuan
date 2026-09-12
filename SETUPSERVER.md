@@ -10,6 +10,7 @@ Dokumen ini menjelaskan **end-to-end deployment** aplikasi **Petualangan Cuan** 
 * GitHub Actions (CI/CD)
 * GitHub Container Registry (GHCR)
 * Nginx sebagai Reverse Proxy + HTTPS
+* Multi-Environment Isolation (**Production** & **Staging**)
 
 ---
 
@@ -99,8 +100,9 @@ Tambahkan secrets berikut:
 
 Secrets ini digunakan oleh workflow:
 
-```
+```text
 .github/workflows/deploy.yml
+.github/workflows/deploy-staging.yml
 ```
 
 ---
@@ -118,24 +120,39 @@ ssh user@IP_SERVER
 ### 3.1 Install Docker & Docker Compose
 
 ```bash
-sudo apt update && sudo apt upgrade -y
-
+sudo apt update
 sudo apt install -y \
-  apt-transport-https \
-  ca-certificates \
-  curl \
-  software-properties-common
+    ca-certificates \
+    curl \
+    gnupg \
+    git \
+    unzip \
+    zip \
+    htop \
+    ncdu \
+    build-essential \
+    nginx
 
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-  | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+sudo install -m 0755 -d /etc/apt/keyrings
+
+sudo curl -fsSL \
+    https://download.docker.com/linux/ubuntu/gpg \
+    -o /etc/apt/keyrings/docker.asc
+
+sudo chmod a+r /etc/apt/keyrings/docker.asc
 
 echo \
-"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
-https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-| sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  "Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc" | \
+sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null
 
 sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
 Cek instalasi:
@@ -149,14 +166,15 @@ docker compose version
 
 ### 3.2 Login ke GitHub Container Registry (GHCR)
 
-Agar server bisa menarik image dari GitHub.
+Agar server bisa menarik (*pull*) image dari GitHub:
 
-1. Buat **Personal Access Token (Classic)**
-   Scope minimum:
-
-   * `read:packages`
-   * `repo`
-   * `workflow`
+1. Buat **Personal Access Token (Classic)**:
+   - Buka: [https://github.com/settings/tokens](https://github.com/settings/tokens) (atau via **GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)**)
+   - Klik **Generate new token (classic)**
+   - Pilih scope minimum:
+     * `read:packages`
+     * `repo`
+     * `workflow`
 
 2. Login di server:
 
@@ -168,19 +186,68 @@ echo "GITHUB_PAT_ANDA" | docker login ghcr.io -u USERNAME_GITHUB --password-stdi
 
 ## 4️⃣ Setup Project & Environment Variables
 
-### 4.1 Buat Folder Project
+### 4.1 Struktur Direktori Multi-Environment di Server
+
+Aplikasi dibagi menjadi dua environment terisolasi (**Production** dan **Staging**) dengan direktori **shared** untuk model AI:
+
+```text
+/home/<SERVER_USER>/petualangan-cuan/
+├── shared/
+│   └── ai-models/
+│       ├── google_gemma-3-4b-it-Q4_K_M.gguf
+│       ├── mmproj-google_gemma-3-4b-it-f16.gguf
+│       └── whisper/
+├── staging/
+│   ├── .env.staging
+│   ├── docker-compose.staging.yml
+│   ├── uploads_staging/
+│   └── wa-gateway-data_staging/
+└── production/
+    ├── .env.prod
+    ├── docker-compose.prod.yml
+    ├── uploads_prod/
+    └── wa-gateway-data_prod/
+```
+
+Buat folder struktur di VPS:
 
 ```bash
-mkdir -p ~/petualangan-cuan
-cd ~/petualangan-cuan
+mkdir -p ~/petualangan-cuan/shared/ai-models/whisper
+mkdir -p ~/petualangan-cuan/production/uploads_prod
+mkdir -p ~/petualangan-cuan/production/wa-gateway-data_prod
+mkdir -p ~/petualangan-cuan/staging/uploads_staging
+mkdir -p ~/petualangan-cuan/staging/wa-gateway-data_staging
 ```
 
 ---
 
-### 4.2 Buat File `.env` (Produksi)
+### 4.2 Matriks Port & Nama Container (Production vs Staging)
+
+| Service | Container Production | Port Prod | Container Staging | Port Staging | Keterangan |
+|---|---|---|---|---|---|
+| **Frontend** | `prod_cuan_frontend` | `3000` | `stg_cuan_frontend` | `3300` | UI SPA |
+| **Backend API** | `prod_cuan_backend` | `8080` | `stg_cuan_backend` | `8888` | REST API |
+| **PostgreSQL** | `prod_cuan_db` | `5432` | `stg_cuan_db` | `5555` | Database |
+| **WA Gateway** | `prod_cuan_wa_gateway` | `3003` | `stg_cuan_wa_gateway` | `3330` | WhatsApp bridge |
+| **Local LLM** | `prod_cuan_llm` | `8081` | `stg_cuan_llm` | `8881` | GGUF Inference |
+| **Whisper** | `prod_cuan_whisper` | `8000` | `stg_cuan_whisper` | `8800` | Speech to Text |
+| **Loki** | `prod_cuan_loki` | `3100` | `stg_cuan_loki` | `3110` | Log Collector |
+| **Promtail** | `prod_cuan_promtail` | - | `stg_cuan_promtail` | - | Log Scraper |
+| **Grafana** | `prod_cuan_grafana` | `3002` | `stg_cuan_grafana` | `3302` | Monitoring UI |
+| **Uptime Kuma** | `prod_cuan_uptime` | `3001` | `stg_cuan_uptime` | `3301` | Health Check |
+
+---
+
+### 4.3 Setup File Environment Variables (`.env.prod` & `.env.staging`)
+
+> [!IMPORTANT]
+> - Template variabel dapat dilihat pada [.env.example](file:///.env.example).
+> - **JANGAN PERNAH** meng-commit file `.env.prod` atau `.env.staging` ke git repository.
+
+#### 🅰️ Buat File `.env.prod` Production (`~/petualangan-cuan/production/.env.prod`)
 
 ```bash
-nano .env
+nano ~/petualangan-cuan/production/.env.prod
 ```
 
 Contoh isi:
@@ -188,17 +255,19 @@ Contoh isi:
 ```env
 # Server
 PORT=8080
+TZ=Asia/Jakarta
 
 # Database (PostgreSQL)
 DB_HOST=postgres
 DB_PORT=5432
 DB_USER=postgres
-DB_PASSWORD=password_aman
-DB_NAME=petualangan_cuan
+DB_PASSWORD=password_aman_production
+DB_NAME=petualangan_cuan_prod
 
-# Security
-JWT_SECRET=string_random_panjang
-JWT_EXPIRY_HOURS=72
+# Security (Generate: openssl rand -base64 32)
+JWT_SECRET=string_random_panjang_production
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=72h
 
 # Google OAuth (WAJIB PRODUKSI)
 GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
@@ -207,20 +276,112 @@ GOOGLE_REDIRECT_URL=https://petualangancuan.rofid.me/api/auth/google/callback
 
 # Frontend
 FRONTEND_URL=https://petualangancuan.rofid.me
+
+# AI Configuration
+AI_PROVIDER=local
+LOCAL_LLM_URL=http://llm-server:8080
+LOCAL_WHISPER_URL=http://whisper-server:8000
+
+# WhatsApp Gateway (prod_cuan_wa_gateway)
+WA_GATEWAY_USERNAME=admin
+WA_GATEWAY_PASSWORD=password_wa_kuat
+WA_WEBHOOK_URL=http://prod_cuan_backend:8080/api/webhook/whatsapp
+WHATSAPP_WEBHOOK_SECRET=secret_webhook_acak_32_karakter
+WA_GATEWAY_URL=http://prod_cuan_wa_gateway:3000
+
+# Observability
+GRAFANA_USER=admin
+GRAFANA_PASSWORD=admincuanprod
+
+# Docker Host Port
+FRONTEND_PORT=3000
+BACKEND_PORT=8080
+LLM_PORT=8081
+WHISPER_PORT=8000
+WA_GATEWAY_PORT=3003
+LOKI_PORT=3100
+GRAFANA_PORT=3002
+UPTIME_KUMA_PORT=3001
 ```
 
 ⚠️ **Catatan Penting**
 
 * Jangan gunakan `localhost` di production
 * OAuth redirect **HARUS domain publik**
-* Jika masih redirect ke localhost → `.env` **belum ter-load**
+* Jika masih redirect ke localhost → `.env.prod` **belum ter-load**
 
 ---
 
-### 4.3 Buat `docker-compose.yml`
+#### 🅱️ Buat File `.env.staging` Staging (`~/petualangan-cuan/staging/.env.staging`)
 
 ```bash
-nano docker-compose.yml
+nano ~/petualangan-cuan/staging/.env.staging
+```
+
+Contoh isi:
+
+```env
+# Server
+PORT=8080
+TZ=Asia/Jakarta
+
+# Database (PostgreSQL)
+DB_HOST=postgres
+DB_PORT=5555
+DB_USER=postgres
+DB_PASSWORD=password_aman_staging
+DB_NAME=petualangan_cuan_staging
+
+# Security (Generate: openssl rand -base64 32)
+JWT_SECRET=string_random_panjang_staging
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=72h
+
+# Google OAuth (Staging)
+GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=xxxxx
+GOOGLE_REDIRECT_URL=https://staging.petualangancuan.rofid.me/api/auth/google/callback
+
+# Frontend
+FRONTEND_URL=https://staging.petualangancuan.rofid.me
+
+# AI Configuration
+AI_PROVIDER=local
+LOCAL_LLM_URL=http://llm-server:8080
+LOCAL_WHISPER_URL=http://whisper-server:8000
+
+# WhatsApp Gateway (stg_cuan_wa_gateway)
+WA_GATEWAY_USERNAME=admin
+WA_GATEWAY_PASSWORD=password_wa_staging
+WA_WEBHOOK_URL=http://stg_cuan_backend:8080/api/webhook/whatsapp
+WHATSAPP_WEBHOOK_SECRET=secret_webhook_acak_staging
+WA_GATEWAY_URL=http://stg_cuan_wa_gateway:3000
+
+# Observability
+GRAFANA_USER=admin
+GRAFANA_PASSWORD=admincuanstaging
+
+# Docker Host Port (Staging Offset)
+FRONTEND_PORT=3300
+BACKEND_PORT=8888
+LLM_PORT=8881
+WHISPER_PORT=8800
+WA_GATEWAY_PORT=3330
+LOKI_PORT=3110
+GRAFANA_PORT=3302
+UPTIME_KUMA_PORT=3301
+```
+
+---
+
+### 4.4 Salin File `docker-compose` ke VPS
+
+Salin `docker-compose.prod.yml` dan `docker-compose.staging.yml` ke direktori masing-masing di VPS:
+
+* Dari laptop:
+```bash
+scp docker-compose.prod.yml user@IP_SERVER:~/petualangan-cuan/production/
+scp docker-compose.staging.yml user@IP_SERVER:~/petualangan-cuan/staging/
 ```
 
 📌 **WAJIB**
@@ -230,28 +391,18 @@ nano docker-compose.yml
 
 ---
 
-### 4.4 Buat Folder `uploads` (Penyimpanan File)
+### 4.5 Pengaturan Folder `uploads` & Permission (Penyimpanan File)
 
 Folder ini digunakan untuk menyimpan file upload (gambar, dokumen, dll) dan **harus persisten** saat redeploy.
 
-#### 1️⃣ Buat Folder `uploads`
+#### 1️⃣ Cek UID & GID Container Backend
+
+Sebelum mengatur permission, pastikan user yang digunakan di dalam container backend:
 
 ```bash
-mkdir -p uploads
-```
-
-📌 Folder **wajib berada di root project**:
-
-`~/petualangan-cuan/uploads`
-
----
-
-#### 2️⃣ Cek UID & GID Container Backend
-
-Sebelum mengatur permission, pastikan user yang digunakan di dalam container backend.
-
-```bash
-docker exec -it local_backend id appuser
+docker exec -it prod_cuan_backend id appuser
+# atau
+docker exec -it stg_cuan_backend id appuser
 ```
 
 Output yang **diharapkan**:
@@ -267,27 +418,31 @@ Jika UID/GID **berbeda**:
 
 ---
 
-#### 3️⃣ Atur Ownership & Permission Folder
+#### 2️⃣ Atur Ownership & Permission Folder
 
 Jika UID/GID container adalah **100:101**, jalankan:
 
 ```bash
-sudo chown -R 100:101 uploads
-sudo chmod -R 755 uploads
+# Production
+sudo chown -R 100:101 ~/petualangan-cuan/production/uploads_prod
+sudo chmod -R 755 ~/petualangan-cuan/production/uploads_prod
+
+# Staging
+sudo chown -R 100:101 ~/petualangan-cuan/staging/uploads_staging
+sudo chmod -R 755 ~/petualangan-cuan/staging/uploads_staging
 ```
 
 ---
 
 📌 **Catatan Penting**
 
-* Folder `uploads` **harus di-mount sebagai volume** di `docker-compose.yml`
+* Folder `uploads_*` **harus di-mount sebagai volume** di docker-compose masing-masing
 * **Jangan menghapus folder ini** saat redeploy
 * Salah permission akan menyebabkan error:
-
   * upload gagal
   * file tidak tersimpan
   * permission denied
-  
+
 ---
 
 ## 5️⃣ Konfigurasi Nginx (HTTPS & Reverse Proxy)
@@ -300,7 +455,7 @@ sudo nano /etc/nginx/sites-available/petualangancuan
 
 ```nginx
 # ===============================
-# HTTP ->  HTTPS
+# 1. PRODUCTION (HTTP -> HTTPS)
 # ===============================
 server {
     listen 80;
@@ -310,13 +465,13 @@ server {
 }
 
 # ===============================
-# HTTPS
+# PRODUCTION (HTTPS)
 # ===============================
 server {
     listen 443 ssl;
     server_name petualangancuan.rofid.me;
 
-    client_max_body_size 10M;
+    client_max_body_size 25M;
 
     ssl_certificate     /etc/ssl/cloudflare/origin.crt;
     ssl_certificate_key /etc/ssl/cloudflare/origin.key;
@@ -324,9 +479,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
 
-    # ===============================
-    # FRONTEND (Vue)
-    # ===============================
+    # FRONTEND (Vue - Production Port 3000)
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
@@ -337,9 +490,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # ===============================
-    # BACKEND (API)
-    # ===============================
+    # BACKEND (API - Production Port 8080)
     location /api/ {
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
@@ -350,9 +501,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # ===============================
-    # STATIC UPLOADS (Backend)
-    # ===============================
+    # STATIC UPLOADS (Backend Production)
     location /uploads/ {
         proxy_pass http://127.0.0.1:8080/uploads/;
         proxy_set_header Host $host;
@@ -360,7 +509,63 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+}
 
+# ===============================
+# 2. STAGING (HTTP -> HTTPS)
+# ===============================
+server {
+    listen 80;
+    server_name staging.petualangancuan.rofid.me;
+
+    return 301 https://staging.petualangancuan.rofid.me$request_uri;
+}
+
+# ===============================
+# STAGING (HTTPS)
+# ===============================
+server {
+    listen 443 ssl;
+    server_name staging.petualangancuan.rofid.me;
+
+    client_max_body_size 25M;
+
+    ssl_certificate     /etc/ssl/cloudflare/origin.crt;
+    ssl_certificate_key /etc/ssl/cloudflare/origin.key;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # FRONTEND (Vue - Staging Port 3300)
+    location / {
+        proxy_pass http://127.0.0.1:3300;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # BACKEND (API - Staging Port 8888)
+    location /api/ {
+        proxy_pass http://127.0.0.1:8888;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # STATIC UPLOADS (Backend Staging)
+    location /uploads/ {
+        proxy_pass http://127.0.0.1:8888/uploads/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
 ```
 
@@ -369,7 +574,7 @@ server {
 ### 5.2 Aktifkan & Restart Nginx
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/petualangancuan /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/petualangancuan /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 ```
@@ -378,20 +583,38 @@ sudo systemctl restart nginx
 
 ## 6️⃣ Deployment Otomatis (CI/CD)
 
-Setiap push ke branch `main` akan otomatis:
-
-1. Build image frontend & backend
+### 6.1 Alur Deployment Staging
+Setiap push ke branch `staging` akan otomatis:
+1. Build image frontend, backend, dan wa-gateway dengan tag `:staging`
 2. Push ke GHCR
-3. SSH ke VPS
+3. SSH ke VPS ke folder `~/petualangan-cuan/staging`
 4. Jalankan:
-
    ```bash
-   docker compose pull
-   docker compose up -d
+   docker compose --env-file .env.staging -f docker-compose.staging.yml -p cuan-staging pull
+   docker compose --env-file .env.staging -f docker-compose.staging.yml -p cuan-staging up -d --remove-orphans
+   docker image prune -f
    ```
 
-Trigger manual:
+Trigger staging:
+```bash
+git push origin staging
+```
 
+---
+
+### 6.2 Alur Deployment Production
+Setiap push ke branch `main` akan otomatis:
+1. Build image frontend, backend, dan wa-gateway dengan tag `:latest`
+2. Push ke GHCR
+3. SSH ke VPS ke folder `~/petualangan-cuan/production`
+4. Jalankan:
+   ```bash
+   docker compose --env-file .env.prod -f docker-compose.prod.yml -p cuan-prod pull
+   docker compose --env-file .env.prod -f docker-compose.prod.yml -p cuan-prod up -d --remove-orphans
+   docker image prune -f
+   ```
+
+Trigger production:
 ```bash
 git push origin main
 ```
@@ -400,31 +623,53 @@ git push origin main
 
 ## 7️⃣ Verifikasi & Troubleshooting
 
-### Cek Container
+### Cek Status Container
 
 ```bash
-cd ~/petualangan-cuan
-docker compose ps
+# Production
+cd ~/petualangan-cuan/production
+docker compose --env-file .env.prod -f docker-compose.prod.yml -p cuan-prod ps
+
+# Staging
+cd ~/petualangan-cuan/staging
+docker compose --env-file .env.staging -f docker-compose.staging.yml -p cuan-staging ps
 ```
+
+---
 
 ### Lihat Log Backend
 
 ```bash
-docker compose logs -f backend
+# Production
+docker compose --env-file .env.prod -f docker-compose.prod.yml -p cuan-prod logs -f backend
+
+# Staging
+docker compose --env-file .env.staging -f docker-compose.staging.yml -p cuan-staging logs -f backend
 ```
+
+---
 
 ### Jika ENV Tidak Ter-update
 
 ```bash
-docker compose down
-docker compose up -d
+# Production
+cd ~/petualangan-cuan/production
+docker compose --env-file .env.prod -f docker-compose.prod.yml -p cuan-prod down
+docker compose --env-file .env.prod -f docker-compose.prod.yml -p cuan-prod up -d
+
+# Staging
+cd ~/petualangan-cuan/staging
+docker compose --env-file .env.staging -f docker-compose.staging.yml -p cuan-staging down
+docker compose --env-file .env.staging -f docker-compose.staging.yml -p cuan-staging up -d
 ```
+
+---
 
 ### Jika OAuth Masih Redirect ke Localhost
 
-* Cek `.env`
-* Pastikan `GOOGLE_REDIRECT_URL` benar
-* Restart container backend
+* Cek file `.env.prod` atau `.env.staging` di folder environment terkait
+* Pastikan `GOOGLE_REDIRECT_URL` dan `FRONTEND_URL` sudah mengarah ke domain HTTPS yang benar
+* Restart container backend terkait (`prod_cuan_backend` atau `stg_cuan_backend`)
 
 ---
 
@@ -432,4 +677,5 @@ docker compose up -d
 
 Aplikasi dapat diakses di:
 
-👉 **[https://petualangancuan.rofid.me](https://petualangancuan.rofid.me)**
+* 🚀 **Production**: [https://petualangancuan.rofid.me](https://petualangancuan.rofid.me)
+* 🧪 **Staging**: [https://staging.petualangancuan.rofid.me](https://staging.petualangancuan.rofid.me)
