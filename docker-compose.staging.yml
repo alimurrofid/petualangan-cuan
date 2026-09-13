@@ -9,6 +9,13 @@ services:
     networks:
       - staging-network
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.10'
+          memory: 32M
+        reservations:
+          memory: 16M
 
   backend:
     image: ghcr.io/alimurrofid/petualangan-cuan/backend:staging
@@ -45,14 +52,17 @@ services:
     depends_on:
       postgres:
         condition: service_started
-      llm-server:
-        condition: service_started
-      whisper-server:
-        condition: service_started
     networks:
       - staging-network
     restart: always
     user: appuser
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          memory: 32M
   
   postgres:
     image: postgres:15-alpine
@@ -68,10 +78,19 @@ services:
     networks:
       - staging-network
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 160M
+        reservations:
+          memory: 48M
 
   llm-server:
     image: ghcr.io/ggml-org/llama.cpp:server
     container_name: stg_cuan_llm
+    profiles:
+      - local-ai
     volumes:
       - ../shared/ai-models:/models
     command: >
@@ -80,20 +99,25 @@ services:
       --host 0.0.0.0
       --port 8080
       -c 4096
-      -t 2
-    deploy:
-      resources:
-        limits:
-          memory: 4G
+      -t 1
     ports:
       - "${LLM_PORT:-8881}:8080"
     networks:
       - staging-network
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 3072M
+        reservations:
+          memory: 1024M
 
   whisper-server:
     image: fedirz/faster-whisper-server:latest-cpu
     container_name: stg_cuan_whisper
+    profiles:
+      - local-ai
     ports:
       - "${WHISPER_PORT:-8800}:8000"
     volumes:
@@ -103,6 +127,13 @@ services:
     networks:
       - staging-network
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.80'
+          memory: 1024M
+        reservations:
+          memory: 256M
 
   wa-gateway:
     image: ghcr.io/alimurrofid/petualangan-cuan/wa-gateway:staging
@@ -120,6 +151,13 @@ services:
     networks:
       - staging-network
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.15'
+          memory: 96M
+        reservations:
+          memory: 24M
 
   loki:
     image: grafana/loki:latest
@@ -135,7 +173,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          cpus: '0.10'
+          memory: 96M
+        reservations:
+          memory: 24M
 
   promtail:
     image: grafana/promtail:latest
@@ -153,7 +194,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          cpus: '0.05'
+          memory: 32M
+        reservations:
+          memory: 16M
 
   grafana:
     image: grafana/grafana-oss:10.4.1
@@ -177,7 +221,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          cpus: '0.10'
+          memory: 96M
+        reservations:
+          memory: 24M
 
   uptime-kuma:
     image: louislam/uptime-kuma:1
@@ -192,7 +239,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          cpus: '0.05'
+          memory: 64M
+        reservations:
+          memory: 24M
 
 networks:
   staging-network:

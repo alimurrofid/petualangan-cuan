@@ -36,10 +36,6 @@ services:
     depends_on:
       postgres:
         condition: service_started
-      llm-server:
-        condition: service_started
-      whisper-server:
-        condition: service_started
     networks:
       - app-network
     restart: always
@@ -63,6 +59,8 @@ services:
   llm-server:
     image: ghcr.io/ggml-org/llama.cpp:server
     container_name: local_llm
+    profiles:
+      - local-ai
     volumes:
       - ./ai-models:/models
     command: >
@@ -85,6 +83,8 @@ services:
   whisper-server:
     image: fedirz/faster-whisper-server:latest-cpu
     container_name: local_whisper
+    profiles:
+      - local-ai
     ports:
       - "${WHISPER_PORT:-8000}:8000"
     volumes:
@@ -196,4 +196,3 @@ volumes:
   loki_data:
   grafana_data:
   uptime_kuma_data:
-
