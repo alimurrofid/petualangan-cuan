@@ -239,6 +239,7 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 	if !ok {
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
+	reqID, _ := c.Locals("requestid").(string)
 
 	var audioURL string
 	var savedImageURL string
@@ -252,7 +253,6 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		}
 		savedPath, err := processAndSaveFile(voiceFile)
 		if err != nil {
-			reqID, _ := c.Locals("requestid").(string)
 			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to save audio")
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": fmt.Sprintf("Gagal menyimpan audio: %s", err.Error())})
 		}
@@ -267,7 +267,6 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		}
 		savedPath, err := processAndSaveFile(imageFile)
 		if err != nil {
-			reqID, _ := c.Locals("requestid").(string)
 			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to save image")
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": fmt.Sprintf("Gagal menyimpan gambar: %s", err.Error())})
 		}
@@ -336,7 +335,6 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		})
 
 		if err != nil {
-			reqID, _ := c.Locals("requestid").(string)
 			log.Error().Str("request_id", reqID).Err(err).Msg("Stream failed")
 			safeError, _ := json.Marshal(map[string]string{"error": err.Error()})
 			writeSSE(w, "error", string(safeError))
