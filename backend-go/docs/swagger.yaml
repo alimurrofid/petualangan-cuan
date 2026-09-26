@@ -122,6 +122,50 @@ definitions:
     x-enum-varnames:
     - DebtTypePayable
     - DebtTypeReceivable
+  entity.FinancialHealthRatio:
+    properties:
+      description:
+        type: string
+      formatted_value:
+        type: string
+      name:
+        type: string
+      status:
+        $ref: '#/definitions/entity.FinancialHealthStatus'
+      target:
+        type: string
+      value:
+        type: number
+    type: object
+  entity.FinancialHealthResponse:
+    properties:
+      overall_score:
+        type: number
+      overall_status:
+        $ref: '#/definitions/entity.FinancialHealthStatus'
+      ratios:
+        items:
+          $ref: '#/definitions/entity.FinancialHealthRatio'
+        type: array
+    type: object
+  entity.FinancialHealthStatus:
+    enum:
+    - Sehat
+    - Waspada
+    - Bahaya
+    type: string
+    x-enum-varnames:
+    - StatusHealthy
+    - StatusWarning
+    - StatusDanger
+  entity.FinancialHealthWebResponse:
+    properties:
+      data:
+        $ref: '#/definitions/entity.FinancialHealthResponse'
+      status:
+        example: success
+        type: string
+    type: object
   entity.SavedTransaction:
     properties:
       action:
@@ -1079,15 +1123,14 @@ paths:
       consumes:
       - application/json
       description: Get comprehensive financial health check including savings rate,
-        liquidity, and debt ratio
+        emergency fund liquidity, and debt service ratio (DSR)
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/entity.FinancialHealthWebResponse'
         "500":
           description: Internal Server Error
           schema:

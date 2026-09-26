@@ -972,7 +972,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get comprehensive financial health check including savings rate, liquidity, and debt ratio",
+                "description": "Get comprehensive financial health check including savings rate, emergency fund liquidity, and debt service ratio (DSR)",
                 "consumes": [
                     "application/json"
                 ],
@@ -987,8 +987,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/entity.FinancialHealthWebResponse"
                         }
                     },
                     "500": {
@@ -2740,6 +2739,71 @@ const docTemplate = `{
                 "DebtTypePayable",
                 "DebtTypeReceivable"
             ]
+        },
+        "entity.FinancialHealthRatio": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "formatted_value": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/entity.FinancialHealthStatus"
+                },
+                "target": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
+        },
+        "entity.FinancialHealthResponse": {
+            "type": "object",
+            "properties": {
+                "overall_score": {
+                    "type": "number"
+                },
+                "overall_status": {
+                    "$ref": "#/definitions/entity.FinancialHealthStatus"
+                },
+                "ratios": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.FinancialHealthRatio"
+                    }
+                }
+            }
+        },
+        "entity.FinancialHealthStatus": {
+            "type": "string",
+            "enum": [
+                "Sehat",
+                "Waspada",
+                "Bahaya"
+            ],
+            "x-enum-varnames": [
+                "StatusHealthy",
+                "StatusWarning",
+                "StatusDanger"
+            ]
+        },
+        "entity.FinancialHealthWebResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/entity.FinancialHealthResponse"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                }
+            }
         },
         "entity.SavedTransaction": {
             "type": "object",

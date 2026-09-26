@@ -20,7 +20,7 @@ type financialHealthService struct {
 	walletRepo      repository.WalletRepository
 	debtRepo        repository.DebtRepository
 	userRepo        repository.UserRepository
-	savingGoalRepo  repository.SavingGoalRepository // TAMBAHAN: Inject Saving Goal Repo
+	savingGoalRepo  repository.SavingGoalRepository
 }
 
 func NewFinancialHealthService(
@@ -28,14 +28,14 @@ func NewFinancialHealthService(
 	walletRepo repository.WalletRepository,
 	debtRepo repository.DebtRepository,
 	userRepo repository.UserRepository,
-	savingGoalRepo repository.SavingGoalRepository, // TAMBAHAN: Inject Saving Goal Repo
+	savingGoalRepo repository.SavingGoalRepository,
 ) FinancialHealthService {
 	return &financialHealthService{
 		transactionRepo: transactionRepo,
 		walletRepo:      walletRepo,
 		debtRepo:        debtRepo,
 		userRepo:        userRepo,
-		savingGoalRepo:  savingGoalRepo, // TAMBAHAN
+		savingGoalRepo:  savingGoalRepo,
 	}
 }
 
@@ -68,7 +68,6 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 	savingsRate := 0.0
 	if totalIncomeMonth > 0 {
 		savingsRate = (totalIncomeMonth - totalExpenseMonth) / totalIncomeMonth
-		// PERBAIKAN: Batasi persentase minimal di -100% agar tidak muncul -9340%
 		if savingsRate < -1.0 {
 			savingsRate = -1.0
 		}
@@ -83,15 +82,35 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 		FormattedValue: fmt.Sprintf("%.1f%%", savingsRate*100),
 	}
 
+	savingsScore := 0.0
 	if savingsRate >= 0.20 {
+		// Nilai 80 s/d 100
+		bonus := ((savingsRate - 0.20) / 0.20) * 20.0
+		if bonus > 20.0 {
+			bonus = 20.0
+		}
+		savingsScore = 80.0 + bonus
 		savingsRatio.Status = entity.StatusHealthy
-		savingsRatio.Description = "Hebat! Anda menabung dengan porsi yang sehat."
+		savingsRatio.Description = "Hebat! Anda berhasil menyisihkan lebih dari 20% pendapatan untuk masa depan."
 	} else if savingsRate >= 0.10 {
+		// Nilai 50 s/d 79
+		savingsScore = 50.0 + ((savingsRate-0.10)/0.10)*29.0
 		savingsRatio.Status = entity.StatusWarning
-		savingsRatio.Description = "Cukup baik, tapi coba tingkatkan lagi tabungan Anda."
-	} else {
+		savingsRatio.Description = "Cukup baik, namun usahakan tingkatkan tabungan hingga minimal 20% penghasilan."
+	} else if savingsRate >= 0.0 {
+		// Nilai 25 s/d 49
+		savingsScore = 25.0 + (savingsRate/0.10)*24.0
 		savingsRatio.Status = entity.StatusDanger
-		savingsRatio.Description = "Hati-hati, pengeluaran Anda melebihi pendapatan di siklus ini."
+		savingsRatio.Description = "Porsi tabungan sangat minim (< 10%). Waspada terhadap risiko pengeluaran tak terduga."
+	} else {
+		// Arus kas defisit: Nilai 0 s/d 24
+		def := 25.0 + savingsRate*25.0
+		if def < 0 {
+			def = 0
+		}
+		savingsScore = def
+		savingsRatio.Status = entity.StatusDanger
+		savingsRatio.Description = "Hati-hati, pengeluaran Anda melebihi pendapatan di siklus ini (arus kas defisit)."
 	}
 
 	// 2. LIQUIDITY RATIO & TOTAL ASSETS
@@ -101,17 +120,10 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 		return entity.FinancialHealthResponse{}, err
 	}
 
-	totalAssets := 0.0
+	// Total Liquid Assets adalah total saldo wallet (uang saving goals sudah berada di dalam saldo wallet)
+	totalLiquidAssets := 0.0
 	for _, w := range wallets {
-		totalAssets += w.Balance
-	}
-
-	// PERBAIKAN: Tambahkan saldo Target Menabung sebagai bagian dari Total Aset Anda
-	savingGoals, err := s.savingGoalRepo.FindAll(userID)
-	if err == nil {
-		for _, sg := range savingGoals {
-			totalAssets += sg.CurrentAmount
-		}
+		totalLiquidAssets += w.Balance
 	}
 
 	// 3-month trend: from 3 cycles ago up to (but not including) the current cycle start
@@ -142,9 +154,9 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 
 	liquidityScore := 0.0 // In Months
 	if avgMonthlyExpense > 0 {
-		liquidityScore = totalAssets / avgMonthlyExpense // Menggunakan TotalAssets
-	} else if totalAssets > 0 {
-		liquidityScore = 999 // Infinite liquidity
+		liquidityScore = totalLiquidAssets / avgMonthlyExpense
+	} else if totalLiquidAssets > 0 {
+		liquidityScore = 12.0 // Cadangan aman jika belum ada catatan pengeluaran
 	}
 
 	liquidityRatio := entity.FinancialHealthRatio{
@@ -154,98 +166,127 @@ func (s *financialHealthService) GetFinancialHealth(userID uint) (entity.Financi
 		FormattedValue: fmt.Sprintf("%.1f Bulan", liquidityScore),
 	}
 
-	if liquidityScore >= 3 && liquidityScore <= 12 {
+	liquidityPoints := 0.0
+	if liquidityScore >= 3.0 && liquidityScore <= 12.0 {
+		liquidityPoints = 100.0
 		liquidityRatio.Status = entity.StatusHealthy
-		liquidityRatio.Description = "Dana darurat Anda aman untuk menutupi pengeluaran mendadak."
-	} else if liquidityScore > 12 {
+		liquidityRatio.Description = "Dana darurat Anda aman dan ideal untuk menutupi kebutuhan mendadak."
+	} else if liquidityScore > 12.0 {
 		if avgMonthlyExpense < 500000 {
+			liquidityPoints = 75.0
 			liquidityRatio.Status = entity.StatusWarning
 			liquidityRatio.Description = "Saldo aman, namun data pengeluaran bulanan Anda belum lengkap untuk kalkulasi akurat."
 		} else {
+			liquidityPoints = 95.0
 			liquidityRatio.Status = entity.StatusHealthy
-			liquidityRatio.Description = "Dana darurat sangat berlimpah."
+			liquidityRatio.Description = "Dana darurat sangat berlimpah. Pertimbangkan mendiversifikasi sebagian ke instrumen investasi agar tidak tergerus inflasi."
 		}
-	} else if liquidityScore >= 1 {
+	} else if liquidityScore >= 1.0 {
+		// Nilai 50 s/d 90
+		liquidityPoints = 50.0 + ((liquidityScore-1.0)/2.0)*40.0
 		liquidityRatio.Status = entity.StatusWarning
-		liquidityRatio.Description = "Dana darurat ada, namun perlu ditingkatkan untuk keamanan ekstra."
+		liquidityRatio.Description = "Dana darurat ada, namun perlu ditingkatkan hingga minimal 3 bulan pengeluaran untuk keamanan ekstra."
 	} else {
+		// Nilai 0 s/d 50
+		liquidityPoints = (liquidityScore / 1.0) * 50.0
 		liquidityRatio.Status = entity.StatusDanger
 		liquidityRatio.Description = "Bahaya! Segera sisihkan uang untuk dana darurat minimal 1 bulan pengeluaran."
 	}
 
-	// 3. DEBT-TO-ASSET RATIO
-	allDebts, err := s.debtRepo.FindByUserID(userID, "")
+	// 3. DEBT SERVICE RATIO (DSR) & DEBT BURDEN
+	// Mengukur beban cicilan utang bulanan terhadap pendapatan
+	paidDebtThisMonth, err := s.debtRepo.GetTotalPayments(userID, startDate, endDate)
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to fetch debt payments")
+		paidDebtThisMonth = 0.0
+	}
+
+	allDebts, err := s.debtRepo.FindByUserID(userID, string(entity.DebtTypePayable))
 	if err != nil {
 		log.Error().Err(err).Uint("user_id", userID).Msg("Failed to fetch debts")
 		return entity.FinancialHealthResponse{}, err
 	}
 
-	totalSisaHutang := 0.0
+	totalRemainingDebt := 0.0
+	hasActiveDebt := false
 	for _, debt := range allDebts {
-		if !debt.IsPaid && debt.Type != entity.DebtTypeReceivable {
-			totalSisaHutang += debt.Remaining
+		if !debt.IsPaid && debt.Remaining > 0 {
+			totalRemainingDebt += debt.Remaining
+			hasActiveDebt = true
 		}
 	}
 
-	debtRatio := 0.0
-	if totalAssets > 0 {
-		debtRatio = totalSisaHutang / totalAssets // Menggunakan TotalAssets
-	} else if totalSisaHutang > 0 {
-		debtRatio = 1.0 // 100% (all debt, no assets)
+	dsr := 0.0
+	isDebtFree := !hasActiveDebt && paidDebtThisMonth == 0
+
+	if isDebtFree {
+		dsr = 0.0
+	} else {
+		monthlyObligation := paidDebtThisMonth
+		if monthlyObligation == 0 && hasActiveDebt {
+			// Jika belum ada pembayaran cicilan di siklus ini, gunakan estimasi beban 5% dari sisa utang
+			monthlyObligation = totalRemainingDebt * 0.05
+		}
+
+		if totalIncomeMonth > 0 {
+			dsr = monthlyObligation / totalIncomeMonth
+		} else if monthlyObligation > 0 {
+			dsr = 1.0 // 100% beban utang tanpa pendapatan
+		}
 	}
 
 	debtRatioStruct := entity.FinancialHealthRatio{
-		Name:           "Rasio Hutang Terhadap Aset",
-		Value:          debtRatio,
-		Target:         "< 35%",
-		FormattedValue: fmt.Sprintf("%.1f%%", debtRatio*100),
+		Name:           "Rasio Utang Terhadap Pendapatan",
+		Value:          dsr,
+		Target:         "< 30%",
+		FormattedValue: fmt.Sprintf("%.1f%%", dsr*100),
 	}
 
-	if totalSisaHutang == 0 {
+	debtScore := 0.0
+	if isDebtFree {
+		debtScore = 100.0
 		debtRatioStruct.Status = entity.StatusHealthy
-		debtRatioStruct.Description = "Bebas utang! Kondisi sangat ideal."
-	} else if debtRatio <= 0.35 {
+		debtRatioStruct.Description = "Bebas utang! Kondisi keuangan Anda sangat ideal."
+	} else if dsr <= 0.15 {
+		debtScore = 100.0
 		debtRatioStruct.Status = entity.StatusHealthy
-		debtRatioStruct.Description = "Porsi utang aman dibandingkan aset."
-	} else if debtRatio <= 0.50 {
+		debtRatioStruct.Description = "Beban cicilan utang sangat ringan dibandingkan penghasilan Anda."
+	} else if dsr <= 0.30 {
+		debtScore = 80.0 + ((0.30-dsr)/0.15)*20.0
+		debtRatioStruct.Status = entity.StatusHealthy
+		debtRatioStruct.Description = "Porsi pembayaran utang masih dalam batas aman perencana keuangan (< 30%)."
+	} else if dsr <= 0.40 {
+		debtScore = 50.0 + ((0.40-dsr)/0.10)*29.0
 		debtRatioStruct.Status = entity.StatusWarning
-		debtRatioStruct.Description = "Waspada, saldo terancam habis jika semua utang ditagih."
+		debtRatioStruct.Description = "Waspada! Beban cicilan utang mendekati batas maksimal penghasilan Anda (30% - 40%)."
 	} else {
+		scoreVal := 50.0 - ((dsr-0.40)/0.20)*50.0
+		if scoreVal < 0 {
+			scoreVal = 0
+		}
+		debtScore = scoreVal
 		debtRatioStruct.Status = entity.StatusDanger
-		debtRatioStruct.Description = "Bahaya! Sisa hutang terlalu besar dibanding uang yang Anda miliki."
+		debtRatioStruct.Description = "Bahaya! Beban utang menyerap lebih dari 40% penghasilan Anda. Rentan gagal bayar."
 	}
 
-	// Overall Score Calculation
-	score := 0.0
-	if savingsRatio.Status == entity.StatusHealthy {
-		score += 100
-	}
-	if savingsRatio.Status == entity.StatusWarning {
-		score += 50
-	}
-	if liquidityRatio.Status == entity.StatusHealthy {
-		score += 100
-	}
-	if liquidityRatio.Status == entity.StatusWarning {
-		score += 50
-	}
-	if debtRatioStruct.Status == entity.StatusHealthy {
-		score += 100
-	}
-	if debtRatioStruct.Status == entity.StatusWarning {
-		score += 50
+	// 4. OVERALL SCORE CALCULATION (Weighted Continuous Scoring)
+	// Bobot: Likuiditas (35%), Tabungan (35%), Utang (30%)
+	overallScore := math.Round(savingsScore*0.35 + liquidityPoints*0.35 + debtScore*0.30)
+	if overallScore > 100 {
+		overallScore = 100
+	} else if overallScore < 0 {
+		overallScore = 0
 	}
 
-	overallScore := score / 3.0
 	overallStatus := entity.StatusWarning
 	if overallScore >= 80 {
 		overallStatus = entity.StatusHealthy
-	} else if overallScore < 40 {
+	} else if overallScore < 50 {
 		overallStatus = entity.StatusDanger
 	}
 
 	return entity.FinancialHealthResponse{
-		OverallScore:  math.Round(overallScore),
+		OverallScore:  overallScore,
 		OverallStatus: overallStatus,
 		Ratios: []entity.FinancialHealthRatio{
 			savingsRatio,

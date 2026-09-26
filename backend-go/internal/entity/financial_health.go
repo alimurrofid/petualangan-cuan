@@ -22,3 +22,8 @@ type FinancialHealthResponse struct {
 	OverallStatus FinancialHealthStatus  `json:"overall_status"`
 	Ratios        []FinancialHealthRatio `json:"ratios"`
 }
+
+type FinancialHealthWebResponse struct {
+	Status string                  `json:"status" example:"success"`
+	Data   FinancialHealthResponse `json:"data"`
+}

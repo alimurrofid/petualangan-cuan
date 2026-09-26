@@ -106,7 +106,7 @@ function getCardBorderClass(status: string) {
 const getIcon = (name: string) => {
     if (name.includes('Rasio Tabungan')) return PiggyBank;
     if (name.includes('Dana Darurat')) return ShieldCheck;
-    if (name.includes('Rasio Utang Terhadap Pendapatan')) return Scale;
+    if (name.includes('Rasio Utang') || name.includes('Beban Utang')) return Scale;
     return TrendingUp;
 }
 

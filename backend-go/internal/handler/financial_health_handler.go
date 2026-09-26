@@ -18,11 +18,11 @@ func NewFinancialHealthHandler(service service.FinancialHealthService) *Financia
 
 // GetFinancialHealth godoc
 // @Summary Get financial health analysis
-// @Description Get comprehensive financial health check including savings rate, liquidity, and debt ratio
+// @Description Get comprehensive financial health check including savings rate, emergency fund liquidity, and debt service ratio (DSR)
 // @Tags financial_health
 // @Accept json
 // @Produce json
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} entity.FinancialHealthWebResponse
 // @Failure 500 {object} map[string]interface{}
 // @Security BearerAuth
 // @Router /api/financial-health [get]
