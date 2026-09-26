@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import { Wallet, Bot, FolderOpen, ArrowLeftRight, TrendingUp, ToolCase, FileChartColumn, Settings2, Calendar1, HandCoins, Heart, PiggyBank, HeartPulse } from "lucide-vue-next";
+import { Wallet, Bot, FolderOpen, ArrowLeftRight, ToolCase, FileChartColumn, Settings2, Calendar1, HandCoins, Heart, PiggyBank, HeartPulse } from "lucide-vue-next";
 
 const items = [
   {
@@ -73,9 +73,7 @@ const settingsItems = [
   <Sidebar>
     <SidebarHeader>
       <div class="flex items-center gap-3 px-4 py-4">
-        <div class="flex items-center justify-center w-10 h-10 font-bold text-white rounded-lg shadow-lg bg-linear-to-br from-emerald-500 to-teal-600">
-          <TrendingUp class="w-5 h-5" />
-        </div>
+        <img src="/petualangancuan.svg" alt="Logo Petualangan Cuan" class="object-contain w-10 h-10 rounded-lg shadow-md shrink-0" />
         <div class="flex flex-col">
           <span class="text-base font-bold">Petualangan Cuan</span>
           <span class="text-xs text-muted-foreground">Kelola Keuangan Cerdas</span>
