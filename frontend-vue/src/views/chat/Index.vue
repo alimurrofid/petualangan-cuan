@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
   Send,
-  User,
   Sparkles,
   Image as ImageIcon,
   Mic,
@@ -670,8 +669,8 @@ const getMediaUrl = (url?: string) => {
               <img src="/cuan-bot.svg" alt="Cuan AI" class="object-cover w-full h-full" />
             </div>
             <div v-else
-              class="flex items-center justify-center w-10 h-10 text-white rounded-full shadow-sm bg-gradient-to-br from-emerald-500 to-teal-600 shrink-0">
-              <User class="w-5 h-5" />
+              class="w-10 h-10 overflow-hidden border rounded-full shadow-xs shrink-0 border-emerald-500/20">
+              <img src="/people.svg" alt="User" class="object-cover w-full h-full" />
             </div>
 
             <div :class="[
