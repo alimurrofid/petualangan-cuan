@@ -20,16 +20,16 @@ type mockAIService struct {
 	mock.Mock
 }
 
-func (m *mockAIService) Chat(message string, imageBase64 string, userContext string) (*entity.ChatAIResponse, error) {
-	args := m.Called(message, imageBase64, userContext)
+func (m *mockAIService) Chat(params service.ChatParams) (*entity.ChatAIResponse, error) {
+	args := m.Called(params)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*entity.ChatAIResponse), args.Error(1)
 }
 
-func (m *mockAIService) ChatStream(message string, imageBase64 string, userContext string, onToken func(string) error) (*entity.ChatAIResponse, error) {
-	args := m.Called(message, imageBase64, userContext, onToken)
+func (m *mockAIService) ChatStream(params service.ChatParams, onToken func(string) error) (*entity.ChatAIResponse, error) {
+	args := m.Called(params, onToken)
 	if onToken != nil {
 		_ = onToken("Halo ")
 		_ = onToken("User")
@@ -53,7 +53,7 @@ func (m *mockAIProvider) GenerateCompletion(_ context.Context, _ aiprovider.AIRe
 
 type mockChatHistoryService struct{ mock.Mock }
 
-func (m *mockChatHistoryService) SaveMessage(userID uint, role, content, audioURL, imageURL string) error {
+func (m *mockChatHistoryService) SaveMessage(userID uint, role, content, audioURL, imageURL string, transactions []entity.SavedTransaction) error {
 	return nil
 }
 
@@ -167,7 +167,9 @@ func TestAIHandler_FormatActionSummary(t *testing.T) {
 
 func TestAIHandler_ChatMessage_Success(t *testing.T) {
 	mockAI := new(mockAIService)
-	mockAI.On("Chat", "halo cuan", "", mock.Anything).Return(&entity.ChatAIResponse{
+	mockAI.On("Chat", mock.MatchedBy(func(p service.ChatParams) bool {
+		return p.Message == "halo cuan"
+	})).Return(&entity.ChatAIResponse{
 		Reply:         "Halo juga! Ada yang bisa saya bantu?",
 		IsTransaction: false,
 	}, nil)

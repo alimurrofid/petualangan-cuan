@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
+	"cuan-backend/pkg/utils"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -86,7 +87,9 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 
 	text := strings.TrimSpace(msg.Body)
 	var imageBase64 string
-	var audioTranscription string
+	var audioBase64 string
+	var audioFormat string
+	var audioMimeType string
 
 	var savedAudioURL, savedImageURL string
 
@@ -97,7 +100,7 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 			_ = s.sendWAMessage(msg.ChatID, event.DeviceID, "❌ Gagal mengunduh pesan suara. Coba kirim ulang.")
 			return err
 		}
-		
+
 		// Simpan audio ke file sistem
 		audioFilename := fmt.Sprintf("wa_audio_%d_%d.ogg", user.ID, time.Now().UnixNano())
 		audioPath := filepath.Join("uploads", "audio", audioFilename)
@@ -108,13 +111,14 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 			log.Warn().Err(err).Msg("[WA] Gagal menyimpan audio WA ke disk")
 		}
 
-		transcription, err := s.transcribeAudio(audioData, msg.Audio)
-		if err != nil {
-			log.Error().Err(err).Msg("[WA] Gagal transkripsi audio")
-			_ = s.sendWAMessage(msg.ChatID, event.DeviceID, "❌ Gagal membaca pesan suara. Coba kirim ulang atau ketik pesannya.")
-			return err
+		audioBase64 = base64.StdEncoding.EncodeToString(audioData)
+		meta := utils.ResolveAudioMetadata(msg.Audio)
+		audioFormat = meta.Format
+		audioMimeType = meta.MimeType
+
+		if text == "" {
+			text = "Tolong dengarkan rekaman suara ini. Jika ini transaksi keuangan, catat dan identifikasi rinciannya."
 		}
-		audioTranscription = transcription
 	}
 
 	if msg.Image != "" {
@@ -141,26 +145,24 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 		}
 	}
 
-	if audioTranscription != "" {
-		prefix := "[TRANSKRIPSI SUARA - mungkin ada kesalahan fonetik, tolong koreksi]: "
-		if text == "" {
-			text = prefix + audioTranscription
-		} else {
-			text = text + "\n\n" + prefix + audioTranscription
-		}
-	}
-
 	if text == "" {
 		return nil
 	}
 
-	if err := s.chatHistSvc.SaveMessage(user.ID, "user", text, savedAudioURL, savedImageURL); err != nil {
+	if err := s.chatHistSvc.SaveMessage(user.ID, "user", text, savedAudioURL, savedImageURL, nil); err != nil {
 		log.Warn().Err(err).Msg("[WA] Gagal simpan pesan user")
 	}
 
 	userContext := s.chatbotSvc.GetUserContext(user.ID, text)
 
-	aiResp, err := s.aiSvc.Chat(text, imageBase64, userContext)
+	aiResp, err := s.aiSvc.Chat(ChatParams{
+		Message:       text,
+		ImageBase64:   imageBase64,
+		AudioBase64:   audioBase64,
+		AudioFormat:   audioFormat,
+		AudioMimeType: audioMimeType,
+		UserContext:   userContext,
+	})
 	if err != nil {
 		log.Error().Err(err).Msg("[WA] AI Chat gagal")
 		_ = s.sendWAMessage(msg.ChatID, event.DeviceID,
@@ -169,6 +171,7 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 	}
 
 	replyText := aiResp.Reply
+	var finalTransactions []entity.SavedTransaction
 
 	if aiResp.IsTransaction && len(aiResp.Transactions) > 0 {
 		saved, err := s.chatbotSvc.SaveTransactions(user.ID, aiResp.Transactions)
@@ -176,6 +179,7 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 			log.Error().Err(err).Msg("[WA] SaveTransactions gagal")
 			replyText += "\n\n⚠️ Transaksi terdeteksi tapi gagal disimpan."
 		} else if len(saved) > 0 {
+			finalTransactions = saved
 			summary := "\n\n"
 			for _, s := range saved {
 				switch s.Action {
@@ -200,7 +204,7 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 		}
 	}
 
-	if err := s.chatHistSvc.SaveMessage(user.ID, "assistant", replyText, "", ""); err != nil {
+	if err := s.chatHistSvc.SaveMessage(user.ID, "assistant", replyText, "", "", finalTransactions); err != nil {
 		log.Warn().Err(err).Msg("[WA] Gagal simpan balasan AI")
 	}
 	return s.sendWAMessage(msg.ChatID, event.DeviceID, replyText)
@@ -237,24 +241,6 @@ func (s *whatsAppService) downloadMediaFromGateway(mediaPath string) ([]byte, er
 	}
 
 	return io.ReadAll(resp.Body)
-}
-
-func (s *whatsAppService) transcribeAudio(data []byte, originalPath string) (string, error) {
-	ext := ".ogg"
-	lower := strings.ToLower(originalPath)
-	for _, candidate := range []string{".ogg", ".mp4", ".webm", ".m4a", ".aac", ".wav"} {
-		if strings.HasSuffix(lower, candidate) {
-			ext = candidate
-			break
-		}
-	}
-
-	tmpPath := fmt.Sprintf("/tmp/wa_audio_%d%s", time.Now().UnixNano(), ext)
-	if err := writeFile(tmpPath, data); err != nil {
-		return "", fmt.Errorf("gagal tulis file temp: %w", err)
-	}
-
-	return s.aiSvc.ProcessVoice(tmpPath)
 }
 
 func (s *whatsAppService) sendWAMessage(chatID, deviceID, text string) error {

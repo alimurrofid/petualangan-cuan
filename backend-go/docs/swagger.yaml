@@ -34,6 +34,10 @@ definitions:
       role:
         description: '"user" | "assistant"'
         type: string
+      transactions:
+        items:
+          $ref: '#/definitions/entity.SavedTransaction'
+        type: array
       user_id:
         type: integer
     type: object

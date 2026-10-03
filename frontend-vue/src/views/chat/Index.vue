@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, nextTick, onMounted, onUnmounted } from "vue";
+import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -111,6 +112,7 @@ const loadHistory = async () => {
       audio_url?: string;
       image_url?: string;
       created_at: string;
+      transactions?: SavedTransaction[];
     }> = await res.json();
 
     if (data && data.length > 0) {
@@ -121,6 +123,7 @@ const loadHistory = async () => {
         time: format(new Date(m.created_at), "HH:mm"),
         audioUrl: m.audio_url || undefined,
         imageUrl: m.image_url || undefined,
+        transactions: m.transactions?.length ? m.transactions : undefined,
       }));
     } else {
       // Pesan sambutan untuk percakapan baru
@@ -507,13 +510,6 @@ const sendMessage = async () => {
 
   try {
     const token = localStorage.getItem("token");
-    const response = await fetch(import.meta.env.VITE_API_BASE_URL + "api/ai/chat/stream", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    if (!response.body) throw new Error("Streaming not supported");
 
     const assistantMsg: Message = reactive({
       id: Date.now() + 1,
@@ -523,33 +519,21 @@ const sendMessage = async () => {
     });
     let isMessagePushed = false;
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const parts = buffer.split("\n\n");
-      buffer = parts.pop() || "";
-
-      for (const part of parts) {
-        const lines = part.split("\n");
-        let event = "";
-        let data = "";
-
-        for (const line of lines) {
-          if (line.startsWith("event: ")) event = line.substring(7);
-          else if (line.startsWith("data: ")) data = line.substring(6);
+    await fetchEventSource(import.meta.env.VITE_API_BASE_URL + "api/ai/chat/stream", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+      async onopen(response) {
+        if (!response.ok) {
+          throw new Error("Gagal memulai streaming");
         }
-
-        if (event === "status") {
-          typingStatus.value = data;
+      },
+      onmessage(msg) {
+        if (msg.event === "status") {
+          typingStatus.value = msg.data;
           isTyping.value = true;
           throttledScrollToBottom();
-        } else if (event === "token") {
+        } else if (msg.event === "token") {
           try {
             if (!isMessagePushed) {
               messages.value.push(assistantMsg);
@@ -558,14 +542,14 @@ const sendMessage = async () => {
               scrollToBottom();
             }
 
-            const parsed = JSON.parse(data);
+            const parsed = JSON.parse(msg.data);
             assistantMsg.content += parsed.content;
 
             throttledScrollToBottom();
           } catch (e) { }
-        } else if (event === "done") {
+        } else if (msg.event === "done") {
           try {
-            const result = JSON.parse(data);
+            const result = JSON.parse(msg.data);
 
             if (!isMessagePushed) {
               messages.value.push(assistantMsg);
@@ -582,21 +566,24 @@ const sendMessage = async () => {
             scrollToBottom();
           } catch (e) { }
           isTyping.value = false;
-        } else if (event === "error") {
+        } else if (msg.event === "error") {
           if (!isMessagePushed) {
             messages.value.push(assistantMsg);
             isMessagePushed = true;
           }
           try {
-            const parsed = JSON.parse(data);
-            assistantMsg.content += `\n⚠️ Error: ${parsed || data}`;
+            const parsed = JSON.parse(msg.data);
+            assistantMsg.content += `\n⚠️ Error: ${parsed.error || parsed || msg.data}`;
           } catch (e) {
-            assistantMsg.content += `\n⚠️ Error: ${data}`;
+            assistantMsg.content += `\n⚠️ Error: ${msg.data}`;
           }
           isTyping.value = false;
         }
-      }
-    }
+      },
+      onerror(err) {
+        throw err; // Lempar ke catch agar tidak retry berulang kali
+      },
+    });
 
   } catch (error: any) {
     isTyping.value = false;

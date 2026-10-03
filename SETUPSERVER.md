@@ -62,7 +62,7 @@ Berdasarkan source code repository:
 ## 2. Spesifikasi Minimum & Rekomendasi VPS
 
 ### Opsi A — Mode AI External (Rekomendasi untuk VPS Budget / 2GB - 4GB RAM)
-Menggunakan `AI_PROVIDER=external` (OpenRouter / Google Gemini API). Container LLM dan Whisper tidak dijalankan (`COMPOSE_PROFILES=` kosong), sehingga sangat hemat sumber daya.
+Menggunakan `AI_PROVIDER=external` (OpenRouter / Google Gemini API). Container LLM dan Whisper tidak dijalankan (`COMPOSE_PROFILES=` kosong), sehingga sangat hemat sumber daya. Audio diproses secara native multimodal (Pure Passthrough) langsung ke AI tanpa membutuhkan container Whisper lokal.
 * **CPU**: 2 vCPU
 * **RAM**: 2 GB (Minimum) / 4 GB (Rekomendasi)
 * **Storage**: 25 GB – 40 GB SSD / NVMe
@@ -558,7 +558,12 @@ FRONTEND_URL=https://petualangancuan.rofid.me
 AI_PROVIDER=external
 COMPOSE_PROFILES=
 
-# External AI Settings (Aktif jika AI_PROVIDER=external)
+# External AI Settings (Multimodal Text, Image, & Audio via OpenAI-Compatible Endpoint)
+# Pilihan 1 (Google Gemini via OpenAI-compatible endpoint):
+# EXTERNAL_AI_URL=https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+# EXTERNAL_AI_API_KEY=AIzaSy...
+# EXTERNAL_AI_MODEL=gemini-2.0-flash
+# Pilihan 2 (OpenRouter):
 EXTERNAL_AI_URL=https://openrouter.ai/api/v1/chat/completions
 EXTERNAL_AI_API_KEY=GANTI_DENGAN_API_KEY_OPENROUTER_ATAU_GEMINI
 EXTERNAL_AI_MODEL=google/gemini-2.0-flash-001
@@ -629,7 +634,12 @@ FRONTEND_URL=https://stagingpetualangancuan.rofid.me
 AI_PROVIDER=external
 COMPOSE_PROFILES=
 
-# External AI Settings
+# External AI Settings (Multimodal Text, Image, & Audio via OpenAI-Compatible Endpoint)
+# Pilihan 1 (Google Gemini via OpenAI-compatible endpoint):
+# EXTERNAL_AI_URL=https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+# EXTERNAL_AI_API_KEY=AIzaSy...
+# EXTERNAL_AI_MODEL=gemini-2.0-flash
+# Pilihan 2 (OpenRouter):
 EXTERNAL_AI_URL=https://openrouter.ai/api/v1/chat/completions
 EXTERNAL_AI_API_KEY=GANTI_DENGAN_API_KEY_OPENROUTER_ATAU_GEMINI
 EXTERNAL_AI_MODEL=google/gemini-2.0-flash-001

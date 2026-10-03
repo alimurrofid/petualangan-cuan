@@ -79,7 +79,10 @@ func main() {
 		log.Info().Str("provider", "Local").Str("url", localLLMURL).Msg("AI Provider Configured")
 	}
 
-	whisperURL := os.Getenv("LOCAL_WHISPER_URL")
+	var whisperURL string
+	if os.Getenv("AI_PROVIDER") != "external" {
+		whisperURL = os.Getenv("LOCAL_WHISPER_URL")
+	}
 
 	aiSvc := service.NewAIService(llmProvider, whisperURL)
 

@@ -8,7 +8,7 @@ import (
 const DefaultChatHistoryLimit = 100
 
 type ChatHistoryService interface {
-	SaveMessage(userID uint, role, content, audioURL, imageURL string) error
+	SaveMessage(userID uint, role, content, audioURL, imageURL string, transactions []entity.SavedTransaction) error
 	GetHistory(userID uint, limit int) ([]entity.ChatMessage, error)
 	ClearHistory(userID uint) error
 }
@@ -21,13 +21,14 @@ func NewChatHistoryService(repo repository.ChatRepository) ChatHistoryService {
 	return &chatHistoryService{repo: repo}
 }
 
-func (s *chatHistoryService) SaveMessage(userID uint, role, content, audioURL, imageURL string) error {
+func (s *chatHistoryService) SaveMessage(userID uint, role, content, audioURL, imageURL string, transactions []entity.SavedTransaction) error {
 	msg := &entity.ChatMessage{
-		UserID:   userID,
-		Role:     role,
-		Content:  content,
-		AudioURL: audioURL,
-		ImageURL: imageURL,
+		UserID:       userID,
+		Role:         role,
+		Content:      content,
+		AudioURL:     audioURL,
+		ImageURL:     imageURL,
+		Transactions: transactions,
 	}
 	return s.repo.Save(msg)
 }

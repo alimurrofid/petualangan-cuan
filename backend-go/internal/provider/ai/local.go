@@ -66,10 +66,16 @@ type localChatMessage struct {
 	Content interface{} `json:"content"`
 }
 
+type localInputAudio struct {
+	Data   string `json:"data"`
+	Format string `json:"format"`
+}
+
 type localContentPart struct {
-	Type     string        `json:"type"`
-	Text     string        `json:"text,omitempty"`
-	ImageURL *localImgURL  `json:"image_url,omitempty"`
+	Type       string           `json:"type"`
+	Text       string           `json:"text,omitempty"`
+	ImageURL   *localImgURL     `json:"image_url,omitempty"`
+	InputAudio *localInputAudio `json:"input_audio,omitempty"`
 }
 
 type localImgURL struct {

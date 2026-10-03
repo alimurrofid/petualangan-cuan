@@ -6,12 +6,13 @@ import (
 	"context"
 	"cuan-backend/internal/entity"
 	aiprovider "cuan-backend/internal/provider/ai"
+	"os"
+	"strconv"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,9 +20,18 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type ChatParams struct {
+	Message       string
+	ImageBase64   string
+	AudioBase64   string
+	AudioFormat   string
+	AudioMimeType string
+	UserContext   string
+}
+
 type AIService interface {
-	Chat(message string, imageBase64 string, userContext string) (*entity.ChatAIResponse, error)
-	ChatStream(message string, imageBase64 string, userContext string, onToken func(string) error) (*entity.ChatAIResponse, error)
+	Chat(params ChatParams) (*entity.ChatAIResponse, error)
+	ChatStream(params ChatParams, onToken func(string) error) (*entity.ChatAIResponse, error)
 	ProcessVoice(path string) (string, error)
 }
 
@@ -32,10 +42,17 @@ type aiService struct {
 }
 
 func NewAIService(provider aiprovider.Provider, whisperURL string) AIService {
+	maxConcurrent := 2 // default
+	if val := os.Getenv("LLM_MAX_CONCURRENT_REQUESTS"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+			maxConcurrent = parsed
+		}
+	}
+
 	return &aiService{
 		provider:   provider,
 		whisperURL: whisperURL,
-		llmSem:     make(chan struct{}, 2), // max 2 concurrent LLM inference
+		llmSem:     make(chan struct{}, maxConcurrent),
 	}
 }
 
@@ -44,10 +61,16 @@ type chatMessage struct {
 	Content interface{} `json:"content"`
 }
 
+type inputAudio struct {
+	Data   string `json:"data"`
+	Format string `json:"format"`
+}
+
 type contentPart struct {
-	Type     string    `json:"type"`
-	Text     string    `json:"text,omitempty"`
-	ImageURL *imageURL `json:"image_url,omitempty"`
+	Type       string      `json:"type"`
+	Text       string      `json:"text,omitempty"`
+	ImageURL   *imageURL   `json:"image_url,omitempty"`
+	InputAudio *inputAudio `json:"input_audio,omitempty"`
 }
 
 type imageURL struct {
@@ -70,7 +93,7 @@ type chatCompletionResponse struct {
 	} `json:"choices"`
 }
 
-func (s *aiService) Chat(message string, imageBase64 string, userContext string) (*entity.ChatAIResponse, error) {
+func (s *aiService) Chat(params ChatParams) (*entity.ChatAIResponse, error) {
 	select {
 	case s.llmSem <- struct{}{}:
 		defer func() { <-s.llmSem }()
@@ -78,16 +101,19 @@ func (s *aiService) Chat(message string, imageBase64 string, userContext string)
 		return nil, fmt.Errorf("AI Server sedang sibuk, mohon coba beberapa saat lagi")
 	}
 
-	systemPrompt := fmt.Sprintf(SystemPromptChat, userContext)
-	log.Debug().Str("context", userContext).Msg("User Context sent to LLM")
+	systemPrompt := fmt.Sprintf(SystemPromptChat, params.UserContext)
+	log.Debug().Str("context", params.UserContext).Msg("User Context sent to LLM")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	req := aiprovider.AIRequest{
-		Prompt:      message,
-		Base64Image: imageBase64,
-		System:      systemPrompt,
+		Prompt:        params.Message,
+		Base64Image:   params.ImageBase64,
+		Base64Audio:   params.AudioBase64,
+		AudioFormat:   params.AudioFormat,
+		AudioMimeType: params.AudioMimeType,
+		System:        systemPrompt,
 	}
 
 	content, err := s.provider.GenerateCompletion(ctx, req)
@@ -101,6 +127,9 @@ func (s *aiService) Chat(message string, imageBase64 string, userContext string)
 }
 
 func (s *aiService) ProcessVoice(path string) (string, error) {
+	if s.whisperURL == "" {
+		return "", fmt.Errorf("whisper service tidak dikonfigurasi")
+	}
 	file, err := os.Open(path)
 	if err != nil {
 		return "", fmt.Errorf("failed to open audio file: %w", err)
@@ -151,7 +180,7 @@ func (s *aiService) ProcessVoice(path string) (string, error) {
 	return strings.TrimSpace(result.Text), nil
 }
 
-func (s *aiService) ChatStream(message string, imageBase64 string, userContext string, onToken func(string) error) (*entity.ChatAIResponse, error) {
+func (s *aiService) ChatStream(params ChatParams, onToken func(string) error) (*entity.ChatAIResponse, error) {
 	select {
 	case s.llmSem <- struct{}{}:
 		defer func() { <-s.llmSem }()
@@ -159,11 +188,11 @@ func (s *aiService) ChatStream(message string, imageBase64 string, userContext s
 		return nil, fmt.Errorf("AI Server sedang sibuk, mohon coba beberapa saat lagi")
 	}
 
-	systemPrompt := fmt.Sprintf(SystemPromptChat, userContext)
-	log.Debug().Str("context", userContext).Msg("User Context sent to LLM (Stream)")
+	systemPrompt := fmt.Sprintf(SystemPromptChat, params.UserContext)
+	log.Debug().Str("context", params.UserContext).Msg("User Context sent to LLM (Stream)")
 
 	payload := chatCompletionRequest{
-		Messages:    buildMessages(systemPrompt, message, imageBase64),
+		Messages:    buildMessages(systemPrompt, params),
 		MaxTokens:   1024,
 		Temperature: 0.3,
 		Stream:      true,
@@ -172,15 +201,35 @@ func (s *aiService) ChatStream(message string, imageBase64 string, userContext s
 	return s.doChatStream(payload, onToken)
 }
 
-func buildMessages(system, prompt, imageBase64 string) []chatMessage {
+func buildMessages(system string, params ChatParams) []chatMessage {
 	var userContent interface{}
-	if imageBase64 != "" {
-		userContent = []contentPart{
-			{Type: "text", Text: prompt},
-			{Type: "image_url", ImageURL: &imageURL{URL: "data:image/jpeg;base64," + imageBase64}},
+	if params.ImageBase64 != "" || params.AudioBase64 != "" {
+		parts := []contentPart{}
+		if params.Message != "" {
+			parts = append(parts, contentPart{Type: "text", Text: params.Message})
 		}
+		if params.ImageBase64 != "" {
+			parts = append(parts, contentPart{
+				Type:     "image_url",
+				ImageURL: &imageURL{URL: "data:image/jpeg;base64," + params.ImageBase64},
+			})
+		}
+		if params.AudioBase64 != "" {
+			format := params.AudioFormat
+			if format != "wav" && format != "mp3" {
+				format = "wav"
+			}
+			parts = append(parts, contentPart{
+				Type: "input_audio",
+				InputAudio: &inputAudio{
+					Data:   params.AudioBase64,
+					Format: format,
+				},
+			})
+		}
+		userContent = parts
 	} else {
-		userContent = prompt
+		userContent = params.Message
 	}
 
 	return []chatMessage{
@@ -245,7 +294,7 @@ func (s *aiService) doChatStream(payload chatCompletionRequest, onToken func(str
 }
 
 func (s *aiService) chatStreamViaProvider(payload chatCompletionRequest, onToken func(string) error) (*entity.ChatAIResponse, error) {
-	var prompt, system, imageBase64 string
+	var prompt, system, imageBase64, audioBase64, audioFormat string
 	for _, msg := range payload.Messages {
 		switch msg.Role {
 		case "system":
@@ -261,6 +310,9 @@ func (s *aiService) chatStreamViaProvider(payload chatCompletionRequest, onToken
 						prompt = p.Text
 					} else if p.Type == "image_url" && p.ImageURL != nil {
 						imageBase64 = strings.TrimPrefix(p.ImageURL.URL, "data:image/jpeg;base64,")
+					} else if p.Type == "input_audio" && p.InputAudio != nil {
+						audioBase64 = p.InputAudio.Data
+						audioFormat = p.InputAudio.Format
 					}
 				}
 			}
@@ -273,6 +325,8 @@ func (s *aiService) chatStreamViaProvider(payload chatCompletionRequest, onToken
 	req := aiprovider.AIRequest{
 		Prompt:      prompt,
 		Base64Image: imageBase64,
+		Base64Audio: audioBase64,
+		AudioFormat: audioFormat,
 		System:      system,
 	}
 

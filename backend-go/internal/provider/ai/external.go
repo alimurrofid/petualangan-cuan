@@ -62,11 +62,31 @@ func (p *ExternalProvider) GenerateCompletion(ctx context.Context, req AIRequest
 
 func buildExternalPayload(req AIRequest) completionPayload {
 	var userContent interface{}
-	if req.Base64Image != "" {
-		userContent = []localContentPart{
-			{Type: "text", Text: req.Prompt},
-			{Type: "image_url", ImageURL: &localImgURL{URL: "data:image/jpeg;base64," + req.Base64Image}},
+	if req.Base64Image != "" || req.Base64Audio != "" {
+		parts := []localContentPart{}
+		if req.Prompt != "" {
+			parts = append(parts, localContentPart{Type: "text", Text: req.Prompt})
 		}
+		if req.Base64Image != "" {
+			parts = append(parts, localContentPart{
+				Type:     "image_url",
+				ImageURL: &localImgURL{URL: "data:image/jpeg;base64," + req.Base64Image},
+			})
+		}
+		if req.Base64Audio != "" {
+			audioFmt := req.AudioFormat
+			if audioFmt != "wav" && audioFmt != "mp3" {
+				audioFmt = "wav"
+			}
+			parts = append(parts, localContentPart{
+				Type: "input_audio",
+				InputAudio: &localInputAudio{
+					Data:   req.Base64Audio,
+					Format: audioFmt,
+				},
+			})
+		}
+		userContent = parts
 	} else {
 		userContent = req.Prompt
 	}

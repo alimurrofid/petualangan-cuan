@@ -5,10 +5,12 @@ import (
 	"bytes"
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/service"
+	"cuan-backend/pkg/utils"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
@@ -74,6 +76,9 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 
 	var audioURL string
 	var savedImageURL string
+	var audioBase64 string
+	var audioFormat string
+	var audioMimeType string
 
 	voiceFile, err := c.FormFile("voice")
 	if err == nil && voiceFile != nil {
@@ -82,6 +87,16 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 				"error": fmt.Sprintf("Ukuran audio maksimal %dMB", MaxAudioSize>>20),
 			})
 		}
+		b64, err := fileHeaderToBase64(voiceFile)
+		if err != nil {
+			reqID, _ := c.Locals("requestid").(string)
+			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to read audio as base64")
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Gagal memproses audio: " + err.Error(),
+			})
+		}
+		audioBase64 = b64
+
 		savedPath, err := processAndSaveFile(voiceFile)
 		if err != nil {
 			reqID, _ := c.Locals("requestid").(string)
@@ -91,20 +106,12 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 			})
 		}
 		audioURL = savedPath
+		meta := utils.ResolveAudioMetadata(voiceFile.Filename)
+		audioFormat = meta.Format
+		audioMimeType = meta.MimeType
 
-		diskPath := "." + savedPath
-		transcription, err := h.aiService.ProcessVoice(diskPath)
-		if err != nil {
-			reqID, _ := c.Locals("requestid").(string)
-			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to process audio")
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Gagal memproses audio: " + err.Error(),
-			})
-		}
 		if message == "" {
-			message = "[TRANSKRIPSI SUARA - mungkin ada kesalahan fonetik, tolong koreksi]: " + transcription
-		} else {
-			message = message + "\n\n[TRANSKRIPSI SUARA - mungkin ada kesalahan fonetik, tolong koreksi]: " + transcription
+			message = "Tolong dengarkan rekaman audio ini. Jika ini transaksi keuangan, catat dan identifikasi rinciannya."
 		}
 	}
 
@@ -115,6 +122,16 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 				"error": fmt.Sprintf("Ukuran gambar maksimal %dMB", MaxImageSize>>20),
 			})
 		}
+		b64, err := fileHeaderToBase64(imageFile)
+		if err != nil {
+			reqID, _ := c.Locals("requestid").(string)
+			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to process image")
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Gagal memproses gambar: " + err.Error(),
+			})
+		}
+		imageBase64 = b64
+
 		savedPath, err := processAndSaveFile(imageFile)
 		if err != nil {
 			reqID, _ := c.Locals("requestid").(string)
@@ -124,17 +141,6 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 			})
 		}
 		savedImageURL = savedPath
-
-		diskPath := "." + savedPath
-		b64, err := readFileAsBase64(diskPath)
-		if err != nil {
-			reqID, _ := c.Locals("requestid").(string)
-			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to process image")
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Gagal memproses gambar: " + err.Error(),
-			})
-		}
-		imageBase64 = b64
 
 		if message == "" {
 			message = "Tolong analisis gambar ini. Jika ini struk belanja, identifikasi item dan harganya."
@@ -149,12 +155,19 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 
 	// Simpan pesan user ke history
 	userContent := message
-	if err := h.chatHistorySvc.SaveMessage(userID, "user", userContent, audioURL, savedImageURL); err != nil {
+	if err := h.chatHistorySvc.SaveMessage(userID, "user", userContent, audioURL, savedImageURL, nil); err != nil {
 		log.Warn().Err(err).Msg("Gagal menyimpan pesan user ke history")
 	}
 
 	userContext := h.chatbotService.GetUserContext(userID, message)
-	aiResponse, err := h.aiService.Chat(message, imageBase64, userContext)
+	aiResponse, err := h.aiService.Chat(service.ChatParams{
+		Message:       message,
+		ImageBase64:   imageBase64,
+		AudioBase64:   audioBase64,
+		AudioFormat:   audioFormat,
+		AudioMimeType: audioMimeType,
+		UserContext:   userContext,
+	})
 	if err != nil {
 		reqID, _ := c.Locals("requestid").(string)
 		log.Error().Str("request_id", reqID).Err(err).Msg("AI Chat failed")
@@ -183,7 +196,7 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 	}
 
 	// Simpan balasan AI ke history
-	if err := h.chatHistorySvc.SaveMessage(userID, "assistant", response.Reply, "", ""); err != nil {
+	if err := h.chatHistorySvc.SaveMessage(userID, "assistant", response.Reply, "", "", response.Transactions); err != nil {
 		log.Warn().Err(err).Msg("Gagal menyimpan balasan AI ke history")
 	}
 
@@ -215,12 +228,21 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 	var savedImageURL string
 	var diskVoicePath string
 	var diskImagePath string
+	var audioBase64 string
+	var audioFormat string
+	var audioMimeType string
 
 	voiceFile, err := c.FormFile("voice")
 	if err == nil && voiceFile != nil {
 		if voiceFile.Size > MaxAudioSize {
 			return c.Status(http.StatusRequestEntityTooLarge).JSON(fiber.Map{"error": "Audio too large"})
 		}
+		b64, err := fileHeaderToBase64(voiceFile)
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": fmt.Sprintf("Gagal memproses audio: %s", err.Error())})
+		}
+		audioBase64 = b64
+
 		savedPath, err := processAndSaveFile(voiceFile)
 		if err != nil {
 			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to save audio")
@@ -235,6 +257,12 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		if imageFile.Size > MaxImageSize {
 			return c.Status(http.StatusRequestEntityTooLarge).JSON(fiber.Map{"error": "Image too large"})
 		}
+		b64, err := fileHeaderToBase64(imageFile)
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": fmt.Sprintf("Gagal memproses gambar: %s", err.Error())})
+		}
+		imageBase64 = b64
+
 		savedPath, err := processAndSaveFile(imageFile)
 		if err != nil {
 			log.Error().Str("request_id", reqID).Err(err).Msg("Failed to save image")
@@ -253,28 +281,16 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		writeSSE(w, "status", "Mempersiapkan...")
 
 		if diskVoicePath != "" {
-			writeSSE(w, "status", "Mentranskripsi suara...")
-			transcription, err := h.aiService.ProcessVoice(diskVoicePath)
-			if err != nil {
-				safeError, _ := json.Marshal(map[string]string{"error": "Gagal memproses audio: " + err.Error()})
-				writeSSE(w, "error", string(safeError))
-				return
-			}
+			meta := utils.ResolveAudioMetadata(diskVoicePath)
+			audioFormat = meta.Format
+			audioMimeType = meta.MimeType
+
 			if message == "" {
-				message = "[TRANSKRIPSI SUARA - mungkin ada kesalahan fonetik, tolong koreksi]: " + transcription
-			} else {
-				message = message + "\n\n[TRANSKRIPSI SUARA - mungkin ada kesalahan fonetik, tolong koreksi]: " + transcription
+				message = "Tolong dengarkan rekaman audio ini. Jika ini transaksi keuangan, catat dan identifikasi rinciannya."
 			}
 		}
 
 		if diskImagePath != "" {
-			b64, err := readFileAsBase64(diskImagePath)
-			if err != nil {
-				safeError, _ := json.Marshal(map[string]string{"error": "Gagal memproses gambar: " + err.Error()})
-				writeSSE(w, "error", string(safeError))
-				return
-			}
-			imageBase64 = b64
 			if message == "" {
 				message = "Tolong analisis gambar ini. Jika ini struk belanja, identifikasi item dan harganya."
 			}
@@ -287,19 +303,28 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		}
 
 		// Simpan pesan user ke history
-		if err := h.chatHistorySvc.SaveMessage(userID, "user", message, audioURL, savedImageURL); err != nil {
+		if err := h.chatHistorySvc.SaveMessage(userID, "user", message, audioURL, savedImageURL, nil); err != nil {
 			log.Warn().Err(err).Msg("Gagal menyimpan pesan user ke history")
 		}
 
 		botStatus := "Sedang berpikir..."
 		if diskImagePath != "" {
 			botStatus = "Menganalisis gambar..."
+		} else if diskVoicePath != "" {
+			botStatus = "Mendengarkan audio..."
 		}
 		writeSSE(w, "status", botStatus)
 
 		userContext := h.chatbotService.GetUserContext(userID, message)
 
-		aiResponse, err := h.aiService.ChatStream(message, imageBase64, userContext, func(token string) error {
+		aiResponse, err := h.aiService.ChatStream(service.ChatParams{
+			Message:       message,
+			ImageBase64:   imageBase64,
+			AudioBase64:   audioBase64,
+			AudioFormat:   audioFormat,
+			AudioMimeType: audioMimeType,
+			UserContext:   userContext,
+		}, func(token string) error {
 			safeToken, _ := json.Marshal(map[string]string{"content": token})
 			return writeSSE(w, "token", string(safeToken))
 		})
@@ -339,7 +364,7 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 		}
 
 		// Simpan balasan AI ke history setelah streaming selesai
-		if err := h.chatHistorySvc.SaveMessage(userID, "assistant", response.Reply, "", ""); err != nil {
+		if err := h.chatHistorySvc.SaveMessage(userID, "assistant", response.Reply, "", "", response.Transactions); err != nil {
 			log.Warn().Err(err).Msg("Gagal menyimpan balasan AI ke history")
 		}
 
@@ -451,6 +476,22 @@ func readFileAsBase64(path string) (string, error) {
 	}
 	encoder.Close()
 
+	return buf.String(), nil
+}
+
+func fileHeaderToBase64(file *multipart.FileHeader) (string, error) {
+	f, err := file.Open()
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	var buf bytes.Buffer
+	encoder := base64.NewEncoder(base64.StdEncoding, &buf)
+	if _, err := io.Copy(encoder, f); err != nil {
+		return "", err
+	}
+	encoder.Close()
 	return buf.String(), nil
 }
 

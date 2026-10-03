@@ -2608,6 +2608,12 @@ const docTemplate = `{
                     "description": "\"user\" | \"assistant\"",
                     "type": "string"
                 },
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.SavedTransaction"
+                    }
+                },
                 "user_id": {
                     "type": "integer"
                 }
