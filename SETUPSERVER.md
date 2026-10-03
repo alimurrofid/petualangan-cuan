@@ -14,7 +14,7 @@ Dokumen ini menjelaskan panduan **end-to-end deployment** aplikasi **Petualangan
 3. [Inisialisasi & Pengamanan Sistem Ubuntu](#3-inisialisasi--pengamanan-sistem-ubuntu)
 4. [User Non-Root, SSH Key, & Hardening](#4-user-non-root-ssh-key--hardening)
 5. [Konfigurasi Firewall (UFW & Cloud Security Group)](#5-konfigurasi-firewall-ufw--cloud-security-group)
-6. [Instalasi Docker, NVM, & Tooling Server](#6-instalasi-docker-nvm--tooling-server)
+6. [Instalasi Docker & Tooling Server](#6-instalasi-docker--tooling-server)
 7. [Arsitektur Database PostgreSQL (Containerized)](#7-arsitektur-database-postgresql-containerized)
 8. [Autentikasi GitHub Container Registry (GHCR)](#8-autentikasi-github-container-registry-ghcr)
 9. [Struktur Direktori Server Multi-Environment](#9-struktur-direktori-server-multi-environment)
@@ -281,7 +281,7 @@ sudo ufw status verbose
 
 ---
 
-## 6. Instalasi Docker, NVM, & Tooling Server
+## 6. Instalasi Docker & Tooling Server
 
 ### 6.1 Install Docker Engine & Docker Compose Plugin
 Pasang Docker resmi dari repository Docker CE (bukan package default ubuntu `docker.io` yang usang).
@@ -291,7 +291,7 @@ Pasang Docker resmi dari repository Docker CE (bukan package default ubuntu `doc
 ```bash
 # 1. Install dependensi pendukung
 sudo apt update
-sudo apt install -y ca-certificates curl gnupg git unzip zip htop ncdu nginx build-essential
+sudo apt install -y ca-certificates curl gnupg git unzip zip htop ncdu nginx
 
 # 2. Tambahkan GPG key resmi Docker
 sudo install -m 0755 -d /etc/apt/keyrings
@@ -325,32 +325,6 @@ docker compose version
 
 ---
 
-### 6.2 Install NVM & Node.js 22 LTS
-Pasang **Node Version Manager (NVM)** dan gunakan **Node.js versi 22 (LTS)** untuk keperluan scripting atau tooling lokal server jika diperlukan:
-* **Lokasi Eksekusi**: Terminal VPS.
-
-```bash
-# 1. Download dan jalankan script instalasi NVM
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-
-# 2. Muat environment NVM ke sesi shell saat ini
-source ~/.zshrc 2>/dev/null || source ~/.bashrc
-
-# 3. Cek nvm
-nvm --version
-
-# 4. Install dan set default Node.js 22 LTS
-nvm install 22
-nvm use 22
-nvm alias default 22
-
-# 5. Verifikasi instalasi Node & NPM
-node -v
-npm -v
-```
-
----
-
 ## 7. Arsitektur Database PostgreSQL (Containerized)
 
 > [!NOTE]
@@ -377,7 +351,7 @@ Database dan user diinisialisasi secara otomatis oleh image `postgres:15-alpine`
 
 ## 8. Autentikasi GitHub Container Registry (GHCR)
 
-Agar VPS dapat mengunduh (*pull*) image Docker private dari GitHub Container Registry (GHCR):
+Agar VPS dapat mengunduh (*pull*) image Docker private dari GitHub Container Registry (GHCR) secara manual:
 
 1. **Buat Personal Access Token (Classic) di GitHub**:
    - Buka link langsung: [https://github.com/settings/tokens](https://github.com/settings/tokens) (atau navigasi via **GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)**)
@@ -433,20 +407,16 @@ Buat hierarki folder server untuk memisahkan konfigurasi, volume data upload, da
 * **Lokasi Eksekusi**: Terminal VPS.
 
 ```bash
-# 1. Folder Shared AI Models
+# 1. Folder Shared AI Models (Hanya buat jika menggunakan mode AI Lokal)
 mkdir -p ~/petualangan-cuan/shared/ai-models/whisper
 
 # 2. Folder Production
 mkdir -p ~/petualangan-cuan/production/uploads_prod
 mkdir -p ~/petualangan-cuan/production/wa-gateway-data_prod
-mkdir -p ~/petualangan-cuan/production/monitoring/grafana/provisioning/dashboards
-mkdir -p ~/petualangan-cuan/production/monitoring/grafana/provisioning/datasources
 
 # 3. Folder Staging
 mkdir -p ~/petualangan-cuan/staging/uploads_staging
 mkdir -p ~/petualangan-cuan/staging/wa-gateway-data_staging
-mkdir -p ~/petualangan-cuan/staging/monitoring/grafana/provisioning/dashboards
-mkdir -p ~/petualangan-cuan/staging/monitoring/grafana/provisioning/datasources
 ```
 
 ### 9.1 Matriks Port & Nama Container (Production vs Staging)
@@ -481,7 +451,11 @@ sudo chmod -R 755 ~/petualangan-cuan/staging/uploads_staging
 
 ---
 
-## 10. Shared Assets & Model AI Lokal (Opsional)
+## 10. Shared Assets & Model AI Lokal (Khusus Mode AI Lokal — Opsional)
+
+> [!IMPORTANT]
+> **LEWATI BAB INI JIKA MENGGUNAKAN MODE EKSTERNAL (DEFAULT/REKOMENDASI)**:
+> Jika Anda menggunakan konfigurasi standar `AI_PROVIDER=external` (OpenRouter / Google Gemini API) dengan `COMPOSE_PROFILES=` (kosong), **JANGAN** mengunduh model di bawah ini. Mengunduh model GGUF (~3 GB - 5 GB) hanya membuang kuota disk dan bandwidth, serta ditujukan khusus bagi VPS berspesifikasi tinggi (RAM ≥ 8 GB) yang menggunakan `AI_PROVIDER=local`.
 
 Jika menggunakan mode **AI Lokal** (`AI_PROVIDER=local` dan `COMPOSE_PROFILES=local-ai`), siapkan model GGUF di direktori shared:
 
@@ -520,7 +494,7 @@ scp ai-models/mmproj-google_gemma-3-4b-it-f16.gguf ubuntu@IP_PUBLIC_VPS:~/petual
 | `PORT` | Backend Internal | `8080` | `8080` | Tidak | Port listen backend di dalam container |
 | `TZ` | System | `Asia/Jakarta` | `Asia/Jakarta` | Tidak | Timezone aplikasi |
 | `DB_HOST` | Backend connection | `postgres` | `postgres` | Tidak | Hostname service PostgreSQL di docker network |
-| `DB_PORT` | Postgres host map | `5432` | `5555` | Tidak | Port host yang diexpose oleh container DB |
+| `DB_PORT` | Postgres host map | `5432` | `5555` | Tidak | Port host yang diexpose container DB (Backend container tetap connect via internal port 5432) |
 | `DB_USER` | PostgreSQL & Backend | `cuanpsqlprod` | `cuanpsqlstg` | Tidak | Username PostgreSQL |
 | `DB_PASSWORD` | PostgreSQL & Backend | *[Generated]* | *[Generated]* | **YA** | Password PostgreSQL |
 | `DB_NAME` | PostgreSQL & Backend | `cuan_prod` | `cuan_stg` | Tidak | Nama database |
@@ -589,7 +563,7 @@ EXTERNAL_AI_URL=https://openrouter.ai/api/v1/chat/completions
 EXTERNAL_AI_API_KEY=GANTI_DENGAN_API_KEY_OPENROUTER_ATAU_GEMINI
 EXTERNAL_AI_MODEL=google/gemini-2.0-flash-001
 
-# Local AI Settings (Hanya jika AI_PROVIDER=local dan COMPOSE_PROFILES=local-ai)
+# Local AI Settings (Hanya jika AI_PROVIDER=local dan COMPOSE_PROFILES=local-ai, abaikan jika external)
 LOCAL_LLM_URL=http://llm-server:8080
 LOCAL_WHISPER_URL=http://whisper-server:8000
 
@@ -660,7 +634,7 @@ EXTERNAL_AI_URL=https://openrouter.ai/api/v1/chat/completions
 EXTERNAL_AI_API_KEY=GANTI_DENGAN_API_KEY_OPENROUTER_ATAU_GEMINI
 EXTERNAL_AI_MODEL=google/gemini-2.0-flash-001
 
-# Local AI Settings
+# Local AI Settings (Hanya jika AI_PROVIDER=local dan COMPOSE_PROFILES=local-ai, abaikan jika external)
 LOCAL_LLM_URL=http://llm-server:8080
 LOCAL_WHISPER_URL=http://whisper-server:8000
 
