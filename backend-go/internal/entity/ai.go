@@ -6,7 +6,7 @@ type ChatAIResponse struct {
 	Transactions  []TransactionItemAI `json:"transactions"`
 }
 type TransactionItemAI struct {
-	Action       string  `json:"action"`                  // create, update, delete, transfer, pay_debt, save_goal, create_wishlist
+	Action       string  `json:"action"`                  // create_transaction, update_transaction, delete_transaction, transfer, pay_debt, save_goal, create_wishlist...
 	ID           uint    `json:"id"`                      // target ID if action is update/delete/pay_debt/save_goal
 	Type         string  `json:"type"`
 	Amount       float64 `json:"amount"`
@@ -25,7 +25,7 @@ type ChatResponse struct {
 }
 type SavedTransaction struct {
 	ID           uint    `json:"id"`
-	Action       string  `json:"action"`                  // create, update, delete, transfer, pay_debt, save_goal, create_wishlist
+	Action       string  `json:"action"`                  // create_transaction, update_transaction, delete_transaction, transfer, pay_debt, save_goal, create_wishlist...
 	Description  string  `json:"description"`
 	Amount       float64 `json:"amount"`
 	Type         string  `json:"type"`

@@ -509,21 +509,26 @@ func formatActionSummary(saved []entity.SavedTransaction) string {
 	summary := "\n\n"
 	hasCreate, hasUpdate, hasDelete := false, false, false
 	hasTransfer, hasPayDebt, hasSaveGoal, hasWishlist := false, false, false, false
+	hasDebt, hasGoal := false, false
 
 	for _, s := range saved {
-		switch s.Action {
-		case "update":
-			hasUpdate = true
-		case "delete":
+		switch {
+		case strings.HasPrefix(s.Action, "delete"):
 			hasDelete = true
-		case "transfer":
+		case strings.HasPrefix(s.Action, "update"):
+			hasUpdate = true
+		case s.Action == "transfer":
 			hasTransfer = true
-		case "pay_debt":
+		case s.Action == "pay_debt":
 			hasPayDebt = true
-		case "save_goal":
+		case s.Action == "save_goal":
 			hasSaveGoal = true
-		case "create_wishlist":
+		case s.Action == "create_wishlist":
 			hasWishlist = true
+		case s.Action == "create_debt":
+			hasDebt = true
+		case s.Action == "create_goal":
+			hasGoal = true
 		default:
 			hasCreate = true
 		}
@@ -537,19 +542,25 @@ func formatActionSummary(saved []entity.SavedTransaction) string {
 		summary += "✅ Setoran tabungan berhasil dicatat!"
 	} else if hasWishlist {
 		summary += "✅ Item berhasil ditambahkan ke Wishlist!"
+	} else if hasDebt {
+		summary += "✅ Utang/piutang berhasil dicatat!"
+	} else if hasGoal {
+		summary += "✅ Target tabungan berhasil dibuat!"
+	} else if hasDelete {
+		summary += "✅ Data berhasil dihapus!"
+	} else if hasUpdate {
+		summary += "✅ Data berhasil diperbarui!"
 	} else if hasCreate {
 		summary += "✅ Transaksi berhasil dicatat!"
-	} else if hasUpdate {
-		summary += "✅ Transaksi berhasil diperbarui!"
-	} else if hasDelete {
-		summary += "✅ Transaksi berhasil dihapus!"
 	}
 
 	for _, s := range saved {
 		switch s.Action {
-		case "update":
+		case "create_transaction":
+			summary += fmt.Sprintf("\n📝 %s — Rp%s", s.Description, formatCurrency(s.Amount))
+		case "update_transaction":
 			summary += fmt.Sprintf("\n✏️ %s — Rp%s", s.Description, formatCurrency(s.Amount))
-		case "delete":
+		case "delete_transaction":
 			summary += fmt.Sprintf("\n🗑️ %s (Dihapus)", s.Description)
 		case "transfer":
 			summary += fmt.Sprintf("\n🔄 %s: Rp%s (%s ➡️ %s)", s.Description, formatCurrency(s.Amount), s.WalletName, s.ToWalletName)
@@ -559,6 +570,22 @@ func formatActionSummary(saved []entity.SavedTransaction) string {
 			summary += fmt.Sprintf("\n🎯 %s — Rp%s (%s)", s.Description, formatCurrency(s.Amount), s.WalletName)
 		case "create_wishlist":
 			summary += fmt.Sprintf("\n⭐ %s — Rp%s", s.Description, formatCurrency(s.Amount))
+		case "update_wishlist":
+			summary += fmt.Sprintf("\n✏️ Wishlist: %s — Rp%s", s.Description, formatCurrency(s.Amount))
+		case "delete_wishlist":
+			summary += fmt.Sprintf("\n🗑️ Wishlist: %s (Dihapus)", s.Description)
+		case "create_debt":
+			summary += fmt.Sprintf("\n📝 Utang/Piutang: %s — Rp%s (%s)", s.Description, formatCurrency(s.Amount), s.WalletName)
+		case "update_debt":
+			summary += fmt.Sprintf("\n✏️ Utang/Piutang: %s — Rp%s (%s)", s.Description, formatCurrency(s.Amount), s.WalletName)
+		case "delete_debt":
+			summary += fmt.Sprintf("\n🗑️ Utang/Piutang: %s (Dihapus)", s.Description)
+		case "create_goal":
+			summary += fmt.Sprintf("\n🎯 Target Tabungan: %s — Rp%s", s.Description, formatCurrency(s.Amount))
+		case "update_goal":
+			summary += fmt.Sprintf("\n✏️ Target Tabungan: %s — Rp%s", s.Description, formatCurrency(s.Amount))
+		case "delete_goal":
+			summary += fmt.Sprintf("\n🗑️ Target Tabungan: %s (Dihapus)", s.Description)
 		default:
 			summary += fmt.Sprintf("\n📝 %s — Rp%s", s.Description, formatCurrency(s.Amount))
 		}

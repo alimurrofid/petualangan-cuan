@@ -26,11 +26,13 @@ const swal = useSwal();
 
 interface SavedTransaction {
   id: number;
+  action?: string;
   description: string;
   amount: number;
   type: string;
   category_name: string;
   wallet_name: string;
+  to_wallet_name?: string;
 }
 
 interface Message {
@@ -725,24 +727,59 @@ const getMediaUrl = (url?: string) => {
               <!-- Transaction cards -->
               <div v-if="msg.transactions?.length" class="w-full mt-2 space-y-2">
                 <div v-for="tx in msg.transactions" :key="tx.id"
-                  class="px-3 py-2 text-xs border bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50 rounded-xl">
+                  class="px-3 py-2 text-xs border rounded-xl"
+                  :class="[
+                    tx.action?.includes('delete')
+                      ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50'
+                      : tx.action?.includes('update')
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50'
+                        : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50'
+                  ]">
                   <div class="flex items-center justify-between">
-                    <span class="font-semibold text-emerald-700 dark:text-emerald-300">✅ {{ tx.description }}</span>
+                    <span class="font-semibold" :class="{
+                      'text-emerald-700 dark:text-emerald-300': !tx.action?.includes('delete') && !tx.action?.includes('update'),
+                      'text-blue-700 dark:text-blue-300': tx.action?.includes('update'),
+                      'text-red-700 dark:text-red-300 line-through': tx.action?.includes('delete')
+                    }">
+                      {{ tx.action?.includes('delete') ? '🗑️' : tx.action?.includes('update') ? '✏️' : '✅' }} 
+                      {{ tx.description?.replace(/~~/g, '').replace(/\(Dihapus\)/g, '').trim() || '-' }}
+                    </span>
                     <span :class="[
                       'font-bold',
-                      tx.type === 'income' ? 'text-emerald-600' : 'text-red-500'
+                      tx.action?.includes('delete') ? 'line-through opacity-60' : '',
+                      (tx.type === 'income' || tx.type === 'receivable') ? 'text-emerald-600' : 
+                      (tx.type === 'transfer' || tx.type === 'goal' || tx.type === 'wishlist') ? 'text-blue-500' : 'text-red-500'
                     ]">
-                      {{ tx.type === 'income' ? '+' : '-' }}Rp{{ Number(tx.amount).toLocaleString('id-ID') }}
+                      {{ (tx.type === 'income' || tx.type === 'receivable') ? '+' : (tx.type === 'transfer' || tx.type === 'goal' || tx.type === 'wishlist') ? '' : '-' }}Rp{{ Number(tx.amount || 0).toLocaleString('id-ID') }}
                     </span>
                   </div>
                   <div class="flex items-center gap-2 mt-1 text-muted-foreground">
-                    <span>🏦 {{ tx.wallet_name }}</span>
+                    <span v-if="tx.type === 'transfer' && tx.to_wallet_name">
+                      🏦 {{ tx.wallet_name }} ➡️ {{ tx.to_wallet_name }}
+                    </span>
+                    <span v-else>
+                      🏦 {{ tx.wallet_name || '-' }}
+                    </span>
                     <span>•</span>
-                    <span>📂 {{ tx.category_name }}</span>
+                    <span>📂 {{ tx.category_name || '-' }}</span>
                     <span>•</span>
                     <span class="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                      :class="tx.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'">
-                      {{ tx.type === 'income' ? 'Pemasukan' : 'Pengeluaran' }}
+                      :class="[
+                        tx.type === 'income' || tx.type === 'receivable'
+                          ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' 
+                          : tx.type === 'transfer' || tx.type === 'goal' || tx.type === 'wishlist'
+                            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                            : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+                      ]">
+                      {{ 
+                        tx.type === 'income' ? 'Pemasukan' : 
+                        tx.type === 'expense' ? 'Pengeluaran' : 
+                        tx.type === 'transfer' ? 'Transfer' : 
+                        tx.type === 'debt' ? 'Utang' : 
+                        tx.type === 'receivable' ? 'Piutang' : 
+                        tx.type === 'goal' ? 'Tabungan' : 
+                        tx.type === 'wishlist' ? 'Wishlist' : tx.type
+                      }}
                     </span>
                   </div>
                 </div>

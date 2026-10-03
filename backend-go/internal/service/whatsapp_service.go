@@ -191,13 +191,32 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 					summary += fmt.Sprintf("✅ Setor tabungan berhasil!\n🎯 %s — Rp%.0f (%s)\n", s.Description, s.Amount, s.WalletName)
 				case "create_wishlist":
 					summary += fmt.Sprintf("✅ Masuk Wishlist!\n⭐ %s — Rp%.0f\n", s.Description, s.Amount)
-				case "update":
-					summary += fmt.Sprintf("✅ Transaksi diperbarui!\n✏️ %s — Rp%.0f\n", s.Description, s.Amount)
-				case "delete":
-					summary += fmt.Sprintf("✅ Transaksi dihapus!\n🗑️ %s\n", s.Description)
-				default:
+				case "update_wishlist":
+					summary += fmt.Sprintf("✅ Wishlist diperbarui!\n✏️ %s — Rp%.0f\n", s.Description, s.Amount)
+				case "delete_wishlist":
+					summary += fmt.Sprintf("✅ Wishlist dihapus!\n🗑️ %s\n", s.Description)
+				case "create_debt":
+					summary += fmt.Sprintf("✅ Utang/piutang dicatat!\n📝 %s — Rp%.0f (%s)\n", s.Description, s.Amount, s.WalletName)
+				case "update_debt":
+					summary += fmt.Sprintf("✅ Utang/piutang diperbarui!\n✏️ %s — Rp%.0f (%s)\n", s.Description, s.Amount, s.WalletName)
+				case "delete_debt":
+					summary += fmt.Sprintf("✅ Utang/piutang dihapus!\n🗑️ %s\n", s.Description)
+				case "create_goal":
+					summary += fmt.Sprintf("✅ Target tabungan dibuat!\n🎯 %s — Rp%.0f\n", s.Description, s.Amount)
+				case "update_goal":
+					summary += fmt.Sprintf("✅ Target tabungan diperbarui!\n✏️ %s — Rp%.0f\n", s.Description, s.Amount)
+				case "delete_goal":
+					summary += fmt.Sprintf("✅ Target tabungan dihapus!\n🗑️ %s\n", s.Description)
+				case "create_transaction":
 					summary += fmt.Sprintf("✅ Transaksi berhasil dicatat!\n📝 %s — Rp%.0f (%s) | 🏦 %s | 📂 %s\n",
 						s.Description, s.Amount, s.Type, s.WalletName, s.CategoryName)
+				case "update_transaction":
+					summary += fmt.Sprintf("✅ Transaksi diperbarui!\n✏️ %s — Rp%.0f\n", s.Description, s.Amount)
+				case "delete_transaction":
+					summary += fmt.Sprintf("✅ Transaksi dihapus!\n🗑️ %s\n", s.Description)
+				default:
+					summary += fmt.Sprintf("✅ %s berhasil diproses!\n📝 %s — Rp%.0f\n",
+						s.Action, s.Description, s.Amount)
 				}
 			}
 			replyText += strings.TrimRight(summary, "\n")

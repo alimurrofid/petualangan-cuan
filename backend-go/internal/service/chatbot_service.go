@@ -457,7 +457,7 @@ func (s *ChatbotService) SaveTransactions(userID uint, items []entity.Transactio
 	for _, item := range items {
 		action := strings.ToLower(item.Action)
 		
-		if item.Amount <= 0 && action != "delete" {
+		if item.Amount <= 0 && !strings.Contains(action, "delete") && !strings.Contains(action, "update") {
 			continue
 		}
 		
@@ -465,9 +465,11 @@ func (s *ChatbotService) SaveTransactions(userID uint, items []entity.Transactio
 		var err error
 		
 		switch action {
-		case "update":
+		case "create_transaction":
+			saved, err = s.saveOne(userID, &item)
+		case "update_transaction":
 			saved, err = s.updateOne(userID, &item)
-		case "delete":
+		case "delete_transaction":
 			saved, err = s.deleteOne(userID, &item)
 		case "transfer":
 			saved, err = s.transferOne(userID, &item)
@@ -477,9 +479,24 @@ func (s *ChatbotService) SaveTransactions(userID uint, items []entity.Transactio
 			saved, err = s.saveGoalOne(userID, &item)
 		case "create_wishlist":
 			saved, err = s.createWishlistOne(userID, &item)
+		case "update_wishlist":
+			saved, err = s.updateWishlistOne(userID, &item)
+		case "delete_wishlist":
+			saved, err = s.deleteWishlistOne(userID, &item)
+		case "create_debt":
+			saved, err = s.createDebtOne(userID, &item)
+		case "update_debt":
+			saved, err = s.updateDebtOne(userID, &item)
+		case "delete_debt":
+			saved, err = s.deleteDebtOne(userID, &item)
+		case "create_goal":
+			saved, err = s.createGoalOne(userID, &item)
+		case "update_goal":
+			saved, err = s.updateGoalOne(userID, &item)
+		case "delete_goal":
+			saved, err = s.deleteGoalOne(userID, &item)
 		default:
-			saved, err = s.saveOne(userID, &item)
-			action = "create"
+			err = fmt.Errorf("aksi '%s' tidak didukung", action)
 		}
 
 		if err != nil {
@@ -541,27 +558,50 @@ func (s *ChatbotService) updateOne(userID uint, tx *entity.TransactionItemAI) (*
 		return nil, errors.New("ID transaksi tidak valid untuk update")
 	}
 
-	walletID, walletName, err := s.resolveWallet(userID, tx.WalletName)
-	if err != nil {
-		return nil, fmt.Errorf("wallet '%s' tidak ditemukan: %w", tx.WalletName, err)
-	}
-
-	categoryID, categoryName, err := s.resolveCategory(userID, tx.CategoryName, tx.Type)
-	if err != nil {
-		return nil, fmt.Errorf("kategori '%s' tidak ditemukan: %w", tx.CategoryName, err)
-	}
-
 	existingTx, err := s.transactionSvc.GetTransaction(tx.ID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("transaksi tidak ditemukan: %w", err)
 	}
 
+	walletID := existingTx.WalletID
+	walletName := existingTx.Wallet.Name
+	if tx.WalletName != "" {
+		walletID, walletName, err = s.resolveWallet(userID, tx.WalletName)
+		if err != nil {
+			return nil, fmt.Errorf("wallet '%s' tidak ditemukan: %w", tx.WalletName, err)
+		}
+	}
+
+	txType := tx.Type
+	if txType == "" {
+		txType = existingTx.Type
+	}
+
+	categoryID := existingTx.CategoryID
+	categoryName := existingTx.Category.Name
+	if tx.CategoryName != "" {
+		categoryID, categoryName, err = s.resolveCategory(userID, tx.CategoryName, txType)
+		if err != nil {
+			return nil, fmt.Errorf("kategori '%s' tidak ditemukan: %w", tx.CategoryName, err)
+		}
+	}
+
+	amount := tx.Amount
+	if amount <= 0 {
+		amount = existingTx.Amount
+	}
+
+	desc := tx.Description
+	if desc == "" {
+		desc = existingTx.Description
+	}
+
 	input := CreateTransactionInput{
 		WalletID:    walletID,
 		CategoryID:  categoryID,
-		Amount:      tx.Amount,
-		Type:        tx.Type,
-		Description: tx.Description,
+		Amount:      amount,
+		Type:        txType,
+		Description: desc,
 		Date:        existingTx.Date,
 	}
 
@@ -572,9 +612,9 @@ func (s *ChatbotService) updateOne(userID uint, tx *entity.TransactionItemAI) (*
 
 	return &entity.SavedTransaction{
 		ID:           updated.ID,
-		Description:  tx.Description,
-		Amount:       tx.Amount,
-		Type:         tx.Type,
+		Description:  desc,
+		Amount:       amount,
+		Type:         txType,
 		CategoryName: categoryName,
 		WalletName:   walletName,
 	}, nil
@@ -798,6 +838,325 @@ func (s *ChatbotService) createWishlistOne(userID uint, tx *entity.TransactionIt
 		Amount:       tx.Amount,
 		Type:         "wishlist",
 		CategoryName: categoryName,
+	}, nil
+}
+
+func (s *ChatbotService) createDebtOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	walletID, walletName, err := s.resolveWallet(userID, tx.WalletName)
+	if err != nil {
+		return nil, fmt.Errorf("wallet '%s' tidak ditemukan: %w", tx.WalletName, err)
+	}
+
+	debtType := "debt"
+	if tx.Type == "receivable" {
+		debtType = "receivable"
+	}
+
+	desc := tx.Description
+	if desc == "" {
+		if debtType == "debt" {
+			desc = "Utang Baru"
+		} else {
+			desc = "Piutang Baru"
+		}
+	}
+
+	input := CreateDebtInput{
+		WalletID:    walletID,
+		Name:        desc,
+		Amount:      tx.Amount,
+		Type:        debtType,
+		Description: "Dicatat oleh Cuan AI",
+	}
+
+	created, err := s.debtSvc.CreateDebt(userID, input)
+	if err != nil {
+		return nil, fmt.Errorf("gagal mencatat utang/piutang: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		ID:           created.ID,
+		Description:  desc,
+		Amount:       tx.Amount,
+		Type:         debtType,
+		CategoryName: "Utang/Piutang",
+		WalletName:   walletName,
+	}, nil
+}
+
+func (s *ChatbotService) createGoalOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	name := tx.Description
+	if name == "" {
+		name = "Target Tabungan"
+	}
+
+	categoryID, _, err := s.resolveCategory(userID, "Tabungan", "expense")
+	if err != nil {
+		// Fallback jika tidak ada kategori "Tabungan"
+		categoryID, _, _ = s.resolveCategory(userID, "Lainnya", "expense")
+	}
+
+	input := CreateGoalInput{
+		Name:         name,
+		TargetAmount: tx.Amount,
+		CategoryID:   categoryID,
+	}
+
+	created, err := s.savingGoalSvc.CreateGoal(userID, input)
+	if err != nil {
+		return nil, fmt.Errorf("gagal membuat target tabungan: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		ID:           created.ID,
+		Description:  name,
+		Amount:       tx.Amount,
+		Type:         "goal",
+		CategoryName: "Target Tabungan",
+		WalletName:   "-",
+	}, nil
+}
+
+// updateGoalOne
+func (s *ChatbotService) updateGoalOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	if tx.ID == 0 {
+		return nil, errors.New("ID target tabungan tidak valid untuk update")
+	}
+
+	existing, err := s.savingGoalRepo.FindByID(tx.ID, userID)
+	if err != nil || existing == nil {
+		return nil, fmt.Errorf("target tabungan tidak ditemukan: %w", err)
+	}
+
+	name := tx.Description
+	if name == "" {
+		name = existing.Name
+	}
+
+	amount := tx.Amount
+	if amount <= 0 {
+		amount = existing.TargetAmount
+	}
+
+	categoryID := existing.CategoryID
+	if categoryID == 0 {
+		categoryID, _, _ = s.resolveCategory(userID, "Tabungan", "expense")
+	}
+
+	input := CreateGoalInput{
+		Name:         name,
+		TargetAmount: amount,
+		CategoryID:   categoryID,
+		Deadline:     existing.Deadline,
+		Icon:         existing.Icon,
+	}
+
+	created, err := s.savingGoalSvc.UpdateGoal(userID, tx.ID, input)
+	if err != nil {
+		return nil, fmt.Errorf("gagal memperbarui target tabungan: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		ID:           created.ID,
+		Description:  name,
+		Amount:       amount,
+		Type:         "goal",
+		CategoryName: "Target Tabungan",
+		WalletName:   "-",
+	}, nil
+}
+
+// deleteGoalOne
+func (s *ChatbotService) deleteGoalOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	if tx.ID == 0 {
+		return nil, errors.New("ID target tabungan tidak valid untuk delete")
+	}
+
+	existing, err := s.savingGoalRepo.FindByID(tx.ID, userID)
+	if err != nil || existing == nil {
+		return nil, fmt.Errorf("target tabungan tidak ditemukan: %w", err)
+	}
+
+	err = s.savingGoalSvc.DeleteGoal(userID, tx.ID)
+	if err != nil {
+		return nil, fmt.Errorf("gagal menghapus target tabungan: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		ID:           tx.ID,
+		Description:  existing.Name,
+		Amount:       existing.TargetAmount,
+		Type:         "goal",
+		CategoryName: "Target Tabungan",
+		WalletName:   "-",
+	}, nil
+}
+
+// updateDebtOne
+func (s *ChatbotService) updateDebtOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	if tx.ID == 0 {
+		return nil, errors.New("ID utang/piutang tidak valid untuk update")
+	}
+
+	existing, err := s.debtRepo.FindByID(tx.ID, userID)
+	if err != nil || existing == nil {
+		return nil, fmt.Errorf("utang/piutang tidak ditemukan: %w", err)
+	}
+
+	walletID := existing.WalletID
+	walletName := ""
+	if tx.WalletName != "" {
+		walletID, walletName, err = s.resolveWallet(userID, tx.WalletName)
+		if err != nil {
+			return nil, fmt.Errorf("wallet '%s' tidak ditemukan: %w", tx.WalletName, err)
+		}
+	} else {
+		if wallet, err := s.walletRepo.FindByID(existing.WalletID, userID); err == nil && wallet != nil {
+			walletName = wallet.Name
+		}
+	}
+
+	name := tx.Description
+	if name == "" {
+		name = existing.Name
+	}
+
+	amount := tx.Amount
+	if amount <= 0 {
+		amount = existing.Amount
+	}
+
+	input := UpdateDebtInput{
+		WalletID:    walletID,
+		Name:        name,
+		Amount:      amount,
+		Description: existing.Description,
+		DueDate:     existing.DueDate,
+	}
+
+	created, err := s.debtSvc.UpdateDebt(tx.ID, userID, input)
+	if err != nil {
+		return nil, fmt.Errorf("gagal memperbarui utang/piutang: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		ID:           created.ID,
+		Description:  name,
+		Amount:       amount,
+		Type:         string(existing.Type),
+		CategoryName: "Utang/Piutang",
+		WalletName:   walletName,
+	}, nil
+}
+
+// deleteDebtOne
+func (s *ChatbotService) deleteDebtOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	if tx.ID == 0 {
+		return nil, errors.New("ID utang/piutang tidak valid untuk delete")
+	}
+
+	existing, err := s.debtRepo.FindByID(tx.ID, userID)
+	if err != nil || existing == nil {
+		return nil, fmt.Errorf("utang/piutang tidak ditemukan: %w", err)
+	}
+
+	err = s.debtSvc.DeleteDebt(tx.ID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("gagal menghapus utang/piutang: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		ID:           tx.ID,
+		Description:  existing.Name,
+		Amount:       existing.Amount,
+		Type:         string(existing.Type),
+		CategoryName: "Utang/Piutang",
+		WalletName:   "-",
+	}, nil
+}
+
+// updateWishlistOne
+func (s *ChatbotService) updateWishlistOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	if tx.ID == 0 {
+		return nil, errors.New("ID wishlist tidak valid untuk update")
+	}
+
+	existing, err := s.wishlistRepo.FindByID(tx.ID, userID)
+	if err != nil || existing == nil {
+		return nil, fmt.Errorf("wishlist tidak ditemukan: %w", err)
+	}
+
+	categoryID := existing.CategoryID
+	categoryName := ""
+	if tx.CategoryName != "" {
+		categoryID, categoryName, err = s.resolveCategory(userID, tx.CategoryName, "expense")
+		if err != nil {
+			return nil, fmt.Errorf("kategori '%s' tidak ditemukan: %w", tx.CategoryName, err)
+		}
+	}
+
+	prio := tx.Priority
+	if prio == "" {
+		prio = string(existing.Priority)
+	}
+	if prio == "" {
+		prio = "medium"
+	}
+
+	name := tx.Description
+	if name == "" {
+		name = existing.Name
+	}
+
+	amount := tx.Amount
+	if amount <= 0 {
+		amount = existing.EstimatedPrice
+	}
+
+	req := &StoreWishlistRequest{
+		CategoryID:     categoryID,
+		Name:           name,
+		EstimatedPrice: amount,
+		Priority:       prio,
+	}
+
+	if err := s.wishlistSvc.Update(tx.ID, userID, req); err != nil {
+		return nil, fmt.Errorf("gagal memperbarui wishlist: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		ID:           tx.ID,
+		Description:  fmt.Sprintf("%s [%s]", name, prio),
+		Amount:       amount,
+		Type:         "wishlist",
+		CategoryName: categoryName,
+		WalletName:   "-",
+	}, nil
+}
+
+// deleteWishlistOne
+func (s *ChatbotService) deleteWishlistOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	if tx.ID == 0 {
+		return nil, errors.New("ID wishlist tidak valid untuk delete")
+	}
+
+	existing, err := s.wishlistRepo.FindByID(tx.ID, userID)
+	if err != nil || existing == nil {
+		return nil, fmt.Errorf("wishlist tidak ditemukan: %w", err)
+	}
+
+	err = s.wishlistSvc.Delete(tx.ID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("gagal menghapus wishlist: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		ID:           tx.ID,
+		Description:  existing.Name,
+		Amount:       existing.EstimatedPrice,
+		Type:         "wishlist",
+		CategoryName: "Wishlist",
+		WalletName:   "-",
 	}, nil
 }
 
