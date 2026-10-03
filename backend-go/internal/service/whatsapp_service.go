@@ -176,12 +176,27 @@ func (s *whatsAppService) ProcessMessage(event entity.WAWebhookEvent) error {
 			log.Error().Err(err).Msg("[WA] SaveTransactions gagal")
 			replyText += "\n\n⚠️ Transaksi terdeteksi tapi gagal disimpan."
 		} else if len(saved) > 0 {
-			summary := "\n\n✅ Transaksi berhasil dicatat!"
+			summary := "\n\n"
 			for _, s := range saved {
-				summary += fmt.Sprintf("\n📝 %s — Rp%.0f (%s) | 🏦 %s | 📂 %s",
-					s.Description, s.Amount, s.Type, s.WalletName, s.CategoryName)
+				switch s.Action {
+				case "transfer":
+					summary += fmt.Sprintf("✅ Transfer berhasil!\n🔄 %s (Rp%.0f: %s ➡️ %s)\n", s.Description, s.Amount, s.WalletName, s.ToWalletName)
+				case "pay_debt":
+					summary += fmt.Sprintf("✅ Pembayaran utang berhasil!\n🤝 %s — Rp%.0f (%s)\n", s.Description, s.Amount, s.WalletName)
+				case "save_goal":
+					summary += fmt.Sprintf("✅ Setor tabungan berhasil!\n🎯 %s — Rp%.0f (%s)\n", s.Description, s.Amount, s.WalletName)
+				case "create_wishlist":
+					summary += fmt.Sprintf("✅ Masuk Wishlist!\n⭐ %s — Rp%.0f\n", s.Description, s.Amount)
+				case "update":
+					summary += fmt.Sprintf("✅ Transaksi diperbarui!\n✏️ %s — Rp%.0f\n", s.Description, s.Amount)
+				case "delete":
+					summary += fmt.Sprintf("✅ Transaksi dihapus!\n🗑️ %s\n", s.Description)
+				default:
+					summary += fmt.Sprintf("✅ Transaksi berhasil dicatat!\n📝 %s — Rp%.0f (%s) | 🏦 %s | 📂 %s\n",
+						s.Description, s.Amount, s.Type, s.WalletName, s.CategoryName)
+				}
 			}
-			replyText += summary
+			replyText += strings.TrimRight(summary, "\n")
 		}
 	}
 

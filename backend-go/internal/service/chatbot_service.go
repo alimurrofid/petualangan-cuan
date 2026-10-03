@@ -37,7 +37,11 @@ type ChatbotService struct {
 	transactionSvc  TransactionService
 	transactionRepo repository.TransactionRepository
 	debtRepo        repository.DebtRepository
+	debtSvc         DebtService
 	savingGoalRepo  repository.SavingGoalRepository
+	savingGoalSvc   SavingGoalService
+	wishlistRepo    repository.WishlistRepository
+	wishlistSvc     WishlistService
 	dashboardSvc    DashboardService
 	financialHealth FinancialHealthService
 	userRepo        repository.UserRepository
@@ -49,7 +53,11 @@ func NewChatbotService(
 	transactionSvc TransactionService,
 	transactionRepo repository.TransactionRepository,
 	debtRepo repository.DebtRepository,
+	debtSvc DebtService,
 	savingGoalRepo repository.SavingGoalRepository,
+	savingGoalSvc SavingGoalService,
+	wishlistRepo repository.WishlistRepository,
+	wishlistSvc WishlistService,
 	dashboardSvc DashboardService,
 	financialHealth FinancialHealthService,
 	userRepo repository.UserRepository,
@@ -60,7 +68,11 @@ func NewChatbotService(
 		transactionSvc:  transactionSvc,
 		transactionRepo: transactionRepo,
 		debtRepo:        debtRepo,
+		debtSvc:         debtSvc,
 		savingGoalRepo:  savingGoalRepo,
+		savingGoalSvc:   savingGoalSvc,
+		wishlistRepo:    wishlistRepo,
+		wishlistSvc:     wishlistSvc,
 		dashboardSvc:    dashboardSvc,
 		financialHealth: financialHealth,
 		userRepo:        userRepo,
@@ -90,6 +102,7 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 	var summaryMonth []entity.TransactionSummary
 	var debts []entity.Debt
 	var goals []entity.SavingGoal
+	var wishlists []entity.WishlistItem
 	var health entity.FinancialHealthResponse
 
 	wib, _ := time.LoadLocation("Asia/Jakarta")
@@ -127,7 +140,7 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 	}
 
 	// Transaksi terakhir — selalu berguna untuk transaksi & laporan.
-	if intent != IntentDebt && intent != IntentGoal && intent != IntentHealth {
+	if intent != IntentDebt && intent != IntentGoal && intent != IntentHealth && intent != IntentWishlist {
 		eg.Go(func() error {
 			if t, err := s.transactionRepo.GetRecentTransactions(userID, MaxRecentTxns); err == nil {
 				txns = t
@@ -183,6 +196,16 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 		})
 	}
 
+	// Wishlist — hanya untuk intent wishlist & general.
+	if needsWishlistContext(intent) && s.wishlistRepo != nil {
+		eg.Go(func() error {
+			if w, err := s.wishlistRepo.FindAllByUserID(userID); err == nil {
+				wishlists = w
+			}
+			return nil
+		})
+	}
+
 	// Skor keuangan — hanya untuk intent health & general.
 	if needsHealthContext(intent) {
 		eg.Go(func() error {
@@ -204,6 +227,19 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 		sb.WriteString("Saldo Tersedia: " + formatRupiah(dashboard.TotalAvailableBalance) + "\n")
 		sb.WriteString("Pemasukan Bulan Ini: " + formatRupiah(dashboard.TotalIncomeMonth) + "\n")
 		sb.WriteString("Pengeluaran Bulan Ini: " + formatRupiah(dashboard.TotalExpenseMonth) + "\n")
+
+		// Top Kategori Pengeluaran Bulan Ini
+		if len(dashboard.ExpenseBreakdown) > 0 && needsReportContext(intent) {
+			sb.WriteString("\nTop Kategori Pengeluaran Bulan Ini:\n")
+			limit := 5
+			if len(dashboard.ExpenseBreakdown) < limit {
+				limit = len(dashboard.ExpenseBreakdown)
+			}
+			for i := 0; i < limit; i++ {
+				cb := dashboard.ExpenseBreakdown[i]
+				sb.WriteString(fmt.Sprintf("  %d. %s: %s (%.1f%%)\n", i+1, cb.CategoryName, formatRupiah(cb.TotalAmount), cb.Percentage))
+			}
+		}
 	}
 
 	// Daftar wallet — kritis agar AI tahu ke mana transaksi disimpan.
@@ -330,8 +366,17 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 			if d.Type == entity.DebtTypeReceivable {
 				typeLabel = "Piutang"
 			}
-			sb.WriteString(fmt.Sprintf("- %s [%s]: Sisa %s dari %s\n",
-				d.Name, typeLabel, formatRupiah(d.Remaining), formatRupiah(d.Amount)))
+			dueDateStr := ""
+			if d.DueDate != nil {
+				dueFormatted := d.DueDate.In(wib).Format("2006-01-02")
+				if d.DueDate.Before(now) {
+					dueDateStr = fmt.Sprintf(" [OVERDUE! Jatuh tempo: %s]", dueFormatted)
+				} else {
+					dueDateStr = fmt.Sprintf(" [Jatuh tempo: %s]", dueFormatted)
+				}
+			}
+			sb.WriteString(fmt.Sprintf("- [ID: %d] %s [%s]: Sisa %s dari %s%s\n",
+				d.ID, d.Name, typeLabel, formatRupiah(d.Remaining), formatRupiah(d.Amount), dueDateStr))
 			count++
 		}
 	}
@@ -352,8 +397,34 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 			if g.TargetAmount > 0 {
 				progress = (g.CurrentAmount / g.TargetAmount) * 100
 			}
-			sb.WriteString(fmt.Sprintf("- %s: %s/%s (%.0f%%)\n",
-				g.Name, formatRupiah(g.CurrentAmount), formatRupiah(g.TargetAmount), progress))
+			sb.WriteString(fmt.Sprintf("- [ID: %d] %s: %s/%s (%.0f%%)\n",
+				g.ID, g.Name, formatRupiah(g.CurrentAmount), formatRupiah(g.TargetAmount), progress))
+			count++
+		}
+	}
+
+	// Wishlist aktif (maks MaxWishlistsInContext)
+	if len(wishlists) > 0 {
+		count := 0
+		hasActive := false
+		for _, w := range wishlists {
+			if w.IsBought || count >= MaxWishlistsInContext {
+				continue
+			}
+			if !hasActive {
+				sb.WriteString("\nDaftar Keinginan (Wishlist):\n")
+				hasActive = true
+			}
+			prio := string(w.Priority)
+			if prio == "" {
+				prio = "medium"
+			}
+			catName := ""
+			if w.Category.Name != "" {
+				catName = fmt.Sprintf(", Kategori: %s", w.Category.Name)
+			}
+			sb.WriteString(fmt.Sprintf("- [ID: %d] %s [%s]: %s%s\n",
+				w.ID, w.Name, prio, formatRupiah(w.EstimatedPrice), catName))
 			count++
 		}
 	}
@@ -361,6 +432,12 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 	// Skor kesehatan keuangan
 	if health.OverallStatus != "" {
 		sb.WriteString(fmt.Sprintf("\nSkor Keuangan: %.0f/100 (%s)\n", health.OverallScore, health.OverallStatus))
+		if len(health.Ratios) > 0 && (intent == IntentHealth || intent == IntentGeneral) {
+			sb.WriteString("Rincian Rasio Keuangan:\n")
+			for _, r := range health.Ratios {
+				sb.WriteString(fmt.Sprintf("- %s: %s (Target: %s, Status: %s)\n", r.Name, r.FormattedValue, r.Target, r.Status))
+			}
+		}
 	}
 
 	sb.WriteString("--- AKHIR DATA ---")
@@ -392,6 +469,14 @@ func (s *ChatbotService) SaveTransactions(userID uint, items []entity.Transactio
 			saved, err = s.updateOne(userID, &item)
 		case "delete":
 			saved, err = s.deleteOne(userID, &item)
+		case "transfer":
+			saved, err = s.transferOne(userID, &item)
+		case "pay_debt":
+			saved, err = s.payDebtOne(userID, &item)
+		case "save_goal":
+			saved, err = s.saveGoalOne(userID, &item)
+		case "create_wishlist":
+			saved, err = s.createWishlistOne(userID, &item)
 		default:
 			saved, err = s.saveOne(userID, &item)
 			action = "create"
@@ -517,6 +602,202 @@ func (s *ChatbotService) deleteOne(userID uint, tx *entity.TransactionItemAI) (*
 		Type:         existingTx.Type,
 		CategoryName: existingTx.Category.Name,
 		WalletName:   existingTx.Wallet.Name,
+	}, nil
+}
+
+func (s *ChatbotService) transferOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	fromWalletID, fromWalletName, err := s.resolveWallet(userID, tx.WalletName)
+	if err != nil {
+		return nil, fmt.Errorf("dompet asal '%s' tidak ditemukan: %w", tx.WalletName, err)
+	}
+
+	toWalletID, toWalletName, err := s.resolveWallet(userID, tx.ToWalletName)
+	if err != nil {
+		return nil, fmt.Errorf("dompet tujuan '%s' tidak ditemukan: %w", tx.ToWalletName, err)
+	}
+
+	if fromWalletID == toWalletID {
+		return nil, errors.New("dompet asal dan dompet tujuan tidak boleh sama")
+	}
+
+	desc := tx.Description
+	if desc == "" {
+		desc = fmt.Sprintf("Transfer dari %s ke %s", fromWalletName, toWalletName)
+	}
+
+	input := TransferTransactionInput{
+		FromWalletID: fromWalletID,
+		ToWalletID:   toWalletID,
+		Amount:       tx.Amount,
+		Description:  desc,
+		Date:         time.Now(),
+	}
+
+	if err := s.transactionSvc.TransferTransaction(userID, input); err != nil {
+		return nil, fmt.Errorf("gagal transfer: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		Description:  desc,
+		Amount:       tx.Amount,
+		Type:         "transfer",
+		WalletName:   fromWalletName,
+		ToWalletName: toWalletName,
+	}, nil
+}
+
+func (s *ChatbotService) payDebtOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	if s.debtSvc == nil {
+		return nil, errors.New("debt service not configured")
+	}
+
+	walletID, walletName, err := s.resolveWallet(userID, tx.WalletName)
+	if err != nil {
+		return nil, fmt.Errorf("wallet '%s' tidak ditemukan: %w", tx.WalletName, err)
+	}
+
+	debtID := tx.ID
+	debtName := ""
+	if debtID == 0 {
+		debts, err := s.debtRepo.FindByUserID(userID, "")
+		if err == nil {
+			descLower := strings.ToLower(tx.Description)
+			for _, d := range debts {
+				if !d.IsPaid && (strings.Contains(descLower, strings.ToLower(d.Name)) || strings.Contains(strings.ToLower(d.Name), descLower)) {
+					debtID = d.ID
+					debtName = d.Name
+					break
+				}
+			}
+		}
+	}
+
+	if debtID == 0 {
+		return nil, errors.New("ID utang tidak ditemukan untuk pembayaran")
+	}
+
+	debt, err := s.debtSvc.PayDebt(debtID, userID, PayDebtInput{
+		WalletID: walletID,
+		Amount:   tx.Amount,
+		Note:     tx.Description,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("gagal bayar utang: %w", err)
+	}
+	if debt != nil && debt.Name != "" {
+		debtName = debt.Name
+	}
+
+	desc := fmt.Sprintf("Bayar Utang %s", debtName)
+	if tx.Description != "" && !strings.Contains(tx.Description, debtName) {
+		desc += " (" + tx.Description + ")"
+	}
+
+	return &entity.SavedTransaction{
+		ID:           debtID,
+		Description:  desc,
+		Amount:       tx.Amount,
+		Type:         "expense",
+		CategoryName: "Utang",
+		WalletName:   walletName,
+	}, nil
+}
+
+func (s *ChatbotService) saveGoalOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	if s.savingGoalSvc == nil {
+		return nil, errors.New("saving goal service not configured")
+	}
+
+	walletID, walletName, err := s.resolveWallet(userID, tx.WalletName)
+	if err != nil {
+		return nil, fmt.Errorf("wallet '%s' tidak ditemukan: %w", tx.WalletName, err)
+	}
+
+	goalID := tx.ID
+	goalName := ""
+	if goalID == 0 {
+		goals, err := s.savingGoalRepo.FindAll(userID)
+		if err == nil {
+			descLower := strings.ToLower(tx.Description)
+			for _, g := range goals {
+				if !g.IsFinished && (strings.Contains(descLower, strings.ToLower(g.Name)) || strings.Contains(strings.ToLower(g.Name), descLower)) {
+					goalID = g.ID
+					goalName = g.Name
+					break
+				}
+			}
+		}
+	}
+
+	if goalID == 0 {
+		return nil, errors.New("ID target tabungan tidak ditemukan")
+	}
+
+	desc := tx.Description
+	if desc == "" {
+		if goalName != "" {
+			desc = "Setor Tabungan " + goalName
+		} else {
+			desc = "Setor Tabungan"
+		}
+	}
+
+	contrib, err := s.savingGoalSvc.AddContribution(userID, goalID, ContributionInput{
+		WalletID:    walletID,
+		Amount:      tx.Amount,
+		Date:        time.Now(),
+		Description: desc,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("gagal setor tabungan: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		ID:           contrib.ID,
+		Description:  desc,
+		Amount:       tx.Amount,
+		Type:         "expense",
+		CategoryName: "Tabungan",
+		WalletName:   walletName,
+	}, nil
+}
+
+func (s *ChatbotService) createWishlistOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {
+	if s.wishlistSvc == nil {
+		return nil, errors.New("wishlist service not configured")
+	}
+
+	categoryID, categoryName, err := s.resolveCategory(userID, tx.CategoryName, "expense")
+	if err != nil {
+		return nil, fmt.Errorf("kategori '%s' tidak ditemukan: %w", tx.CategoryName, err)
+	}
+
+	prio := strings.ToLower(tx.Priority)
+	if prio != "low" && prio != "medium" && prio != "high" {
+		prio = "medium"
+	}
+
+	name := tx.Description
+	if name == "" {
+		name = "Item Wishlist"
+	}
+
+	req := &StoreWishlistRequest{
+		CategoryID:     categoryID,
+		Name:           name,
+		EstimatedPrice: tx.Amount,
+		Priority:       prio,
+	}
+
+	if err := s.wishlistSvc.Create(userID, req); err != nil {
+		return nil, fmt.Errorf("gagal menambahkan ke wishlist: %w", err)
+	}
+
+	return &entity.SavedTransaction{
+		Description:  fmt.Sprintf("%s [%s]", name, prio),
+		Amount:       tx.Amount,
+		Type:         "wishlist",
+		CategoryName: categoryName,
 	}, nil
 }
 

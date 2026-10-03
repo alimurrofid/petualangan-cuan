@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+func relativeDate(days int) *time.Time {
+	t := time.Now().AddDate(0, 0, days)
+	return &t
+}
+
 func t(wID uint, cID uint, amount float64, typ string, desc string, daysAgo int) entity.Transaction {
 	return entity.Transaction{
 		WalletID:    wID,
@@ -12,15 +17,20 @@ func t(wID uint, cID uint, amount float64, typ string, desc string, daysAgo int)
 		Amount:      amount,
 		Type:        typ,
 		Description: desc,
-		Date:        time.Now().AddDate(0, 0, -daysAgo),
+		Date:        *relativeDate(-daysAgo),
 	}
+}
+
+func intPtr(i int) *int {
+	return &i
 }
 
 var (
 	Users = []entity.User{
 		{
-			Name:  "Budiono Siregar",
-			Email: "budiono@example.com",
+			Name:   "Budiono Siregar",
+			Email:  "budiono@example.com",
+			Payday: intPtr(25),
 		},
 	}
 
@@ -63,6 +73,9 @@ var (
 		{Name: "Biaya Admin", Type: "expense", Icon: "Em_MoneyWing", BudgetLimit: 0},         // ID: 25
 		{Name: "Admin Bulanan Bank", Type: "expense", Icon: "Em_Bank", BudgetLimit: 0},       // ID: 26
 		{Name: "Laundry", Type: "expense", Icon: "WashingMachine", BudgetLimit: 0},           // ID: 27
+		{Name: "Utang", Type: "income", Icon: "BanknoteArrowDown", BudgetLimit: 0},           // ID: 28
+		{Name: "Bayar Utang", Type: "expense", Icon: "CircleFadingArrowUp", BudgetLimit: 0},   // ID: 29
+		{Name: "Tabungan", Type: "saving_allocation", Icon: "PiggyBank", BudgetLimit: 0},     // ID: 30
 	}
 
 	// Data transaksi diekstrak (12 Jan - 11 Feb) dan dimapping sempurna
@@ -73,6 +86,7 @@ var (
 		t(1, 5, 44989, "expense", "Celana Jas Hujan", 30),    // Seabank -> Belanja Online
 		t(1, 3, 18000, "expense", "Warteg Oren", 30),         // Seabank -> Makanan
 		t(1, 4, 5000, "expense", "Gooday Capucino", 30),      // Seabank -> Minuman
+		t(1, 29, 1200000, "expense", "Pelunasan Cicilan Tokopedia Helm", 30), // Seabank -> Bayar Utang
 
 		// --- 29 Hari Lalu (13 Jan) ---
 		t(3, 10, 25300, "expense", "Djarum Super", 29),                // Mandiri -> Rokok
@@ -80,11 +94,13 @@ var (
 		t(2, 10, 20000, "expense", "Gudang Garam Merah 16", 29),       // Uang Tunai -> Rokok
 		t(2, 6, 8500, "expense", "Gula 1/2 Kilo", 29),                 // Uang Tunai -> Belanja Kebutuhan
 		t(1, 4, 5000, "expense", "Gooday Capucino", 29),               // Seabank -> Minuman
+		t(1, 30, 10000000, "saving_allocation", "Alokasi ke Upgrade Laptop M3 (Tahap 1)", 29), // Seabank -> Tabungan
 
 		// --- 28 Hari Lalu (14 Jan) ---
 		t(2, 10, 20500, "expense", "Djisamsu maestro edition", 28), // Uang Tunai -> Rokok
 		t(1, 4, 10000, "expense", "Gooday Capucino", 28),           // Seabank -> Minuman
 		t(2, 22, 5000, "expense", "Nongkrong di TKK", 28),          // Uang Tunai -> Ngopi
+		t(1, 30, 2500000, "saving_allocation", "Alokasi ke Dana Darurat (Tahap 1)", 28), // Seabank -> Tabungan
 
 		// --- 27 Hari Lalu (15 Jan) ---
 		t(1, 3, 18000, "expense", "Nasi warteg oren", 27), // Seabank -> Makanan
@@ -111,6 +127,7 @@ var (
 		t(2, 3, 9000, "expense", "Nasi pecel", 25),            // Uang Tunai -> Makanan
 		t(1, 4, 5000, "expense", "Gooday Capucino", 25),       // Seabank -> Minuman
 		t(2, 15, 3500, "expense", "Korek Tokai", 25),          // Uang Tunai -> Peralatan
+		t(1, 30, 1500000, "saving_allocation", "Alokasi ke Liburan Jogja (Tahap 1)", 25), // Seabank -> Tabungan
 
 		// --- 24 Hari Lalu (18 Jan) ---
 		t(2, 9, 575000, "expense", "Ban Belakang IRC", 24),           // Uang Tunai -> Servis Motor
@@ -170,6 +187,7 @@ var (
 		t(1, 22, 13000, "expense", "Kopi kenangan", 18),          // Seabank -> Ngopi
 		t(1, 22, 13000, "expense", "Kopi kenangan", 18),          // Seabank -> Ngopi
 		t(1, 3, 10000, "expense", "Nasi ayam lada hitam", 18),    // Seabank -> Makanan
+		t(1, 30, 1500000, "saving_allocation", "Alokasi ke Liburan Jogja (Tahap 2)", 18), // Seabank -> Tabungan
 
 		// --- 17 Hari Lalu (25 Jan) ---
 		t(2, 10, 20000, "expense", "Gudang garam merah 16", 17), // Uang Tunai -> Rokok
@@ -189,6 +207,7 @@ var (
 		t(1, 3, 9000, "expense", "Nasi sambel goreng ati", 15),   // Seabank -> Makanan
 		t(1, 3, 9000, "expense", "Nasi satian", 15),              // Seabank -> Makanan
 		t(1, 4, 5000, "expense", "Marimas cincau", 15),           // Seabank -> Minuman
+		t(1, 29, 1000000, "expense", "Cicilan Pinjaman Laptop Budi", 15), // Seabank -> Bayar Utang
 
 		// --- 14 Hari Lalu (28 Jan) ---
 		t(1, 3, 54000, "expense", "Pecel ponorogo", 14),     // Seabank -> Makanan
@@ -201,6 +220,7 @@ var (
 		t(1, 4, 5000, "expense", "Popice stoberi", 14),      // Seabank -> Minuman
 		t(2, 13, 4000, "expense", "Parkir pecel", 14),       // Uang Tunai -> Parkir
 		t(1, 14, 2000, "expense", "Kerupuk", 14),            // Seabank -> Jajan
+		t(1, 30, 2000000, "saving_allocation", "Alokasi ke Dana Darurat (Tahap 2)", 14), // Seabank -> Tabungan
 
 		// --- 13 Hari Lalu (29 Jan) ---
 		t(1, 3, 10000, "expense", "Nasi kuning", 13),          // Seabank -> Makanan
@@ -216,6 +236,7 @@ var (
 		t(1, 4, 5000, "expense", "Gooday capucino", 12),         // Seabank -> Minuman
 		t(2, 4, 5000, "expense", "Es degan", 12),                // Uang Tunai -> Minuman
 		t(1, 14, 2500, "expense", "Tahu sumedang", 12),          // Seabank -> Jajan
+		t(1, 5, 350000, "expense", "Mouse Wireless Logitech", 12), // Seabank -> Belanja Online
 
 		// --- 11 Hari Lalu (31 Jan) ---
 		t(1, 22, 15000, "expense", "Kopi bening upn", 11),       // Seabank -> Ngopi
@@ -236,6 +257,7 @@ var (
 		t(2, 3, 15000, "expense", "Nasi goreng", 10),            // Uang Tunai -> Makanan
 		t(2, 3, 10000, "expense", "Soto daging", 10),            // Uang Tunai -> Makanan
 		t(2, 3, 3500, "expense", "Kerupuk", 10),                 // Uang Tunai -> Makanan
+		t(1, 30, 4000000, "saving_allocation", "Alokasi ke Upgrade Laptop M3 (Tahap 2)", 10), // Seabank -> Tabungan
 
 		// --- 9 Hari Lalu (2 Feb) ---
 		t(2, 10, 20000, "expense", "Gudang garam merah 16", 9), // Uang Tunai -> Rokok
@@ -275,6 +297,7 @@ var (
 		t(2, 13, 3000, "expense", "Parkir fore", 5),        // Uang Tunai -> Parkir
 		t(2, 12, 2000, "expense", "Amal jumat", 5),         // Uang Tunai -> Amal
 		t(1, 14, 2000, "expense", "Sosis", 5),              // Seabank -> Jajan
+		t(2, 23, 50000, "income", "Cicilan talangan bensin dari Andi", 5), // Uang Tunai -> Terima Piutang
 
 		// --- 4 Hari Lalu (7 Feb) ---
 		t(1, 3, 10000, "expense", "Nasi ayam lada hitam", 4), // Seabank -> Makanan
@@ -304,4 +327,200 @@ var (
 		t(1, 6, 34000, "expense", "Mie dan kopi", 0), // Seabank -> Belanja Kebutuhan
 		t(1, 3, 10000, "expense", "Ayam Dkriuk", 0),  // Seabank -> Makanan
 	}
+
+	Debts = []entity.Debt{
+		{
+			WalletID:    1, // Seabank
+			Name:        "Pinjaman Budi (Laptop)",
+			Amount:      2500000,
+			Remaining:   1500000,
+			Type:        entity.DebtTypePayable,
+			Description: "Pinjam untuk DP servis laptop",
+			DueDate:     relativeDate(14), // Jatuh tempo 14 hari lagi
+			IsPaid:      false,
+		},
+		{
+			WalletID:    3, // Mandiri
+			Name:        "Paylater Shopee",
+			Amount:      450000,
+			Remaining:   450000,
+			Type:        entity.DebtTypePayable,
+			Description: "Tagihan jaket & jas hujan",
+			DueDate:     relativeDate(-3), // OVERDUE 3 hari lalu
+			IsPaid:      false,
+		},
+		{
+			WalletID:    2, // Uang Tunai
+			Name:        "Talangan Bensin Andi",
+			Amount:      100000,
+			Remaining:   50000,
+			Type:        entity.DebtTypeReceivable,
+			Description: "Andi pinjam uang bensin saat touring",
+			DueDate:     relativeDate(7), // Jatuh tempo 7 hari lagi
+			IsPaid:      false,
+		},
+		{
+			WalletID:    1, // Seabank
+			Name:        "Cicilan Tokopedia (Selesai)",
+			Amount:      1200000,
+			Remaining:   0,
+			Type:        entity.DebtTypePayable,
+			Description: "Cicilan helm full face (sudah lunas)",
+			DueDate:     relativeDate(-30),
+			IsPaid:      true,
+		},
+	}
+
+	Wishlists = []entity.WishlistItem{
+		{
+			CategoryID:     5, // Belanja Online
+			Name:           "AirPods Pro 2",
+			EstimatedPrice: 3500000,
+			Priority:       entity.WishlistPriorityHigh,
+			IsBought:       false,
+		},
+		{
+			CategoryID:     19, // Lifestyle
+			Name:           "Sepatu Lari Nike Pegasus",
+			EstimatedPrice: 1650000,
+			Priority:       entity.WishlistPriorityMedium,
+			IsBought:       false,
+		},
+		{
+			CategoryID:     15, // Peralatan
+			Name:           "Mechanical Keyboard Keychron",
+			EstimatedPrice: 1200000,
+			Priority:       entity.WishlistPriorityLow,
+			IsBought:       false,
+		},
+		{
+			CategoryID:     5, // Belanja Online
+			Name:           "Mouse Wireless Logitech",
+			EstimatedPrice: 350000,
+			Priority:       entity.WishlistPriorityMedium,
+			IsBought:       true, // Sudah terbeli
+		},
+	}
+
+	SavingGoals = []entity.SavingGoal{
+		{
+			CategoryID:    20, // Lain lain
+			Name:          "Dana Darurat",
+			TargetAmount:  15000000,
+			CurrentAmount: 4500000, // 30% progress
+			Deadline:      relativeDate(180),
+			Icon:          "ShieldAlert",
+			IsAchieved:    false,
+			IsFinished:    false,
+		},
+		{
+			CategoryID:    5, // Belanja Online
+			Name:          "Upgrade Laptop M3",
+			TargetAmount:  20000000,
+			CurrentAmount: 14000000, // 70% progress
+			Deadline:      relativeDate(90),
+			Icon:          "Laptop",
+			IsAchieved:    false,
+			IsFinished:    false,
+		},
+		{
+			CategoryID:    19, // Lifestyle
+			Name:          "Liburan Jogja",
+			TargetAmount:  3000000,
+			CurrentAmount: 3000000, // 100% progress
+			Deadline:      relativeDate(-15),
+			Icon:          "Plane",
+			IsAchieved:    true,
+			IsFinished:    true,
+		},
+	}
+
+	DebtPayments = []SeedDebtPayment{
+		{
+			DebtIndex:       3, // Cicilan Tokopedia (Selesai)
+			TransactionDesc: "Pelunasan Cicilan Tokopedia Helm",
+			WalletIndex:     1, // Seabank
+			Amount:          1200000,
+			DaysAgo:         30,
+			Note:            "Pelunasan cicilan helm full face",
+		},
+		{
+			DebtIndex:       0, // Pinjaman Budi (Laptop)
+			TransactionDesc: "Cicilan Pinjaman Laptop Budi",
+			WalletIndex:     1, // Seabank
+			Amount:          1000000,
+			DaysAgo:         15,
+			Note:            "Cicilan ke-1 DP servis laptop",
+		},
+		{
+			DebtIndex:       2, // Talangan Bensin Andi
+			TransactionDesc: "Cicilan talangan bensin dari Andi",
+			WalletIndex:     2, // Uang Tunai
+			Amount:          50000,
+			DaysAgo:         5,
+			Note:            "Pengembalian uang bensin touring",
+		},
+	}
+
+	SavingContributions = []SeedSavingContribution{
+		{
+			GoalIndex:       0, // Dana Darurat
+			TransactionDesc: "Alokasi ke Dana Darurat (Tahap 1)",
+			WalletIndex:     1, // Seabank
+			Amount:          2500000,
+			DaysAgo:         28,
+		},
+		{
+			GoalIndex:       0, // Dana Darurat
+			TransactionDesc: "Alokasi ke Dana Darurat (Tahap 2)",
+			WalletIndex:     1, // Seabank
+			Amount:          2000000,
+			DaysAgo:         14,
+		},
+		{
+			GoalIndex:       1, // Upgrade Laptop M3
+			TransactionDesc: "Alokasi ke Upgrade Laptop M3 (Tahap 1)",
+			WalletIndex:     1, // Seabank
+			Amount:          10000000,
+			DaysAgo:         29,
+		},
+		{
+			GoalIndex:       1, // Upgrade Laptop M3
+			TransactionDesc: "Alokasi ke Upgrade Laptop M3 (Tahap 2)",
+			WalletIndex:     1, // Seabank
+			Amount:          4000000,
+			DaysAgo:         10,
+		},
+		{
+			GoalIndex:       2, // Liburan Jogja
+			TransactionDesc: "Alokasi ke Liburan Jogja (Tahap 1)",
+			WalletIndex:     1, // Seabank
+			Amount:          1500000,
+			DaysAgo:         25,
+		},
+		{
+			GoalIndex:       2, // Liburan Jogja
+			TransactionDesc: "Alokasi ke Liburan Jogja (Tahap 2)",
+			WalletIndex:     1, // Seabank
+			Amount:          1500000,
+			DaysAgo:         18,
+		},
+	}
 )
+
+type SeedDebtPayment struct {
+	DebtIndex       int
+	TransactionDesc string
+	WalletIndex     int
+	Amount          float64
+	DaysAgo         int
+	Note            string
+}
+
+type SeedSavingContribution struct {
+	GoalIndex       int
+	TransactionDesc string
+	WalletIndex     int
+	Amount          float64
+	DaysAgo         int
+}

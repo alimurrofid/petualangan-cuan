@@ -12,6 +12,7 @@ const (
 	IntentReport                           // rekap / laporan keuangan
 	IntentGoal                             // tabungan / target keuangan
 	IntentHealth                           // skor / kesehatan keuangan
+	IntentWishlist                         // barang impian / wishlist
 	IntentSmallTalk                        // sapaan / pertanyaan umum non-keuangan
 )
 
@@ -30,6 +31,9 @@ const (
 
 	// MaxGoalsInContext adalah jumlah maksimal target tabungan yang disertakan.
 	MaxGoalsInContext = 5
+
+	// MaxWishlistsInContext adalah jumlah maksimal item wishlist yang disertakan.
+	MaxWishlistsInContext = 5
 )
 
 // intentKeywords mendefinisikan kata kunci per intent.
@@ -56,6 +60,9 @@ var intentKeywords = map[ContextIntent][]string{
 	IntentHealth: {
 		"skor", "score", "kesehatan keuangan", "financial health",
 		"kondisi keuangan", "evaluasi keuangan",
+	},
+	IntentWishlist: {
+		"wishlist", "keinginan", "mau beli", "pengen beli", "beli barang", "daftar keinginan", "beli apa",
 	},
 	IntentSmallTalk: {
 		"halo", "hai", "hi", "hello", "apa kabar", "selamat pagi",
@@ -93,7 +100,12 @@ func DetectIntent(message string) ContextIntent {
 		count := 0
 		for _, kw := range keywords {
 			if strings.Contains(msg, kw) {
-				count++
+				// Beri bobot lebih tinggi untuk frasa spesifik (lebih dari 1 kata)
+				if strings.Contains(kw, " ") {
+					count += 3
+				} else {
+					count += 1
+				}
 			}
 		}
 		if count > 0 {
@@ -143,4 +155,9 @@ func needsWalletContext(intent ContextIntent) bool {
 // needsDashboardContext mengembalikan true jika intent memerlukan ringkasan dashboard.
 func needsDashboardContext(intent ContextIntent) bool {
 	return intent != IntentSmallTalk
+}
+
+// needsWishlistContext mengembalikan true jika intent memerlukan data wishlist/keinginan.
+func needsWishlistContext(intent ContextIntent) bool {
+	return intent == IntentWishlist || intent == IntentGeneral
 }

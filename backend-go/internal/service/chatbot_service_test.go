@@ -6,6 +6,7 @@ import (
 	"cuan-backend/internal/repository"
 	"fmt"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -118,23 +119,129 @@ func (m *mockSavingGoalRepository) GetActiveContributions(goalID uint) (float64,
 }
 func (m *mockSavingGoalRepository) WithTx(tx *gorm.DB) repository.SavingGoalRepository { return m }
 
+type mockWishlistRepository struct{ mock.Mock }
+
+func (m *mockWishlistRepository) Create(item *entity.WishlistItem) error { return nil }
+func (m *mockWishlistRepository) FindAllByUserID(userID uint) ([]entity.WishlistItem, error) {
+	args := m.Called(userID)
+	return args.Get(0).([]entity.WishlistItem), args.Error(1)
+}
+func (m *mockWishlistRepository) FindByID(id, userID uint) (*entity.WishlistItem, error) {
+	return nil, nil
+}
+func (m *mockWishlistRepository) Update(item *entity.WishlistItem) error { return nil }
+func (m *mockWishlistRepository) Delete(id, userID uint) error          { return nil }
+func (m *mockWishlistRepository) MarkAsBought(id, userID uint) error    { return nil }
+func (m *mockWishlistRepository) HasRelatedTransactions(categoryID uint) (bool, error) {
+	return false, nil
+}
+
+type mockWishlistService struct{ mock.Mock }
+
+func (m *mockWishlistService) Create(userID uint, req *StoreWishlistRequest) error {
+	args := m.Called(userID, req)
+	return args.Error(0)
+}
+func (m *mockWishlistService) FindAll(userID uint) ([]entity.WishlistItem, error) {
+	args := m.Called(userID)
+	return args.Get(0).([]entity.WishlistItem), args.Error(1)
+}
+func (m *mockWishlistService) FindByID(id uint, userID uint) (*entity.WishlistItem, error) {
+	return nil, nil
+}
+func (m *mockWishlistService) Update(id uint, userID uint, req *StoreWishlistRequest) error {
+	return nil
+}
+func (m *mockWishlistService) Delete(id uint, userID uint) error { return nil }
+func (m *mockWishlistService) MarkAsBought(id uint, userID uint) error {
+	return nil
+}
+
+type mockDebtService struct{ mock.Mock }
+
+func (m *mockDebtService) CreateDebt(userID uint, input CreateDebtInput) (*entity.Debt, error) {
+	return nil, nil
+}
+func (m *mockDebtService) GetDebts(userID uint, debtType string) ([]entity.Debt, error) {
+	return nil, nil
+}
+func (m *mockDebtService) GetDebt(id uint, userID uint) (*entity.Debt, error) {
+	return nil, nil
+}
+func (m *mockDebtService) PayDebt(id uint, userID uint, input PayDebtInput) (*entity.Debt, error) {
+	args := m.Called(id, userID, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Debt), args.Error(1)
+}
+func (m *mockDebtService) UpdateDebt(id uint, userID uint, input UpdateDebtInput) (*entity.Debt, error) {
+	return nil, nil
+}
+func (m *mockDebtService) DeleteDebt(id uint, userID uint) error { return nil }
+func (m *mockDebtService) DeletePayment(id uint, userID uint) error {
+	return nil
+}
+
+type mockSavingGoalService struct{ mock.Mock }
+
+func (m *mockSavingGoalService) CreateGoal(userID uint, input CreateGoalInput) (*entity.SavingGoal, error) {
+	return nil, nil
+}
+func (m *mockSavingGoalService) GetGoals(userID uint) ([]entity.SavingGoal, error) {
+	return nil, nil
+}
+func (m *mockSavingGoalService) AddContribution(userID uint, goalID uint, input ContributionInput) (*entity.SavingContribution, error) {
+	args := m.Called(userID, goalID, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.SavingContribution), args.Error(1)
+}
+func (m *mockSavingGoalService) UpdateGoal(userID uint, goalID uint, input CreateGoalInput) (*entity.SavingGoal, error) {
+	return nil, nil
+}
+func (m *mockSavingGoalService) DeleteGoal(userID uint, goalID uint) error { return nil }
+func (m *mockSavingGoalService) DeleteContribution(userID uint, contributionID uint) error {
+	return nil
+}
+func (m *mockSavingGoalService) FinishGoal(userID uint, goalID uint) error {
+	return nil
+}
+
 type mockTransactionService struct{ mock.Mock }
 
 func (m *mockTransactionService) CreateTransaction(userID uint, input CreateTransactionInput) (*entity.Transaction, error) {
-	return nil, nil
+	args := m.Called(userID, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Transaction), args.Error(1)
 }
 func (m *mockTransactionService) GetTransactions(userID uint, params entity.TransactionFilterParams) ([]entity.Transaction, int64, error) {
 	return nil, 0, nil
 }
 func (m *mockTransactionService) GetTransaction(id, userID uint) (*entity.Transaction, error) {
-	return nil, nil
+	args := m.Called(id, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Transaction), args.Error(1)
 }
 func (m *mockTransactionService) UpdateTransaction(id, userID uint, input CreateTransactionInput) (*entity.Transaction, error) {
-	return nil, nil
+	args := m.Called(id, userID, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.Transaction), args.Error(1)
 }
-func (m *mockTransactionService) DeleteTransaction(id, userID uint) error { return nil }
+func (m *mockTransactionService) DeleteTransaction(id, userID uint) error {
+	args := m.Called(id, userID)
+	return args.Error(0)
+}
 func (m *mockTransactionService) TransferTransaction(userID uint, input TransferTransactionInput) error {
-	return nil
+	args := m.Called(userID, input)
+	return args.Error(0)
 }
 func (m *mockTransactionService) GetCalendarData(userID uint, startDate, endDate string, walletID, categoryID *uint, search string) ([]entity.TransactionSummary, error) {
 	return nil, nil
@@ -177,12 +284,27 @@ func (m *mockUserRepository) FindByID(id uint) (*entity.User, error) {
 	return args.Get(0).(*entity.User), args.Error(1)
 }
 
+func TestChatbotService_DetectIntent(t *testing.T) {
+	assert.Equal(t, IntentSmallTalk, DetectIntent("halo selamat pagi"))
+	assert.Equal(t, IntentWishlist, DetectIntent("tampilkan wishlist saya"))
+	assert.Equal(t, IntentWishlist, DetectIntent("saya mau beli ps5"))
+	assert.Equal(t, IntentDebt, DetectIntent("berapa sisa utang saya"))
+	assert.Equal(t, IntentGoal, DetectIntent("progres target tabungan"))
+	assert.Equal(t, IntentHealth, DetectIntent("cek kesehatan keuangan saya"))
+	assert.Equal(t, IntentReport, DetectIntent("rekap pengeluaran minggu ini"))
+	assert.Equal(t, IntentTransaction, DetectIntent("beli bensin 20rb"))
+}
+
 func TestChatbotService_GetUserContext(t *testing.T) {
 	mockWalletRepo := new(mockWalletRepository)
 	mockCategoryRepo := new(mockCategoryRepository)
 	mockTransactionRepo := new(mockTransactionRepository)
 	mockDebtRepo := new(mockDebtRepository)
+	mockDebtSvc := new(mockDebtService)
 	mockGoalRepo := new(mockSavingGoalRepository)
+	mockGoalSvc := new(mockSavingGoalService)
+	mockWishlistRepo := new(mockWishlistRepository)
+	mockWishlistSvc := new(mockWishlistService)
 	mockTxSvc := new(mockTransactionService)
 	mockDashSvc := new(mockDashboardService)
 	mockHealthSvc := new(mockFinancialHealthService)
@@ -191,23 +313,160 @@ func TestChatbotService_GetUserContext(t *testing.T) {
 	mockUserRepo.On("FindByID", uint(1)).Return((*entity.User)(nil), fmt.Errorf("not found"))
 
 	service := NewChatbotService(
-		mockWalletRepo, mockCategoryRepo, mockTxSvc, mockTransactionRepo, mockDebtRepo, mockGoalRepo, mockDashSvc, mockHealthSvc, mockUserRepo,
+		mockWalletRepo, mockCategoryRepo, mockTxSvc, mockTransactionRepo,
+		mockDebtRepo, mockDebtSvc, mockGoalRepo, mockGoalSvc,
+		mockWishlistRepo, mockWishlistSvc, mockDashSvc, mockHealthSvc, mockUserRepo,
 	)
 
-	mockDashSvc.On("GetDashboardData", uint(1)).Return(&entity.DashboardData{TotalBalance: 1000}, nil)
+	mockDashSvc.On("GetDashboardData", uint(1)).Return(&entity.DashboardData{
+		TotalBalance: 1000000,
+		ExpenseBreakdown: []entity.CategoryBreakdown{
+			{CategoryName: "Makan", TotalAmount: 500000, Percentage: 50.0},
+		},
+	}, nil)
+
 	mockWalletRepo.On("FindByUserID", uint(1)).Return([]entity.Wallet{
-		{ID: 1, Name: "Cash"},
+		{ID: 1, Name: "Cash", Balance: 500000, Type: "cash"},
 	}, nil)
 
 	mockTransactionRepo.On("GetRecentTransactions", uint(1), 5).Return([]entity.Transaction{}, nil)
 	mockTransactionRepo.On("FindSummaryByDateRange", uint(1), mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]entity.TransactionSummary{}, nil)
-	mockDebtRepo.On("FindByUserID", uint(1), "").Return([]entity.Debt{}, nil)
-	mockGoalRepo.On("FindAll", uint(1)).Return([]entity.SavingGoal{}, nil)
-	mockHealthSvc.On("GetFinancialHealth", uint(1)).Return(entity.FinancialHealthResponse{OverallStatus: "Good", OverallScore: 85}, nil)
+	
+	overdueDate := time.Now().AddDate(0, 0, -2)
+	mockDebtRepo.On("FindByUserID", uint(1), "").Return([]entity.Debt{
+		{ID: 3, Name: "Utang Budi", Amount: 200000, Remaining: 100000, Type: entity.DebtTypePayable, DueDate: &overdueDate},
+	}, nil)
+
+	mockGoalRepo.On("FindAll", uint(1)).Return([]entity.SavingGoal{
+		{ID: 5, Name: "Laptop", TargetAmount: 10000000, CurrentAmount: 2000000},
+	}, nil)
+
+	mockWishlistRepo.On("FindAllByUserID", uint(1)).Return([]entity.WishlistItem{
+		{ID: 10, Name: "AirPods Pro", EstimatedPrice: 3500000, Priority: entity.WishlistPriorityHigh, IsBought: false},
+	}, nil)
+
+	mockHealthSvc.On("GetFinancialHealth", uint(1)).Return(entity.FinancialHealthResponse{
+		OverallStatus: "Sehat",
+		OverallScore:  85,
+		Ratios: []entity.FinancialHealthRatio{
+			{Name: "Dana Darurat", FormattedValue: "3x pengeluaran", Target: "3-6x", Status: "Sehat"},
+		},
+	}, nil)
 
 	contextStr := service.GetUserContext(1, "cek data keuangan saya")
 
 	assert.Contains(t, contextStr, "Daftar Wallet (1):")
 	assert.Contains(t, contextStr, "Cash")
-	assert.Contains(t, contextStr, "85/100 (Good)")
+	assert.Contains(t, contextStr, "85/100 (Sehat)")
+	assert.Contains(t, contextStr, "Dana Darurat: 3x pengeluaran")
+	assert.Contains(t, contextStr, "Utang Budi")
+	assert.Contains(t, contextStr, "OVERDUE!")
+	assert.Contains(t, contextStr, "[ID: 5] Laptop")
+	assert.Contains(t, contextStr, "AirPods Pro [high]")
+}
+
+func TestChatbotService_SaveTransactions_Actions(t *testing.T) {
+	mockWalletRepo := new(mockWalletRepository)
+	mockCategoryRepo := new(mockCategoryRepository)
+	mockTransactionRepo := new(mockTransactionRepository)
+	mockDebtRepo := new(mockDebtRepository)
+	mockDebtSvc := new(mockDebtService)
+	mockGoalRepo := new(mockSavingGoalRepository)
+	mockGoalSvc := new(mockSavingGoalService)
+	mockWishlistRepo := new(mockWishlistRepository)
+	mockWishlistSvc := new(mockWishlistService)
+	mockTxSvc := new(mockTransactionService)
+	mockDashSvc := new(mockDashboardService)
+	mockHealthSvc := new(mockFinancialHealthService)
+	mockUserRepo := new(mockUserRepository)
+
+	service := NewChatbotService(
+		mockWalletRepo, mockCategoryRepo, mockTxSvc, mockTransactionRepo,
+		mockDebtRepo, mockDebtSvc, mockGoalRepo, mockGoalSvc,
+		mockWishlistRepo, mockWishlistSvc, mockDashSvc, mockHealthSvc, mockUserRepo,
+	)
+
+	mockWalletRepo.On("FindByUserID", uint(1)).Return([]entity.Wallet{
+		{ID: 1, Name: "BCA"},
+		{ID: 2, Name: "GoPay"},
+	}, nil)
+
+	mockCategoryRepo.On("FindAll", uint(1)).Return([]entity.Category{
+		{ID: 1, Name: "Makan", Type: "expense"},
+		{ID: 2, Name: "Belanja", Type: "expense"},
+	}, nil)
+
+	// Test 1: Action Transfer
+	mockTxSvc.On("TransferTransaction", uint(1), mock.MatchedBy(func(input TransferTransactionInput) bool {
+		return input.FromWalletID == 1 && input.ToWalletID == 2 && input.Amount == 100000
+	})).Return(nil)
+
+	resTransfer, err := service.SaveTransactions(1, []entity.TransactionItemAI{
+		{
+			Action:       "transfer",
+			Amount:       100000,
+			WalletName:   "BCA",
+			ToWalletName: "GoPay",
+			Description:  "Transfer ke GoPay",
+		},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, resTransfer, 1)
+	assert.Equal(t, "transfer", resTransfer[0].Action)
+	assert.Equal(t, "BCA", resTransfer[0].WalletName)
+	assert.Equal(t, "GoPay", resTransfer[0].ToWalletName)
+
+	// Test 2: Action Pay Debt
+	mockDebtSvc.On("PayDebt", uint(3), uint(1), mock.MatchedBy(func(input PayDebtInput) bool {
+		return input.WalletID == 1 && input.Amount == 50000
+	})).Return(&entity.Debt{ID: 3, Name: "Utang Budi"}, nil)
+
+	resDebt, err := service.SaveTransactions(1, []entity.TransactionItemAI{
+		{
+			Action:      "pay_debt",
+			ID:          3,
+			Amount:      50000,
+			WalletName:  "BCA",
+			Description: "Bayar utang Budi",
+		},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, resDebt, 1)
+	assert.Equal(t, "pay_debt", resDebt[0].Action)
+
+	// Test 3: Action Save Goal
+	mockGoalSvc.On("AddContribution", uint(1), uint(7), mock.MatchedBy(func(input ContributionInput) bool {
+		return input.WalletID == 1 && input.Amount == 200000
+	})).Return(&entity.SavingContribution{ID: 99}, nil)
+
+	resGoal, err := service.SaveTransactions(1, []entity.TransactionItemAI{
+		{
+			Action:      "save_goal",
+			ID:          7,
+			Amount:      200000,
+			WalletName:  "BCA",
+			Description: "Setor Tabungan Laptop",
+		},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, resGoal, 1)
+	assert.Equal(t, "save_goal", resGoal[0].Action)
+
+	// Test 4: Action Create Wishlist
+	mockWishlistSvc.On("Create", uint(1), mock.MatchedBy(func(req *StoreWishlistRequest) bool {
+		return req.Name == "Sepatu Nike" && req.EstimatedPrice == 1500000 && req.Priority == "medium"
+	})).Return(nil)
+
+	resWishlist, err := service.SaveTransactions(1, []entity.TransactionItemAI{
+		{
+			Action:       "create_wishlist",
+			Amount:       1500000,
+			Description:  "Sepatu Nike",
+			CategoryName: "Belanja",
+			Priority:     "medium",
+		},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, resWishlist, 1)
+	assert.Equal(t, "create_wishlist", resWishlist[0].Action)
 }

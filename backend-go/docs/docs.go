@@ -2809,7 +2809,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "action": {
-                    "description": "create, update, delete",
+                    "description": "create, update, delete, transfer, pay_debt, save_goal, create_wishlist",
                     "type": "string"
                 },
                 "amount": {
@@ -2823,6 +2823,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "to_wallet_name": {
+                    "type": "string"
                 },
                 "type": {
                     "type": "string"

@@ -6,13 +6,15 @@ type ChatAIResponse struct {
 	Transactions  []TransactionItemAI `json:"transactions"`
 }
 type TransactionItemAI struct {
-	Action       string  `json:"action"` // create, update, delete
-	ID           uint    `json:"id"`     // target ID if action is update/delete
+	Action       string  `json:"action"`                  // create, update, delete, transfer, pay_debt, save_goal, create_wishlist
+	ID           uint    `json:"id"`                      // target ID if action is update/delete/pay_debt/save_goal
 	Type         string  `json:"type"`
 	Amount       float64 `json:"amount"`
 	Description  string  `json:"description"`
 	CategoryName string  `json:"category_name"`
 	WalletName   string  `json:"wallet_name"`
+	ToWalletName string  `json:"to_wallet_name,omitempty"` // target wallet for transfer
+	Priority     string  `json:"priority,omitempty"`       // low, medium, high for wishlist
 }
 
 type ChatResponse struct {
@@ -23,10 +25,11 @@ type ChatResponse struct {
 }
 type SavedTransaction struct {
 	ID           uint    `json:"id"`
-	Action       string  `json:"action"` // create, update, delete
+	Action       string  `json:"action"`                  // create, update, delete, transfer, pay_debt, save_goal, create_wishlist
 	Description  string  `json:"description"`
 	Amount       float64 `json:"amount"`
 	Type         string  `json:"type"`
 	CategoryName string  `json:"category_name"`
 	WalletName   string  `json:"wallet_name"`
+	ToWalletName string  `json:"to_wallet_name,omitempty"`
 }

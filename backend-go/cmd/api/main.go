@@ -119,7 +119,9 @@ func main() {
 
 	chatbotSvc := service.NewChatbotService(
 		walletRepo, categoryRepo, svc,
-		repo, debtRepo, savingGoalRepo,
+		repo, debtRepo, debtSvc,
+		savingGoalRepo, savingGoalSvc,
+		wishlistRepo, wishlistSvc,
 		dashboardSvc, financialHealthSvc, userRepo,
 	)
 

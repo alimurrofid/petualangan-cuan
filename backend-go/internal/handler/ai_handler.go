@@ -177,37 +177,7 @@ func (h *aiHandler) ChatMessage(c *fiber.Ctx) error {
 			response.Reply += "\n\n⚠️ Transaksi terdeteksi tapi gagal diproses: " + err.Error()
 		} else if len(saved) > 0 {
 			response.Transactions = saved
-			summary := "\n\n"
-
-			hasCreate, hasUpdate, hasDelete := false, false, false
-			for _, s := range saved {
-				switch s.Action {
-				case "update":
-					hasUpdate = true
-				case "delete":
-					hasDelete = true
-				default:
-					hasCreate = true
-				}
-			}
-
-			if hasCreate {
-				summary += "✅ Transaksi berhasil dicatat!"
-			} else if hasUpdate {
-				summary += "✅ Transaksi berhasil diperbarui!"
-			} else if hasDelete {
-				summary += "✅ Transaksi berhasil dihapus!"
-			}
-
-			for _, s := range saved {
-				if s.Action == "update" {
-					summary += fmt.Sprintf("\n✏️ %s — Rp%s", s.Description, formatCurrency(s.Amount))
-				} else if s.Action == "delete" {
-					summary += fmt.Sprintf("\n🗑️ %s (Dihapus)", s.Description)
-				} else {
-					summary += fmt.Sprintf("\n📝 %s — Rp%s", s.Description, formatCurrency(s.Amount))
-				}
-			}
+			summary := formatActionSummary(saved)
 			response.Reply += summary
 		}
 	}
@@ -357,38 +327,7 @@ func (h *aiHandler) ChatMessageStream(c *fiber.Ctx) error {
 				writeSSE(w, "token", string(safeToken))
 			} else if len(saved) > 0 {
 				response.Transactions = saved
-				
-				summary := "\n\n"
-				hasCreate, hasUpdate, hasDelete := false, false, false
-				
-				for _, s := range saved {
-					switch s.Action {
-					case "update":
-						hasUpdate = true
-					case "delete":
-						hasDelete = true
-					default:
-						hasCreate = true
-					}
-				}
-				
-				if hasCreate {
-					summary += "✅ Transaksi berhasil dicatat!"
-				} else if hasUpdate {
-					summary += "✅ Transaksi berhasil diperbarui!"
-				} else if hasDelete {
-					summary += "✅ Transaksi berhasil dihapus!"
-				}
-				
-				for _, s := range saved {
-					if s.Action == "update" {
-						summary += fmt.Sprintf("\n✏️ %s — Rp%s", s.Description, formatCurrency(s.Amount))
-					} else if s.Action == "delete" {
-						summary += fmt.Sprintf("\n🗑️ %s (Dihapus)", s.Description)
-					} else {
-						summary += fmt.Sprintf("\n📝 %s — Rp%s", s.Description, formatCurrency(s.Amount))
-					}
-				}
+				summary := formatActionSummary(saved)
 
 				for _, char := range summary {
 					safeToken, _ := json.Marshal(map[string]string{"content": string(char)})
@@ -521,3 +460,68 @@ func removeTempWavFile(path string) {
 	wavPath = strings.TrimSuffix(path, ".webm") + ".wav"
 	os.Remove(wavPath)
 }
+
+func formatActionSummary(saved []entity.SavedTransaction) string {
+	if len(saved) == 0 {
+		return ""
+	}
+	summary := "\n\n"
+	hasCreate, hasUpdate, hasDelete := false, false, false
+	hasTransfer, hasPayDebt, hasSaveGoal, hasWishlist := false, false, false, false
+
+	for _, s := range saved {
+		switch s.Action {
+		case "update":
+			hasUpdate = true
+		case "delete":
+			hasDelete = true
+		case "transfer":
+			hasTransfer = true
+		case "pay_debt":
+			hasPayDebt = true
+		case "save_goal":
+			hasSaveGoal = true
+		case "create_wishlist":
+			hasWishlist = true
+		default:
+			hasCreate = true
+		}
+	}
+
+	if hasTransfer {
+		summary += "✅ Transfer saldo berhasil diproses!"
+	} else if hasPayDebt {
+		summary += "✅ Pembayaran utang berhasil dicatat!"
+	} else if hasSaveGoal {
+		summary += "✅ Setoran tabungan berhasil dicatat!"
+	} else if hasWishlist {
+		summary += "✅ Item berhasil ditambahkan ke Wishlist!"
+	} else if hasCreate {
+		summary += "✅ Transaksi berhasil dicatat!"
+	} else if hasUpdate {
+		summary += "✅ Transaksi berhasil diperbarui!"
+	} else if hasDelete {
+		summary += "✅ Transaksi berhasil dihapus!"
+	}
+
+	for _, s := range saved {
+		switch s.Action {
+		case "update":
+			summary += fmt.Sprintf("\n✏️ %s — Rp%s", s.Description, formatCurrency(s.Amount))
+		case "delete":
+			summary += fmt.Sprintf("\n🗑️ %s (Dihapus)", s.Description)
+		case "transfer":
+			summary += fmt.Sprintf("\n🔄 %s: Rp%s (%s ➡️ %s)", s.Description, formatCurrency(s.Amount), s.WalletName, s.ToWalletName)
+		case "pay_debt":
+			summary += fmt.Sprintf("\n🤝 %s — Rp%s (%s)", s.Description, formatCurrency(s.Amount), s.WalletName)
+		case "save_goal":
+			summary += fmt.Sprintf("\n🎯 %s — Rp%s (%s)", s.Description, formatCurrency(s.Amount), s.WalletName)
+		case "create_wishlist":
+			summary += fmt.Sprintf("\n⭐ %s — Rp%s", s.Description, formatCurrency(s.Amount))
+		default:
+			summary += fmt.Sprintf("\n📝 %s — Rp%s", s.Description, formatCurrency(s.Amount))
+		}
+	}
+	return summary
+}
+
