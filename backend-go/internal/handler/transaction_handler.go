@@ -223,10 +223,17 @@ func (h *transactionHandler) GetTransaction(c *fiber.Ctx) error {
 // @Summary Update a transaction
 // @Description Update an existing transaction and adjust wallet balances
 // @Tags transactions
-// @Accept json
+// @Accept multipart/form-data,json
 // @Produce json
 // @Param id path int true "Transaction ID"
-// @Param transaction body service.CreateTransactionInput true "Transaction Input"
+// @Param transaction body service.CreateTransactionInput false "Transaction Input (JSON)"
+// @Param type formData string false "Transaction Type (income/expense)"
+// @Param amount formData number false "Amount"
+// @Param wallet_id formData int false "Wallet ID"
+// @Param category_id formData int false "Category ID"
+// @Param description formData string false "Description"
+// @Param date formData string false "Date (RFC3339 or YYYY-MM-DD)"
+// @Param attachment formData file false "Attachment file"
 // @Success 200 {object} entity.Transaction
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
@@ -240,53 +247,59 @@ func (h *transactionHandler) UpdateTransaction(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	var input service.CreateTransactionInput
-	input.Type = c.FormValue("type")
-	input.Description = c.FormValue("description")
+	if strings.Contains(c.Get("Content-Type"), "application/json") {
+		if err := c.BodyParser(&input); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
+		}
+	} else {
+		input.Type = c.FormValue("type")
+		input.Description = c.FormValue("description")
 
-	amountStr := c.FormValue("amount")
-	if amountStr != "" {
-		amount, _ := strconv.ParseFloat(amountStr, 64)
-		input.Amount = amount
-	}
+		amountStr := c.FormValue("amount")
+		if amountStr != "" {
+			amount, _ := strconv.ParseFloat(amountStr, 64)
+			input.Amount = amount
+		}
 
-	walletIDStr := c.FormValue("wallet_id")
-	if walletIDStr != "" {
-		walletID, _ := strconv.Atoi(walletIDStr)
-		input.WalletID = uint(walletID)
-	}
+		walletIDStr := c.FormValue("wallet_id")
+		if walletIDStr != "" {
+			walletID, _ := strconv.Atoi(walletIDStr)
+			input.WalletID = uint(walletID)
+		}
 
-	categoryIDStr := c.FormValue("category_id")
-	if categoryIDStr != "" {
-		categoryID, _ := strconv.Atoi(categoryIDStr)
-		input.CategoryID = uint(categoryID)
-	}
+		categoryIDStr := c.FormValue("category_id")
+		if categoryIDStr != "" {
+			categoryID, _ := strconv.Atoi(categoryIDStr)
+			input.CategoryID = uint(categoryID)
+		}
 
-	dateStr := c.FormValue("date")
-	if dateStr != "" {
-		date, err := time.Parse(time.RFC3339, dateStr)
-		if err == nil {
-			input.Date = date
-		} else {
-			date, err = time.Parse("2006-01-02", dateStr)
+		dateStr := c.FormValue("date")
+		if dateStr != "" {
+			date, err := time.Parse(time.RFC3339, dateStr)
 			if err == nil {
 				input.Date = date
 			} else {
-				input.Date = time.Now()
+				date, err = time.Parse("2006-01-02", dateStr)
+				if err == nil {
+					input.Date = date
+				} else {
+					input.Date = time.Now()
+				}
 			}
+		} else {
+			input.Date = time.Now()
 		}
-	} else {
-		input.Date = time.Now()
-	}
 
-	fileHeader, err := c.FormFile("attachment")
-	if err == nil {
-		path, err := processAndSaveFile(fileHeader)
-		if err != nil {
-			reqID, _ := c.Locals("requestid").(string)
-			log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to process file: " + err.Error()})
+		fileHeader, err := c.FormFile("attachment")
+		if err == nil {
+			path, err := processAndSaveFile(fileHeader)
+			if err != nil {
+				reqID, _ := c.Locals("requestid").(string)
+				log.Error().Str("request_id", reqID).Err(err).Msg("Internal server error")
+				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to process file: " + err.Error()})
+			}
+			input.Attachment = path
 		}
-		input.Attachment = path
 	}
 
 	transaction, err := h.service.UpdateTransaction(uint(id), userID, input)

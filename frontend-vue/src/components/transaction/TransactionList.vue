@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { format, parseISO, subDays } from "date-fns";
 import { id } from "date-fns/locale";
 import { formatCurrency } from "@/lib/utils";
@@ -20,6 +20,37 @@ const emit = defineEmits<{
     (e: 'page-change', page: number): void;
     (e: 'edit', transaction: any): void;
 }>();
+
+const activeActionId = ref<number | null>(null);
+
+const toggleMobileActions = (id: number) => {
+    activeActionId.value = activeActionId.value === id ? null : id;
+};
+
+const handleEditAction = (t: any) => {
+    activeActionId.value = null;
+    emit('edit', t);
+};
+
+const handleDeleteAction = async (t: any) => {
+    activeActionId.value = null;
+    await handleDelete(t);
+};
+
+const handleDocumentClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.transaction-item')) {
+        activeActionId.value = null;
+    }
+};
+
+onMounted(() => {
+    document.addEventListener('click', handleDocumentClick);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleDocumentClick);
+});
 
 const handleDelete = async (t: any) => {
     let title = 'Hapus Transaksi?';
@@ -111,7 +142,13 @@ const groupedTransactions = computed(() => {
                 </div>
 
                 <div v-for="t in group.items" :key="t.id"
-                    class="group relative flex items-center justify-between p-3 rounded-2xl hover:bg-muted/50 transition-all cursor-pointer border border-transparent hover:border-border">
+                    @click="toggleMobileActions(t.id)"
+                    :class="[
+                        'transaction-item group relative flex items-center justify-between p-3 rounded-2xl transition-all cursor-pointer border',
+                        activeActionId === t.id
+                            ? 'bg-muted/80 border-primary/30 ring-1 ring-primary/20 shadow-sm'
+                            : 'hover:bg-muted/50 border-transparent hover:border-border'
+                    ]">
                     <div class="flex items-center gap-3 flex-1 min-w-0 mr-2">
                         <div :class="['h-10 w-10 shrink-0 rounded-xl flex items-center justify-center text-lg shadow-sm transition-transform group-hover:scale-105',
                             t.type === 'expense' ? 'bg-red-50 text-red-500' :
@@ -148,19 +185,23 @@ const groupedTransactions = computed(() => {
                         <span class="text-[10px] text-muted-foreground">{{ format(parseISO(t.date), 'HH:mm') }}</span>
                     </div>
 
-
                     <!-- Action Buttons -->
                     <div
-                        class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-background/80 backdrop-blur-sm rounded-lg p-1 shadow-sm border border-border">
-                        <button @click.stop="emit('edit', t)"
-                            class="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 hover:text-blue-600 transition-colors"
+                        :class="[
+                            'absolute right-2 top-2 flex gap-1 bg-background/90 backdrop-blur-md rounded-lg p-1 shadow-md border border-border transition-all duration-200 z-20',
+                            activeActionId === t.id
+                                ? 'opacity-100 pointer-events-auto scale-100'
+                                : 'opacity-0 pointer-events-none md:group-hover:opacity-100 md:group-hover:pointer-events-auto md:pointer-events-auto scale-95 md:scale-100'
+                        ]">
+                        <button @click.stop="handleEditAction(t)"
+                            class="p-2 md:p-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-md text-muted-foreground hover:text-blue-600 transition-colors"
                             title="Edit">
-                            <Pencil class="w-3.5 h-3.5" />
+                            <Pencil class="w-4 h-4 md:w-3.5 md:h-3.5" />
                         </button>
-                        <button @click.stop="handleDelete(t)"
-                            class="p-1.5 hover:bg-red-50 rounded-md text-slate-500 hover:text-red-500 transition-colors"
+                        <button @click.stop="handleDeleteAction(t)"
+                            class="p-2 md:p-1.5 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-md text-muted-foreground hover:text-red-500 transition-colors"
                             title="Hapus">
-                            <Trash2 class="w-3.5 h-3.5" />
+                            <Trash2 class="w-4 h-4 md:w-3.5 md:h-3.5" />
                         </button>
                     </div>
                 </div>

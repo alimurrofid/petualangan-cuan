@@ -179,6 +179,11 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 	}
 	t.Date = input.Date
 
+	// Clear preloaded associations to prevent any stale data persistence
+	t.Wallet = entity.Wallet{}
+	t.Category = entity.Category{}
+	t.User = entity.User{}
+
 	if err := s.repo.WithTx(tx).Update(t); err != nil {
 		tx.Rollback()
 		return nil, err
@@ -237,7 +242,7 @@ func (s *transactionService) UpdateTransaction(id uint, userID uint, input Creat
 				relatedTx.Date = input.Date
 				relatedTx.Description = input.Description 
 				
-				if err := tx.Save(&relatedTx).Error; err != nil {
+				if err := s.repo.WithTx(tx).Update(&relatedTx); err != nil {
 					tx.Rollback()
 					return nil, err
 				}

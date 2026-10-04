@@ -1943,6 +1943,7 @@ const docTemplate = `{
                 ],
                 "description": "Update an existing transaction and adjust wallet balances",
                 "consumes": [
+                    "multipart/form-data",
                     "application/json"
                 ],
                 "produces": [
@@ -1961,13 +1962,54 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Transaction Input",
+                        "description": "Transaction Input (JSON)",
                         "name": "transaction",
                         "in": "body",
-                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/service.CreateTransactionInput"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Transaction Type (income/expense)",
+                        "name": "type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Amount",
+                        "name": "amount",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Wallet ID",
+                        "name": "wallet_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Category ID",
+                        "name": "category_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Date (RFC3339 or YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Attachment file",
+                        "name": "attachment",
+                        "in": "formData"
                     }
                 ],
                 "responses": {

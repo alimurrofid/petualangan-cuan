@@ -33,7 +33,7 @@ Panduan ringkas reverse proxy untuk menghubungkan **VPS Tencent** ke **Google Ge
 > Generate secret acak dengan:
 >
 > ```bash
-> openssl rand -hex 32
+> openssl rand -base64 32
 > ```
 
 ---

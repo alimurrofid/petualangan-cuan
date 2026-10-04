@@ -1623,6 +1623,7 @@ paths:
       - transactions
     put:
       consumes:
+      - multipart/form-data
       - application/json
       description: Update an existing transaction and adjust wallet balances
       parameters:
@@ -1631,12 +1632,39 @@ paths:
         name: id
         required: true
         type: integer
-      - description: Transaction Input
+      - description: Transaction Input (JSON)
         in: body
         name: transaction
-        required: true
         schema:
           $ref: '#/definitions/service.CreateTransactionInput'
+      - description: Transaction Type (income/expense)
+        in: formData
+        name: type
+        type: string
+      - description: Amount
+        in: formData
+        name: amount
+        type: number
+      - description: Wallet ID
+        in: formData
+        name: wallet_id
+        type: integer
+      - description: Category ID
+        in: formData
+        name: category_id
+        type: integer
+      - description: Description
+        in: formData
+        name: description
+        type: string
+      - description: Date (RFC3339 or YYYY-MM-DD)
+        in: formData
+        name: date
+        type: string
+      - description: Attachment file
+        in: formData
+        name: attachment
+        type: file
       produces:
       - application/json
       responses:

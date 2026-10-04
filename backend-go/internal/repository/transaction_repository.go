@@ -6,6 +6,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type TransactionRepository interface {
@@ -106,7 +107,7 @@ func (r *transactionRepository) FindByID(id uint, userID uint) (*entity.Transact
 }
 
 func (r *transactionRepository) Update(transaction *entity.Transaction) error {
-	if err := r.db.Save(transaction).Error; err != nil {
+	if err := r.db.Omit(clause.Associations).Save(transaction).Error; err != nil {
 		log.Error().Err(err).Uint("transaction_id", transaction.ID).Uint("user_id", transaction.UserID).Msg("Database operation failed")
 		return err
 	}
