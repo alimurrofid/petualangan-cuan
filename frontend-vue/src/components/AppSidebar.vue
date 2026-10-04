@@ -1,72 +1,76 @@
 <script setup lang="ts">
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
 import { Wallet, Bot, FolderOpen, ArrowLeftRight, ToolCase, FileChartColumn, Settings2, Calendar1, HandCoins, Heart, PiggyBank, HeartPulse } from "lucide-vue-next";
 
-const items = [
+const { t } = useI18n();
+
+const items = computed(() => [
   {
-    title: "Dashboard",
+    title: t("nav.dashboard"),
     url: "/dashboard",
     icon: ToolCase,
   },
   {
-    title: "Kesehatan Keuangan",
+    title: t("nav.financialHealth"),
     url: "/financial-health",
     icon: HeartPulse,
   },
   {
-    title: "Asisten AI",
+    title: t("nav.chat"),
     url: "/chat",
     icon: Bot,
   },
   {
-    title: "Dompet Saya",
+    title: t("nav.wallets"),
     url: "/wallet",
     icon: Wallet,
   },
   {
-    title: "Kategori",
+    title: t("nav.categories"),
     url: "/category",
     icon: FolderOpen,
   },
   {
-    title: "Transaksi",
+    title: t("nav.transactions"),
     url: "/transaction",
     icon: ArrowLeftRight,
   },
   {
-    title: "Kalender",
+    title: t("nav.calendar"),
     url: "/calendar",
     icon: Calendar1,
   },
   {
-    title: "Laporan",
+    title: t("nav.reports"),
     url: "/report",
     icon: FileChartColumn,
   },
   {
-    title: "Utang & Piutang",
+    title: t("nav.debts"),
     url: "/debt",
     icon: HandCoins,
   },
   {
-    title: "Keinginan",
+    title: t("nav.wishlist"),
     url: "/wishlist",
     icon: Heart,
   },
   {
-    title: "Target Menabung",
+    title: t("nav.savingGoals"),
     url: "/saving-goal",
     icon: PiggyBank,
   },
-];
+]);
 
-const settingsItems = [
+const settingsItems = computed(() => [
   {
-    title: "Pengaturan",
+    title: t("nav.settings"),
     url: "/setting",
     icon: Settings2,
   },
-];
+]);
 </script>
 
 <template>
@@ -83,10 +87,10 @@ const settingsItems = [
 
     <SidebarContent>
       <SidebarGroup>
-        <SidebarGroupLabel>Menu Utama</SidebarGroupLabel>
+        <SidebarGroupLabel>{{ t("nav.mainMenu") }}</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem v-for="item in items" :key="item.title">
+            <SidebarMenuItem v-for="item in items" :key="item.url">
               <SidebarMenuButton asChild>
                 <RouterLink :to="item.url" active-class="bg-accent text-accent-foreground">
                   <component :is="item.icon" class="w-4 h-4" />
@@ -99,10 +103,10 @@ const settingsItems = [
       </SidebarGroup>
 
       <SidebarGroup>
-        <SidebarGroupLabel>Lainnya</SidebarGroupLabel>
+        <SidebarGroupLabel>{{ t("nav.preferences") }}</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem v-for="item in settingsItems" :key="item.title">
+            <SidebarMenuItem v-for="item in settingsItems" :key="item.url">
               <SidebarMenuButton asChild>
                 <RouterLink :to="item.url" active-class="bg-accent text-accent-foreground">
                   <component :is="item.icon" class="w-4 h-4" />

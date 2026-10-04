@@ -1,0 +1,50 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "financialHealth": "Financial Health",
+    "chat": "AI Assistant",
+    "wallets": "My Wallets",
+    "categories": "Categories",
+    "transactions": "Transactions",
+    "calendar": "Calendar",
+    "reports": "Reports",
+    "debts": "Debts & Receivables",
+    "wishlist": "Wishlist",
+    "savingGoals": "Saving Goals",
+    "settings": "Settings",
+    "logout": "Log Out",
+    "mainMenu": "Main Menu",
+    "preferences": "Preferences"
+  },
+  "settings": {
+    "title": "Account Settings",
+    "subtitle": "Manage your profile, visual preferences, and account security.",
+    "deleteAccount": "Delete Account",
+    "tabs": {
+      "profile": "Profile",
+      "format": "Language & Format",
+      "password": "Change Password",
+      "whatsapp": "WhatsApp Integration"
+    },
+    "languageTitle": "Display Language",
+    "languageDesc": "Choose your preferred language for the application interface",
+    "decimalTitle": "Show Decimals",
+    "decimalDescOn": "Enabled: Showing 2 decimal digits (Example: Rp 1.500.000,00)",
+    "decimalDescOff": "Disabled: Rounding amounts cleanly without cents (Example: Rp 1.500.000)",
+    "decimalBadgeOn": "Decimals On",
+    "decimalBadgeOff": "Rounded Clean",
+    "savePreferences": "Save Settings",
+    "savedSuccess": "Preferences saved successfully!"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "success": "Success",
+    "failed": "Failed",
+    "loading": "Loading...",
+    "confirm": "Confirm"
+  }
+}

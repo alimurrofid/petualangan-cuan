@@ -1,14 +1,18 @@
 <script setup lang="ts">
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { RouterLink } from "vue-router";
 import { ToolCase, Wallet, ArrowLeftRight, FileChartColumn, Settings2 } from "lucide-vue-next";
 
-const items = [
-  { title: "Dashboard", url: "/dashboard", icon: ToolCase },
-  { title: "Dompet", url: "/wallet", icon: Wallet },
-  { title: "Transaksi", url: "/transaction", icon: ArrowLeftRight },
-  { title: "Laporan", url: "/report", icon: FileChartColumn },
-  { title: "Pengaturan", url: "/setting", icon: Settings2 },
-];
+const { t } = useI18n();
+
+const items = computed(() => [
+  { title: t("nav.dashboard"), url: "/dashboard", icon: ToolCase },
+  { title: t("nav.wallets"), url: "/wallet", icon: Wallet },
+  { title: t("nav.transactions"), url: "/transaction", icon: ArrowLeftRight },
+  { title: t("nav.reports"), url: "/report", icon: FileChartColumn },
+  { title: t("nav.settings"), url: "/setting", icon: Settings2 },
+]);
 </script>
 
 <template>

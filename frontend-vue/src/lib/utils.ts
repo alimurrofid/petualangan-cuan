@@ -18,8 +18,35 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 
-export function formatCurrency(value: number) {
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
+import { useSettingsStore } from "@/stores/settings";
+
+export function formatCurrency(value: number | string | undefined | null, options?: { showDecimal?: boolean }) {
+  let showDecimal = options?.showDecimal;
+  if (showDecimal === undefined) {
+    try {
+      const settingsStore = useSettingsStore();
+      showDecimal = settingsStore.showDecimal;
+    } catch {
+      try {
+        const raw = localStorage.getItem('cuan_settings');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          showDecimal = parsed.showDecimal === true || parsed.showDecimal === 'true' || parsed.showDecimal === 'Show';
+        }
+      } catch {
+        showDecimal = false;
+      }
+    }
+  }
+
+  const num = typeof value === 'number' && !isNaN(value) ? value : Number(value) || 0;
+  const fractionDigits = showDecimal ? 2 : 0;
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(num);
 }
 
 export function formatCompactNumber(number: number): string {

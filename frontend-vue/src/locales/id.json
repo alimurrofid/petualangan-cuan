@@ -1,0 +1,50 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "financialHealth": "Kesehatan Keuangan",
+    "chat": "Asisten AI",
+    "wallets": "Dompet Saya",
+    "categories": "Kategori",
+    "transactions": "Transaksi",
+    "calendar": "Kalender",
+    "reports": "Laporan",
+    "debts": "Utang & Piutang",
+    "wishlist": "Keinginan",
+    "savingGoals": "Target Menabung",
+    "settings": "Pengaturan",
+    "logout": "Keluar",
+    "mainMenu": "Menu Utama",
+    "preferences": "Preferensi"
+  },
+  "settings": {
+    "title": "Pengaturan Akun",
+    "subtitle": "Kelola profil, preferensi tampilan, dan keamanan akun Anda.",
+    "deleteAccount": "Hapus Akun",
+    "tabs": {
+      "profile": "Profil",
+      "format": "Bahasa & Format",
+      "password": "Ganti Kata Sandi",
+      "whatsapp": "Integrasi WhatsApp"
+    },
+    "languageTitle": "Bahasa Tampilan",
+    "languageDesc": "Pilih bahasa untuk seluruh tampilan antarmuka aplikasi",
+    "decimalTitle": "Tampilkan Desimal",
+    "decimalDescOn": "Aktif: Menampilkan 2 digit desimal (Contoh: Rp 1.500.000,00)",
+    "decimalDescOff": "Nonaktif: Membulatkan nominal tanpa sen (Contoh: Rp 1.500.000)",
+    "decimalBadgeOn": "Desimal Aktif",
+    "decimalBadgeOff": "Bulat / Rapi",
+    "savePreferences": "Simpan Pengaturan",
+    "savedSuccess": "Preferensi berhasil disimpan!"
+  },
+  "common": {
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "edit": "Edit",
+    "add": "Tambah",
+    "success": "Berhasil",
+    "failed": "Gagal",
+    "loading": "Memuat...",
+    "confirm": "Konfirmasi"
+  }
+}

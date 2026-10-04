@@ -2,33 +2,60 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useSettingsStore, type SupportedLanguage } from "@/stores/settings";
+import { useI18n } from "vue-i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, EyeOff, Loader2, Smartphone, CheckCircle2, XCircle, LinkIcon } from "lucide-vue-next";
+import { Switch } from "@/components/ui/switch";
+import { Eye, EyeOff, Loader2, Smartphone, CheckCircle2, XCircle, LinkIcon, Globe, Coins } from "lucide-vue-next";
 import { useSwal } from "@/composables/useSwal";
+import { formatCurrency } from "@/lib/utils";
 
 const route = useRoute();
 const authStore = useAuthStore();
+const settingsStore = useSettingsStore();
+const { t } = useI18n();
+
 const activeTab = ref("profile");
 const isLoading = ref(false);
+const isSavingPreferences = ref(false);
 const swal = useSwal();
 
-const tabs = [
-    { id: "profile", label: "Profil" },
-    { id: "currency", label: "Bahasa & Mata Uang" },
-    { id: "password", label: "Ganti Kata Sandi" },
-    { id: "whatsapp", label: "Integrasi WhatsApp" },
-];
+const tabs = computed(() => [
+    { id: "profile", label: t('settings.tabs.profile') },
+    { id: "currency", label: t('settings.tabs.format') },
+    { id: "password", label: t('settings.tabs.password') },
+    { id: "whatsapp", label: t('settings.tabs.whatsapp') },
+]);
 
 const formData = ref({
-    language: "Indonesia",
-    timezone: "Asia/Jakarta (GMT+7)",
-    currency: "IDR",
-    showDecimal: "Hide"
+    language: settingsStore.language as SupportedLanguage,
+    showDecimal: settingsStore.showDecimal,
 });
+
+watch(() => [settingsStore.language, settingsStore.showDecimal], () => {
+    formData.value.language = settingsStore.language;
+    formData.value.showDecimal = settingsStore.showDecimal;
+});
+
+const handleSavePreferences = () => {
+    isSavingPreferences.value = true;
+    try {
+        settingsStore.saveSettings({
+            language: formData.value.language,
+            showDecimal: formData.value.showDecimal,
+        });
+        swal.success(t('common.success'), t('settings.savedSuccess'));
+    } catch (e: any) {
+        swal.error(t('common.failed'), e?.message || "Gagal menyimpan pengaturan");
+    } finally {
+        setTimeout(() => {
+            isSavingPreferences.value = false;
+        }, 300);
+    }
+};
 
 const profileForm = ref({
     name: "",
@@ -48,7 +75,7 @@ const showPassword = ref({
 
 const updateTabFromQuery = () => {
     const tab = route.query.tab as string;
-    if (tab && tabs.some(t => t.id === tab)) {
+    if (tab && tabs.value.some((t: { id: string; label: string }) => t.id === tab)) {
         activeTab.value = tab;
     }
 };
@@ -248,74 +275,111 @@ const handleUpdatePassword = async () => {
                     {{ tab.label }}
                 </button>
             </div>
-            <Button variant="destructive" size="sm" class="hidden md:flex">Hapus Akun</Button>
+            <Button variant="destructive" size="sm" class="hidden md:flex">{{ t('settings.deleteAccount') }}</Button>
         </div>
 
         <Card class="border-border/60 shadow-sm overflow-hidden">
             <CardContent class="p-6">
 
-                <!-- Currency Tab -->
+                <!-- Bahasa & Format Tab -->
                 <div v-if="activeTab === 'currency'" class="space-y-6">
-                    <!-- ... Existing Currency Content ... -->
                     <div class="space-y-4">
-                        <div class="space-y-2">
-                            <Label>Bahasa</Label>
-                            <Select v-model="formData.language">
-                                <SelectTrigger class="w-full">
-                                    <SelectValue placeholder="Pilih Bahasa" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="English">English</SelectItem>
-                                    <SelectItem value="Indonesia">Indonesia</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <!-- Toggle Bahasa -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl bg-card border border-border/70 gap-4 shadow-xs">
+                            <div class="flex items-start gap-3.5">
+                                <div class="h-10 w-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5 border border-blue-500/15">
+                                    <Globe class="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-base text-foreground">{{ t('settings.languageTitle') }}</h4>
+                                    <p class="text-xs text-muted-foreground mt-0.5 leading-relaxed">{{ t('settings.languageDesc') }}</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Segmented Pill Toggle with Smooth Sliding Indicator -->
+                            <div class="relative inline-flex p-1 rounded-full bg-muted/70 dark:bg-zinc-800/90 border border-border/70 self-start sm:self-center shrink-0 shadow-xs">
+                                <!-- Smooth Animated Sliding Pill -->
+                                <div 
+                                    class="absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-full bg-background dark:bg-zinc-900 shadow-sm border border-border/70 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none"
+                                    :style="{
+                                        transform: formData.language === 'en' ? 'translateX(100%)' : 'translateX(0%)'
+                                    }"
+                                ></div>
+
+                                <button 
+                                    type="button" 
+                                    @click="formData.language = 'id'" 
+                                    class="relative z-10 flex items-center justify-center gap-2 px-4 py-1.5 rounded-full text-xs transition-colors duration-200 cursor-pointer select-none min-w-[105px]"
+                                    :class="formData.language === 'id' 
+                                        ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
+                                        : 'text-muted-foreground hover:text-foreground font-medium'"
+                                >
+                                    <svg viewBox="0 0 32 32" class="w-4 h-4 rounded-full overflow-hidden shrink-0 shadow-xs ring-1 ring-black/10 dark:ring-white/15">
+                                        <rect width="32" height="16" fill="#E70011"/>
+                                        <rect y="16" width="32" height="16" fill="#FFFFFF"/>
+                                    </svg>
+                                    <span>Indonesia</span>
+                                </button>
+                                <button 
+                                    type="button" 
+                                    @click="formData.language = 'en'" 
+                                    class="relative z-10 flex items-center justify-center gap-2 px-4 py-1.5 rounded-full text-xs transition-colors duration-200 cursor-pointer select-none min-w-[105px]"
+                                    :class="formData.language === 'en' 
+                                        ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
+                                        : 'text-muted-foreground hover:text-foreground font-medium'"
+                                >
+                                    <svg viewBox="0 0 32 32" class="w-4 h-4 rounded-full overflow-hidden shrink-0 shadow-xs ring-1 ring-black/10 dark:ring-white/15">
+                                        <rect width="32" height="32" fill="#012169"/>
+                                        <path d="M0 0 L32 32 M32 0 L0 32" stroke="#FFFFFF" stroke-width="6"/>
+                                        <path d="M0 0 L32 32 M32 0 L0 32" stroke="#C8102E" stroke-width="3"/>
+                                        <path d="M16 0 V32 M0 16 H32" stroke="#FFFFFF" stroke-width="10"/>
+                                        <path d="M16 0 V32 M0 16 H32" stroke="#C8102E" stroke-width="6"/>
+                                    </svg>
+                                    <span>English</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <div class="space-y-2">
-                            <Label>Zona Waktu</Label>
-                            <Select v-model="formData.timezone">
-                                <SelectTrigger class="w-full">
-                                    <SelectValue placeholder="Pilih Zona Waktu" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Asia/Jakarta (GMT+7)">Asia/Jakarta (GMT+7)</SelectItem>
-                                    <SelectItem value="Asia/Makassar (GMT+8)">Asia/Makassar (GMT+8)</SelectItem>
-                                    <SelectItem value="Asia/Jayapura (GMT+9)">Asia/Jayapura (GMT+9)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div class="space-y-2">
-                            <Label>Mata Uang</Label>
-                            <Select v-model="formData.currency">
-                                <SelectTrigger class="w-full">
-                                    <SelectValue placeholder="Pilih Mata Uang" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="IDR">IDR (Rupiah)</SelectItem>
-                                    <SelectItem value="USD">USD (Dollar)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div class="space-y-2">
-                            <Label>Tampilkan Desimal</Label>
-                            <Select v-model="formData.showDecimal">
-                                <SelectTrigger class="w-full">
-                                    <SelectValue placeholder="Pilih Opsi" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Show">Tampilkan</SelectItem>
-                                    <SelectItem value="Hide">Sembunyikan</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <!-- Toggle Desimal -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl bg-card border border-border/70 gap-4 shadow-xs">
+                            <div class="flex items-start gap-3.5">
+                                <div class="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-500/15">
+                                    <Coins class="w-5 h-5" />
+                                </div>
+                                <div class="space-y-1">
+                                    <h4 class="font-semibold text-base text-foreground">{{ t('settings.decimalTitle') }}</h4>
+                                    <p class="text-xs text-muted-foreground leading-relaxed">
+                                        {{ formData.showDecimal ? t('settings.decimalDescOn') : t('settings.decimalDescOff') }}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Switch Toggle & Live Preview -->
+                            <div class="flex items-center gap-3.5 self-start sm:self-center shrink-0">
+                                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/60 dark:bg-muted/30 border border-border/60 text-xs">
+                                    <span class="text-muted-foreground text-[11px] font-medium">Contoh:</span>
+                                    <span class="font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                                        {{ formatCurrency(1500000, { showDecimal: formData.showDecimal }) }}
+                                    </span>
+                                </div>
+                                <Switch 
+                                    v-model="formData.showDecimal" 
+                                    id="toggle-decimal"
+                                    aria-label="Tampilkan Desimal"
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <div class="pt-4">
+                    <div class="pt-2">
                         <Button
-                            class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white">Simpan
-                            Perubahan</Button>
+                            @click="handleSavePreferences"
+                            :disabled="isSavingPreferences"
+                            class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-md font-semibold h-11"
+                        >
+                            <Loader2 v-if="isSavingPreferences" class="w-4 h-4 mr-2 animate-spin" />
+                            {{ t('settings.savePreferences') }}
+                        </Button>
                     </div>
                 </div>
 
