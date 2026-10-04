@@ -35,52 +35,53 @@ var (
 	}
 
 	Wallets = []entity.Wallet{
-		{Name: "Seabank", Type: "Bank", Balance: 2916986, Icon: "Em_Coin"},             // ID: 1
-		{Name: "Uang Tunai", Type: "Cash", Balance: 87700, Icon: "Em_DollarBill"},      // ID: 2
-		{Name: "Mandiri", Type: "Bank", Balance: 109159, Icon: "Em_Bank"},              // ID: 3
-		{Name: "Gopay", Type: "E-Wallet", Balance: 16402, Icon: "SmartphoneNfc"},       // ID: 4
-		{Name: "Shopeepay", Type: "E-Wallet", Balance: 345, Icon: "SmartphoneNfc"},     // ID: 5
-		{Name: "BTN", Type: "Bank", Balance: 51982, Icon: "Em_Bank"},                   // ID: 6
-		{Name: "Jago Utama", Type: "Bank", Balance: 982, Icon: "Em_Bank"},              // ID: 7
-		{Name: "Jago Learning", Type: "Bank", Balance: 17046, Icon: "Em_Bank"},         // ID: 8
+		{Name: "Seabank", Type: "Bank", Balance: 21416986, Icon: "Em_Coin", Seq: 1},             // ID: 1
+		{Name: "Uang Tunai", Type: "Cash", Balance: 87700, Icon: "Em_DollarBill", Seq: 2},      // ID: 2
+		{Name: "Mandiri", Type: "Bank", Balance: 109159, Icon: "Em_Bank", Seq: 3},              // ID: 3
+		{Name: "Gopay", Type: "E-Wallet", Balance: 16402, Icon: "SmartphoneNfc", Seq: 4},       // ID: 4
+		{Name: "Shopeepay", Type: "E-Wallet", Balance: 345, Icon: "SmartphoneNfc", Seq: 5},     // ID: 5
+		{Name: "BTN", Type: "Bank", Balance: 51982, Icon: "Em_Bank", Seq: 6},                   // ID: 6
+		{Name: "Jago Utama", Type: "Bank", Balance: 982, Icon: "Em_Bank", Seq: 7},              // ID: 7
+		{Name: "Jago Learning", Type: "Bank", Balance: 17046, Icon: "Em_Bank", Seq: 8},         // ID: 8
 	}
 
 	Categories = []entity.Category{
-		{Name: "Gaji", Type: "income", Icon: "Em_MoneyBag", BudgetLimit: 0},                  // ID: 1
-		{Name: "Pemasukan Lainnya", Type: "income", Icon: "HelpCircle", BudgetLimit: 0},      // ID: 2
-		{Name: "Makanan", Type: "expense", Icon: "Utensils", BudgetLimit: 0},                 // ID: 3
-		{Name: "Minuman", Type: "expense", Icon: "Wine", BudgetLimit: 0},                     // ID: 4
-		{Name: "Belanja Online", Type: "expense", Icon: "ShoppingCart", BudgetLimit: 0},      // ID: 5
-		{Name: "Belanja Kebutuhan", Type: "expense", Icon: "Em_Cart", BudgetLimit: 0},        // ID: 6
-		{Name: "Transfer", Type: "transfer", Icon: "Em_Exchange", BudgetLimit: 0},            // ID: 7
-		{Name: "Bensin", Type: "expense", Icon: "Fuel", BudgetLimit: 400000},                 // ID: 8
-		{Name: "Servis Motor", Type: "expense", Icon: "Em_Motor", BudgetLimit: 0},            // ID: 9
-		{Name: "Rokok", Type: "expense", Icon: "Em_Cigarette", BudgetLimit: 600000},          // ID: 10
-		{Name: "Bunga Bank", Type: "income", Icon: "BadgeDollarSign", BudgetLimit: 0},        // ID: 11
-		{Name: "Amal", Type: "expense", Icon: "HeartHandshake", BudgetLimit: 0},              // ID: 12
-		{Name: "Parkir", Type: "expense", Icon: "ParkingSquare", BudgetLimit: 0},             // ID: 13
-		{Name: "Jajan", Type: "expense", Icon: "Pizza", BudgetLimit: 0},                      // ID: 14
-		{Name: "Peralatan", Type: "expense", Icon: "Em_Tool", BudgetLimit: 0},                // ID: 15
-		{Name: "Kos", Type: "expense", Icon: "Building", BudgetLimit: 0},                     // ID: 16
-		{Name: "Listrik", Type: "expense", Icon: "Zap", BudgetLimit: 0},                      // ID: 17
-		{Name: "ATK", Type: "expense", Icon: "Tv", BudgetLimit: 0},                           // ID: 18
-		{Name: "Lifestyle", Type: "expense", Icon: "Em_Shirt", BudgetLimit: 0},               // ID: 19
-		{Name: "Lain lain", Type: "expense", Icon: "HelpCircle", BudgetLimit: 0},             // ID: 20
-		{Name: "Piutang", Type: "expense", Icon: "BanknoteArrowUp", BudgetLimit: 0},          // ID: 21
-		{Name: "Ngopi", Type: "expense", Icon: "Coffee", BudgetLimit: 150000},                // ID: 22
-		{Name: "Terima Piutang", Type: "income", Icon: "HandCoins", BudgetLimit: 0},          // ID: 23
-		{Name: "Internet", Type: "expense", Icon: "Wifi", BudgetLimit: 0},                    // ID: 24
-		{Name: "Biaya Admin", Type: "expense", Icon: "Em_MoneyWing", BudgetLimit: 0},         // ID: 25
-		{Name: "Admin Bulanan Bank", Type: "expense", Icon: "Em_Bank", BudgetLimit: 0},       // ID: 26
-		{Name: "Laundry", Type: "expense", Icon: "WashingMachine", BudgetLimit: 0},           // ID: 27
-		{Name: "Utang", Type: "income", Icon: "BanknoteArrowDown", BudgetLimit: 0},           // ID: 28
-		{Name: "Bayar Utang", Type: "expense", Icon: "CircleFadingArrowUp", BudgetLimit: 0},   // ID: 29
-		{Name: "Tabungan", Type: "saving_allocation", Icon: "PiggyBank", BudgetLimit: 0},     // ID: 30
+		{Name: "Gaji", Type: "income", Icon: "Em_MoneyBag", BudgetLimit: 0, Seq: 1},                  // ID: 1
+		{Name: "Pemasukan Lainnya", Type: "income", Icon: "HelpCircle", BudgetLimit: 0, Seq: 2},      // ID: 2
+		{Name: "Makanan", Type: "expense", Icon: "Utensils", BudgetLimit: 0, Seq: 3},                 // ID: 3
+		{Name: "Minuman", Type: "expense", Icon: "Wine", BudgetLimit: 0, Seq: 4},                     // ID: 4
+		{Name: "Belanja Online", Type: "expense", Icon: "ShoppingCart", BudgetLimit: 0, Seq: 5},      // ID: 5
+		{Name: "Belanja Kebutuhan", Type: "expense", Icon: "Em_Cart", BudgetLimit: 0, Seq: 6},        // ID: 6
+		{Name: "Transfer", Type: "transfer", Icon: "Em_Exchange", BudgetLimit: 0, Seq: 7},            // ID: 7
+		{Name: "Bensin", Type: "expense", Icon: "Fuel", BudgetLimit: 400000, Seq: 8},                 // ID: 8
+		{Name: "Servis Motor", Type: "expense", Icon: "Em_Motor", BudgetLimit: 0, Seq: 9},            // ID: 9
+		{Name: "Rokok", Type: "expense", Icon: "Em_Cigarette", BudgetLimit: 600000, Seq: 10},         // ID: 10
+		{Name: "Bunga Bank", Type: "income", Icon: "BadgeDollarSign", BudgetLimit: 0, Seq: 11},       // ID: 11
+		{Name: "Amal", Type: "expense", Icon: "HeartHandshake", BudgetLimit: 0, Seq: 12},             // ID: 12
+		{Name: "Parkir", Type: "expense", Icon: "ParkingSquare", BudgetLimit: 0, Seq: 13},            // ID: 13
+		{Name: "Jajan", Type: "expense", Icon: "Pizza", BudgetLimit: 0, Seq: 14},                     // ID: 14
+		{Name: "Peralatan", Type: "expense", Icon: "Em_Tool", BudgetLimit: 0, Seq: 15},               // ID: 15
+		{Name: "Kos", Type: "expense", Icon: "Building", BudgetLimit: 0, Seq: 16},                    // ID: 16
+		{Name: "Listrik", Type: "expense", Icon: "Zap", BudgetLimit: 0, Seq: 17},                     // ID: 17
+		{Name: "ATK", Type: "expense", Icon: "Tv", BudgetLimit: 0, Seq: 18},                          // ID: 18
+		{Name: "Lifestyle", Type: "expense", Icon: "Em_Shirt", BudgetLimit: 0, Seq: 19},              // ID: 19
+		{Name: "Lain lain", Type: "expense", Icon: "HelpCircle", BudgetLimit: 0, Seq: 20},            // ID: 20
+		{Name: "Piutang", Type: "expense", Icon: "BanknoteArrowUp", BudgetLimit: 0, Seq: 21},         // ID: 21
+		{Name: "Ngopi", Type: "expense", Icon: "Coffee", BudgetLimit: 150000, Seq: 22},               // ID: 23
+		{Name: "Terima Piutang", Type: "income", Icon: "HandCoins", BudgetLimit: 0, Seq: 23},         // ID: 23
+		{Name: "Internet", Type: "expense", Icon: "Wifi", BudgetLimit: 0, Seq: 24},                   // ID: 24
+		{Name: "Biaya Admin", Type: "expense", Icon: "Em_MoneyWing", BudgetLimit: 0, Seq: 25},        // ID: 25
+		{Name: "Admin Bulanan Bank", Type: "expense", Icon: "Em_Bank", BudgetLimit: 0, Seq: 26},      // ID: 26
+		{Name: "Laundry", Type: "expense", Icon: "WashingMachine", BudgetLimit: 0, Seq: 27},          // ID: 27
+		{Name: "Utang", Type: "income", Icon: "BanknoteArrowDown", BudgetLimit: 0, Seq: 28},          // ID: 28
+		{Name: "Bayar Utang", Type: "expense", Icon: "CircleFadingArrowUp", BudgetLimit: 0, Seq: 29}, // ID: 29
+		{Name: "Tabungan", Type: "saving_allocation", Icon: "PiggyBank", BudgetLimit: 0, Seq: 30},    // ID: 30
 	}
 
 	// Data transaksi diekstrak (12 Jan - 11 Feb) dan dimapping sempurna
 	Transactions = []entity.Transaction{
 		// --- 30 Hari Lalu (12 Jan) ---
+		t(1, 2, 25000000, "income", "Pencairan Project Freelance Aplikasi", 30), // Seabank -> Pemasukan Lainnya
 		t(3, 1, 4500000, "income", "Gaji Bulan Januari", 30), // Mandiri -> Gaji
 		t(3, 8, 50000, "expense", "Bensin BP", 30),           // Mandiri -> Bensin
 		t(1, 5, 44989, "expense", "Celana Jas Hujan", 30),    // Seabank -> Belanja Online
@@ -142,6 +143,7 @@ var (
 		t(2, 4, 7500, "expense", "Oat coffe", 24),                    // Uang Tunai -> Minuman
 
 		// --- 23 Hari Lalu (19 Jan) ---
+		t(1, 11, 28500, "income", "Bunga Tabungan Seabank", 23),         // Seabank -> Bunga Bank
 		t(3, 8, 100000, "expense", "Bensin BP", 23),                     // Mandiri -> Bensin
 		t(2, 20, 21000, "expense", "Lupa", 23),                          // Uang Tunai -> Lain lain
 		t(2, 10, 20000, "expense", "Gudang garam merah 16", 23),         // Uang Tunai -> Rokok
@@ -194,6 +196,7 @@ var (
 		t(2, 10, 17000, "expense", "New star", 17),              // Uang Tunai -> Rokok
 
 		// --- 16 Hari Lalu (26 Jan) ---
+		t(1, 11, 32100, "income", "Bunga Tabungan Seabank", 16), // Seabank -> Bunga Bank
 		t(2, 4, 20000, "expense", "Kopi Tubruk Gajah", 16), // Uang Tunai -> Minuman
 		t(1, 10, 18000, "expense", "Gajah baru", 16),       // Seabank -> Rokok
 		t(1, 3, 10000, "expense", "Nasi Kuning", 16),       // Seabank -> Makanan
@@ -260,6 +263,7 @@ var (
 		t(1, 30, 4000000, "saving_allocation", "Alokasi ke Upgrade Laptop M3 (Tahap 2)", 10), // Seabank -> Tabungan
 
 		// --- 9 Hari Lalu (2 Feb) ---
+		t(1, 11, 31400, "income", "Bunga Tabungan Seabank", 9),  // Seabank -> Bunga Bank
 		t(2, 10, 20000, "expense", "Gudang garam merah 16", 9), // Uang Tunai -> Rokok
 		t(2, 10, 18000, "expense", "Gajah baru", 9),            // Uang Tunai -> Rokok
 		t(2, 3, 10000, "expense", "Ayam geprek", 9),            // Uang Tunai -> Makanan
@@ -310,6 +314,7 @@ var (
 		t(2, 13, 3000, "expense", "Parkir alas trawas", 3),       // Uang Tunai -> Parkir
 
 		// --- 2 Hari Lalu (9 Feb) ---
+		t(1, 11, 24986, "income", "Bunga Tabungan Seabank", 2),  // Seabank -> Bunga Bank
 		t(4, 24, 45500, "expense", "Kuota internet", 2),  // Gopay -> Internet
 		t(2, 10, 13000, "expense", "Smith hijau", 2),     // Uang Tunai -> Rokok
 		t(2, 3, 12000, "expense", "Nasi goreng", 2),      // Uang Tunai -> Makanan

@@ -6,6 +6,7 @@ import (
 	"cuan-backend/internal/repository"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -31,6 +32,7 @@ type transactionService struct {
 	repo       repository.TransactionRepository
 	walletRepo repository.WalletRepository
 	db         *gorm.DB
+	catMu      sync.Mutex
 }
 
 func NewTransactionService(repo repository.TransactionRepository, walletRepo repository.WalletRepository, db *gorm.DB) TransactionService {
@@ -461,6 +463,8 @@ func (s *transactionService) TransferTransaction(userID uint, input TransferTran
 }
 
 func (s *transactionService) getCategoryForTransfer(userID uint) (uint, error) {
+	s.catMu.Lock()
+	defer s.catMu.Unlock()
 
 	var cat entity.Category
 	
@@ -476,6 +480,9 @@ func (s *transactionService) getCategoryForTransfer(userID uint) (uint, error) {
 }
 
 func (s *transactionService) getCategoryForTransferFee(userID uint) (uint, error) {
+	s.catMu.Lock()
+	defer s.catMu.Unlock()
+
 	var cat entity.Category
 	err := s.db.Where(entity.Category{UserID: userID, Type: "expense", Name: "Biaya Admin"}).
 		Attrs(entity.Category{Icon: "Em_MoneyWing", BudgetLimit: 0}).

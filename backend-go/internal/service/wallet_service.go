@@ -13,6 +13,7 @@ type CreateWalletInput struct {
 	Type    string  `json:"type"`
 	Balance float64 `json:"balance"`
 	Icon    string  `json:"icon"`
+	Seq     int     `json:"seq"`
 }
 
 type UpdateWalletInput struct {
@@ -20,6 +21,7 @@ type UpdateWalletInput struct {
 	Type    string  `json:"type"`
 	Balance float64 `json:"balance"`
 	Icon    string  `json:"icon"`
+	Seq     int     `json:"seq"`
 }
 
 type WalletService interface {
@@ -46,6 +48,7 @@ func (s *walletService) CreateWallet(input CreateWalletInput) (*entity.Wallet, e
 		Type:    input.Type,
 		Balance: input.Balance,
 		Icon:    input.Icon,
+		Seq:     input.Seq,
 	}
 
 	err := s.walletRepository.Create(wallet)
@@ -103,6 +106,7 @@ func (s *walletService) UpdateWallet(id uint, userID uint, input UpdateWalletInp
 	wallet.Type = input.Type
 	wallet.Balance = input.Balance
 	wallet.Icon = input.Icon
+	wallet.Seq = input.Seq
 
 	err = s.walletRepository.Update(wallet)
 	if err != nil {

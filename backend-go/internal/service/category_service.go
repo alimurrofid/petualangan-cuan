@@ -28,6 +28,7 @@ type CreateCategoryInput struct {
 	Type        string  `json:"type" binding:"required"`
 	Icon        string  `json:"icon"`
 	BudgetLimit float64 `json:"budget_limit"`
+	Seq         int     `json:"seq"`
 }
 
 type UpdateCategoryInput struct {
@@ -35,6 +36,7 @@ type UpdateCategoryInput struct {
 	Type        string  `json:"type"`
 	Icon        string  `json:"icon"`
 	BudgetLimit float64 `json:"budget_limit"`
+	Seq         int     `json:"seq"`
 }
 
 func (s *categoryService) CreateCategory(userID uint, input CreateCategoryInput) (*entity.Category, error) {
@@ -44,6 +46,7 @@ func (s *categoryService) CreateCategory(userID uint, input CreateCategoryInput)
 		Type:        input.Type,
 		Icon:        input.Icon,
 		BudgetLimit: input.BudgetLimit,
+		Seq:         input.Seq,
 	}
 	err := s.repo.Create(category)
 	if err != nil {
@@ -78,6 +81,7 @@ func (s *categoryService) UpdateCategory(id uint, userID uint, input UpdateCateg
 
 	category.Icon = input.Icon
 	category.BudgetLimit = input.BudgetLimit
+	category.Seq = input.Seq
 
 	err = s.repo.Update(category)
 	if err != nil {

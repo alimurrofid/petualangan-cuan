@@ -64,7 +64,7 @@ func (r *walletRepository) FindByID(id uint, userID uint) (*entity.Wallet, error
 
 func (r *walletRepository) FindByUserID(userID uint) ([]entity.Wallet, error) {
 	var wallets []entity.Wallet
-	err := r.db.Where("user_id = ?", userID).Find(&wallets).Error
+	err := r.db.Where("user_id = ?", userID).Order("seq ASC, id ASC").Find(&wallets).Error
 	if err != nil {
 		log.Error().Err(err).Uint("user_id", userID).Msg("Database operation failed")
 	}

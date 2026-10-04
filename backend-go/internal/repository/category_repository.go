@@ -33,7 +33,7 @@ func (r *categoryRepository) Create(category *entity.Category) error {
 
 func (r *categoryRepository) FindAll(userID uint) ([]entity.Category, error) {
 	var categories []entity.Category
-	err := r.db.Where("user_id = ?", userID).Find(&categories).Error
+	err := r.db.Where("user_id = ?", userID).Order("seq ASC, id ASC").Find(&categories).Error
 	if err != nil {
 		log.Error().Err(err).Uint("user_id", userID).Msg("Database operation failed")
 	}

@@ -10,6 +10,7 @@ export interface Wallet {
   balance: number;
   available_balance?: number;
   icon?: string;
+  seq?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -19,6 +20,7 @@ export interface CreateWalletInput {
   type: string;
   balance: number;
   icon?: string;
+  seq?: number;
 }
 
 export interface UpdateWalletInput {
@@ -26,6 +28,7 @@ export interface UpdateWalletInput {
   type: string;
   balance: number;
   icon?: string;
+  seq?: number;
 }
 
 export const useWalletStore = defineStore('wallet', () => {
@@ -33,12 +36,16 @@ export const useWalletStore = defineStore('wallet', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
+  const sortWallets = (list: Wallet[]) => {
+    return list.sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0) || a.id - b.id);
+  };
+
   const fetchWallets = async () => {
     isLoading.value = true;
     error.value = null;
     try {
       const response = await api.get('/api/wallets');
-      wallets.value = response.data;
+      wallets.value = sortWallets(response.data || []);
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to fetch wallets';
       console.error(err);
@@ -53,6 +60,7 @@ export const useWalletStore = defineStore('wallet', () => {
     try {
       const response = await api.post('/api/wallets', input);
       wallets.value.push(response.data);
+      sortWallets(wallets.value);
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to create wallet';
@@ -70,6 +78,7 @@ export const useWalletStore = defineStore('wallet', () => {
       const index = wallets.value.findIndex(w => w.id === id);
       if (index !== -1) {
         wallets.value[index] = response.data;
+        sortWallets(wallets.value);
       }
       return response.data;
     } catch (err: any) {

@@ -13,6 +13,7 @@ type Wallet struct {
 	Balance          float64   `gorm:"not null;default:0" json:"balance"`
 	AvailableBalance float64   `gorm:"-" json:"available_balance"`
 	Icon             string    `json:"icon"`
+	Seq              int       `gorm:"default:0" json:"seq"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }

@@ -2750,6 +2750,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "seq": {
+                    "type": "integer"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -3108,6 +3111,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "seq": {
+                    "type": "integer"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -3212,6 +3218,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "seq": {
+                    "type": "integer"
                 },
                 "type": {
                     "type": "string"
@@ -3320,6 +3329,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "seq": {
+                    "type": "integer"
                 },
                 "type": {
                     "type": "string"
@@ -3442,6 +3454,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "seq": {
+                    "type": "integer"
+                },
                 "type": {
                     "type": "string"
                 }
@@ -3501,6 +3516,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "seq": {
+                    "type": "integer"
                 },
                 "type": {
                     "type": "string"

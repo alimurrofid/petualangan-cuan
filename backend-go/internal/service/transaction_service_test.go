@@ -6,6 +6,7 @@ import (
 	"cuan-backend/internal/repository/mock"
 	"cuan-backend/internal/service"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -47,7 +48,7 @@ func TestGetTransactions(t *testing.T) {
 }
 
 func TestRaceConditionCategoryTransfer(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
 	assert.NoError(t, err)
 	
 	err = db.AutoMigrate(&entity.Category{}, &entity.Transaction{}, &entity.Wallet{}, &entity.User{})
@@ -91,7 +92,7 @@ func TestRaceConditionCategoryTransfer(t *testing.T) {
 }
 
 func setupTransactionTestDB(t *testing.T) (*gorm.DB, service.TransactionService, repository.WalletRepository) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
 	assert.NoError(t, err)
 
 	err = db.AutoMigrate(&entity.Category{}, &entity.Transaction{}, &entity.Wallet{}, &entity.User{})

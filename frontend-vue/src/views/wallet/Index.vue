@@ -31,6 +31,7 @@ const form = ref({
   type: "Cash",
   icon: "",
   balance: 0,
+  seq: 1,
 });
 const balanceDisplay = ref("");
 
@@ -78,7 +79,8 @@ onMounted(() => {
 
 const openAdd = () => {
   isEditMode.value = false;
-  form.value = { id: 0, name: "", type: "Cash", icon: "", balance: 0 };
+  const maxSeq = wallets.value.length ? Math.max(...wallets.value.map((w: any) => w.seq ?? 0)) : 0;
+  form.value = { id: 0, name: "", type: "Cash", icon: "", balance: 0, seq: maxSeq + 1 };
   balanceDisplay.value = "";
   errors.value = { name: false, icon: false };
   isSubmitting.value = false;
@@ -87,7 +89,7 @@ const openAdd = () => {
 
 const openEdit = (wallet: any) => {
   isEditMode.value = true;
-  form.value = { ...wallet };
+  form.value = { ...wallet, seq: wallet.seq ?? 0 };
   balanceDisplay.value = formatCurrencyInput(wallet.balance);
   errors.value = { name: false, icon: false };
   isSubmitting.value = false;
@@ -144,6 +146,7 @@ const handleSave = async () => {
     type: form.value.type,
     balance: Number(form.value.balance),
     icon: form.value.icon,
+    seq: Number(form.value.seq) || 0,
   };
 
   try {
@@ -187,20 +190,20 @@ const getCardGradient = (type: string) => {
 </script>
 
 <template>
-  <div class="flex-1 space-y-6 pt-2" v-if="walletStore.isLoading">
+  <div class="flex-1 pt-2 space-y-6" v-if="walletStore.isLoading">
     <div class="flex items-center justify-center min-h-[400px]">
       <p class="text-muted-foreground animate-pulse">Memuat data dompet...</p>
     </div>
   </div>
-  <div class="flex-1 space-y-6 pt-2 text-foreground" v-else>
+  <div class="flex-1 pt-2 space-y-6 text-foreground" v-else>
 
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div class="flex flex-col justify-between gap-6 md:flex-row md:items-end">
       <div>
         <h2 class="text-3xl font-bold tracking-tight">Dompet Saya</h2>
-        <p class="text-muted-foreground mt-1">Total aset bersih Anda termasuk tabungan dan dana aktif.</p>
+        <p class="mt-1 text-muted-foreground">Total aset bersih Anda termasuk tabungan dan dana aktif.</p>
         <div class="mt-4 space-y-1">
           <div class="flex items-baseline gap-2">
-            <span class="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Total
+            <span class="text-xs font-bold tracking-widest uppercase text-emerald-600 dark:text-emerald-400">Total
               Tersedia</span>
           </div>
           <div class="flex items-baseline gap-2">
@@ -210,53 +213,53 @@ const getCardGradient = (type: string) => {
               {{ formatCurrency(totalAvailable) }}
             </span>
           </div>
-          <div class="flex items-center gap-2 text-muted-foreground/70 text-sm font-medium">
+          <div class="flex items-center gap-2 text-sm font-medium text-muted-foreground/70">
             <span>Total Keseluruhan:</span>
-            <span class="text-muted-foreground/70 text-sm font-medium"
+            <span class="text-sm font-medium text-muted-foreground/70"
               :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(totalOverall) }}</span>
           </div>
         </div>
       </div>
 
       <Button @click="openAdd"
-        class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-lg px-6 h-12 rounded-full transition-all hover:scale-105 active:scale-95">
+        class="h-12 px-6 text-white transition-all rounded-full shadow-lg bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 hover:scale-105 active:scale-95">
         <Plus class="w-5 h-5 mr-2" />
         Tambah Dompet
       </Button>
     </div>
 
-    <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
       <div v-for="item in wallets" :key="item.id" @click="openEdit(item)"
         :class="['relative h-56 rounded-3xl p-6 flex flex-col justify-between shadow-2xl cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group overflow-hidden', getCardGradient(item.type)]">
         <div
-          class="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none">
+          class="absolute top-0 right-0 w-48 h-48 -mt-16 -mr-16 rounded-full pointer-events-none bg-white/5 blur-3xl">
         </div>
         <div
-          class="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full blur-2xl -ml-10 -mb-10 pointer-events-none">
+          class="absolute bottom-0 left-0 w-32 h-32 -mb-10 -ml-10 rounded-full pointer-events-none bg-black/10 blur-2xl">
         </div>
 
-        <div class="relative z-10 flex justify-between items-start">
+        <div class="relative z-10 flex items-start justify-between">
           <div class="flex items-center gap-3">
             <div
-              class="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10 shadow-inner">
+              class="flex items-center justify-center w-10 h-10 border rounded-full shadow-inner bg-white/20 backdrop-blur-md border-white/10">
               <component v-if="getIconComponent(item.icon)" :is="getIconComponent(item.icon)"
-                class="h-5 w-5 text-white" />
+                class="w-5 h-5 text-white" />
               <span v-else-if="getEmoji(item.icon)" class="text-xl leading-none filter drop-shadow-sm">{{
                 getEmoji(item.icon) }}</span>
-              <component v-else :is="getIconComponent(null, 'Wallet')" class="h-5 w-5 text-white" />
+              <component v-else :is="getIconComponent(null, 'Wallet')" class="w-5 h-5 text-white" />
             </div>
             <div>
-              <p class="font-bold text-lg tracking-wide">{{ item.name }}</p>
+              <p class="text-lg font-bold tracking-wide">{{ item.name }}</p>
               <p class="text-[10px] uppercase font-bold opacity-70 tracking-widest">{{ item.type }}</p>
             </div>
           </div>
-          <Nfc class="h-8 w-8 opacity-40 rotate-90" />
+          <Nfc class="w-8 h-8 rotate-90 opacity-40" />
         </div>
 
-        <div class="relative z-10 my-auto pl-1">
+        <div class="relative z-10 pl-1 my-auto">
           <div
-            class="w-12 h-9 rounded-md bg-gradient-to-br from-yellow-200 to-yellow-500 border border-yellow-600/30 shadow-sm flex items-center justify-center relative overflow-hidden mb-4 opacity-90">
+            class="relative flex items-center justify-center w-12 mb-4 overflow-hidden border rounded-md shadow-sm h-9 bg-gradient-to-br from-yellow-200 to-yellow-500 border-yellow-600/30 opacity-90">
             <div class="absolute inset-0 border-[0.5px] border-black/10 rounded-md"
               style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);">
             </div>
@@ -264,11 +267,11 @@ const getCardGradient = (type: string) => {
 
           <div class="space-y-1">
             <p class="text-[10px] font-bold opacity-70 uppercase tracking-widest text-emerald-100">Saldo Tersedia</p>
-            <p class="text-2xl font-mono font-bold tracking-tight filter drop-shadow-sm"
+            <p class="font-mono text-2xl font-bold tracking-tight filter drop-shadow-sm"
               :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(item.available_balance ??
                 item.balance) }}</p>
 
-            <div class="pt-2 mt-1 border-t border-white/10 flex items-center gap-1 opacity-80">
+            <div class="flex items-center gap-1 pt-2 mt-1 border-t border-white/10 opacity-80">
               <span class="text-[10px] uppercase font-medium">Total Saldo:</span>
               <span class="font-mono text-xs font-bold" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{
                 formatCurrency(item.balance) }}</span>
@@ -276,7 +279,7 @@ const getCardGradient = (type: string) => {
           </div>
         </div>
 
-        <div class="relative z-10 flex justify-between items-center opacity-70 font-mono text-xs tracking-widest pl-1">
+        <div class="relative z-10 flex items-center justify-between pl-1 font-mono text-xs tracking-widest opacity-70">
           <span class="uppercase">{{ authStore.user?.name || 'USER' }}</span>
           <span>**** ****</span>
         </div>
@@ -284,7 +287,7 @@ const getCardGradient = (type: string) => {
         <div
           class="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
           <span
-            class="bg-white text-black px-4 py-2 rounded-full text-xs font-bold shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+            class="px-4 py-2 text-xs font-bold text-black transition-transform transform scale-90 bg-white rounded-full shadow-lg group-hover:scale-100">
             Edit Dompet
           </span>
         </div>
@@ -293,7 +296,7 @@ const getCardGradient = (type: string) => {
     </div>
 
     <Dialog v-model:open="isDialogOpen">
-      <DialogContent class="max-w-md bg-card p-0 overflow-hidden border-border shadow-2xl"
+      <DialogContent class="max-w-md p-0 overflow-hidden shadow-2xl bg-card border-border"
         @interact-outside="swal.handleSwalInteractOutside">
         <DialogHeader class="p-6 border-b">
           <DialogTitle>{{ isEditMode ? "Edit Dompet" : "Tambah Dompet" }}</DialogTitle>
@@ -306,7 +309,7 @@ const getCardGradient = (type: string) => {
             <Input v-model="form.name" placeholder="Misal: BCA Utama, Cash"
               :class="['h-11 bg-background shadow-sm', errors.name ? 'border-red-500 ring-1 ring-red-500' : '']"
               :disabled="isSubmitting" />
-            <span v-if="errors.name" class="text-xs text-red-500 font-medium">Nama dompet wajib diisi</span>
+            <span v-if="errors.name" class="text-xs font-medium text-red-500">Nama dompet wajib diisi</span>
           </div>
 
           <div class="grid gap-2">
@@ -329,6 +332,13 @@ const getCardGradient = (type: string) => {
               :class="['h-11 bg-background shadow-sm']" :disabled="isSubmitting" />
           </div>
 
+          <div class="grid gap-2">
+            <Label class="text-sm font-semibold opacity-70">Urutan</Label>
+            <Input type="number" v-model.number="form.seq" placeholder="Contoh: 1"
+              class="shadow-sm h-11 bg-background" :disabled="isSubmitting" />
+            <span class="text-[11px] text-muted-foreground">Menentukan urutan dompet di menu dan pilihan transaksi (angka lebih kecil muncul lebih awal).</span>
+          </div>
+
           <div class="grid gap-2 text-foreground">
             <Label class="text-sm font-semibold opacity-70">Icon / Emoji</Label>
             <button @click="isIconPickerOpen = true" type="button"
@@ -336,7 +346,7 @@ const getCardGradient = (type: string) => {
               :disabled="isSubmitting">
               <template v-if="!form.icon">
                 <div
-                  class="h-12 w-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:scale-110 transition-transform">
+                  class="flex items-center justify-center w-12 h-12 transition-transform rounded-full bg-muted text-muted-foreground group-hover:scale-110">
                   <Plus :class="['h-6 w-6', errors.icon ? 'text-red-500' : '']" />
                 </div>
                 <span
@@ -356,13 +366,13 @@ const getCardGradient = (type: string) => {
                 </div>
               </template>
             </button>
-            <span v-if="errors.icon" class="text-xs text-red-500 font-medium">Icon wajib dipilih</span>
+            <span v-if="errors.icon" class="text-xs font-medium text-red-500">Icon wajib dipilih</span>
           </div>
         </div>
 
-        <DialogFooter class="p-6 border-t bg-muted/5 flex flex-row items-center justify-between gap-2">
+        <DialogFooter class="flex flex-row items-center justify-between gap-2 p-6 border-t bg-muted/5">
           <Button v-if="isEditMode" variant="ghost" type="button"
-            class="text-red-500 hover:text-red-600 hover:bg-red-50 gap-2 px-4" @click="handleDelete"
+            class="gap-2 px-4 text-red-500 hover:text-red-600 hover:bg-red-50" @click="handleDelete"
             :disabled="isSubmitting">
             <Trash2 class="w-4 h-4" /> Hapus
           </Button>
@@ -370,7 +380,7 @@ const getCardGradient = (type: string) => {
             <Button variant="outline" type="button" @click="isDialogOpen = false"
               :disabled="isSubmitting">Batal</Button>
             <Button @click="handleSave" type="button"
-              class="bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 px-6 shadow-md"
+              class="px-6 text-white shadow-md bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400"
               :disabled="isSubmitting" :loading="isSubmitting">
               <template v-if="isEditMode">
                 <Pencil class="w-4 h-4 mr-2" /> Simpan
@@ -386,11 +396,11 @@ const getCardGradient = (type: string) => {
 
     <Dialog v-model:open="isIconPickerOpen">
       <DialogContent
-        class="max-w-md h-125 flex flex-col p-0 overflow-hidden bg-card border-border shadow-2xl text-foreground">
-        <DialogHeader class="p-4 border-b text-center">
+        class="flex flex-col max-w-md p-0 overflow-hidden shadow-2xl h-125 bg-card border-border text-foreground">
+        <DialogHeader class="p-4 text-center border-b">
           <DialogTitle class="text-sm font-bold">Visual Dompet</DialogTitle>
         </DialogHeader>
-        <Tabs default-value="icons" class="flex-1 flex flex-col overflow-hidden">
+        <Tabs default-value="icons" class="flex flex-col flex-1 overflow-hidden">
           <div class="px-6 pt-4">
             <TabsList class="grid w-full grid-cols-2 shadow-sm">
               <TabsTrigger value="icons">Icons</TabsTrigger>
@@ -399,37 +409,37 @@ const getCardGradient = (type: string) => {
           </div>
           <div class="px-6 pt-3">
             <div class="relative">
-              <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search class="absolute w-4 h-4 -translate-y-1/2 left-3 top-1/2 text-muted-foreground" />
               <Input v-model="iconSearch" placeholder="Cari icon atau emoji..."
-                class="h-9 pl-9 bg-background rounded-lg text-sm" />
+                class="text-sm rounded-lg h-9 pl-9 bg-background" />
             </div>
           </div>
-          <TabsContent value="icons" class="flex-1 overflow-y-auto p-6 mt-0">
+          <TabsContent value="icons" class="flex-1 p-6 mt-0 overflow-y-auto">
             <div class="grid grid-cols-4 gap-4">
               <Button v-for="item in filteredWalletIcons" :key="item.name" variant="ghost" type="button"
-                class="h-20 flex flex-col gap-2 hover:bg-primary/10" @click="selectIcon(item.name)">
-                <component :is="item.icon" class="h-6 w-6" />
+                class="flex flex-col h-20 gap-2 hover:bg-primary/10" @click="selectIcon(item.name)">
+                <component :is="item.icon" class="w-6 h-6" />
                 <span class="text-[10px] font-medium opacity-60 truncate w-full uppercase tracking-tighter">{{
                   item.label
                   }}</span>
               </Button>
             </div>
-            <p v-if="filteredWalletIcons.length === 0" class="text-center text-sm text-muted-foreground py-8">Tidak ada
+            <p v-if="filteredWalletIcons.length === 0" class="py-8 text-sm text-center text-muted-foreground">Tidak ada
               icon
               cocok.</p>
           </TabsContent>
-          <TabsContent value="emojis" class="flex-1 overflow-y-auto p-6 mt-0">
+          <TabsContent value="emojis" class="flex-1 p-6 mt-0 overflow-y-auto">
             <div v-for="(list, cat) in filteredEmojiCategories" :key="cat" class="mb-6">
               <p class="text-[10px] font-bold text-muted-foreground uppercase mb-3 text-left tracking-widest">{{ cat }}
               </p>
               <div class="grid grid-cols-4 gap-4">
                 <button v-for="e in list" :key="e.name" type="button"
-                  class="text-4xl p-2 hover:bg-accent rounded-2xl transition-transform active:scale-90"
+                  class="p-2 text-4xl transition-transform hover:bg-accent rounded-2xl active:scale-90"
                   @click="selectIcon(e.name)">{{ e.emoji }}</button>
               </div>
             </div>
             <p v-if="Object.keys(filteredEmojiCategories).length === 0"
-              class="text-center text-sm text-muted-foreground py-8">Tidak ada emoji cocok.</p>
+              class="py-8 text-sm text-center text-muted-foreground">Tidak ada emoji cocok.</p>
           </TabsContent>
         </Tabs>
       </DialogContent>

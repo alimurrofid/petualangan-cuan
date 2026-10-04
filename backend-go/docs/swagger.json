@@ -2744,6 +2744,9 @@
                 "name": {
                     "type": "string"
                 },
+                "seq": {
+                    "type": "integer"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -3102,6 +3105,9 @@
                 "name": {
                     "type": "string"
                 },
+                "seq": {
+                    "type": "integer"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -3206,6 +3212,9 @@
                 },
                 "name": {
                     "type": "string"
+                },
+                "seq": {
+                    "type": "integer"
                 },
                 "type": {
                     "type": "string"
@@ -3314,6 +3323,9 @@
                 },
                 "name": {
                     "type": "string"
+                },
+                "seq": {
+                    "type": "integer"
                 },
                 "type": {
                     "type": "string"
@@ -3436,6 +3448,9 @@
                 "name": {
                     "type": "string"
                 },
+                "seq": {
+                    "type": "integer"
+                },
                 "type": {
                     "type": "string"
                 }
@@ -3495,6 +3510,9 @@
                 },
                 "name": {
                     "type": "string"
+                },
+                "seq": {
+                    "type": "integer"
                 },
                 "type": {
                     "type": "string"

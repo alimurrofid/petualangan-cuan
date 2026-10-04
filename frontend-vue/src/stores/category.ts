@@ -9,6 +9,7 @@ export interface Category {
   type: 'income' | 'expense';
   icon?: string;
   budget_limit?: number;
+  seq?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -18,6 +19,7 @@ export interface CreateCategoryInput {
   type: string;
   icon?: string;
   budget_limit?: number;
+  seq?: number;
 }
 
 export interface UpdateCategoryInput {
@@ -25,6 +27,7 @@ export interface UpdateCategoryInput {
   type: string;
   icon?: string;
   budget_limit?: number;
+  seq?: number;
 }
 
 export const useCategoryStore = defineStore('category', () => {
@@ -32,12 +35,16 @@ export const useCategoryStore = defineStore('category', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
+  const sortCategories = (list: Category[]) => {
+    return list.sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0) || a.id - b.id);
+  };
+
   const fetchCategories = async () => {
     isLoading.value = true;
     error.value = null;
     try {
       const response = await api.get('/api/categories');
-      categories.value = response.data;
+      categories.value = sortCategories(response.data || []);
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to fetch categories';
       console.error(err);
@@ -52,6 +59,7 @@ export const useCategoryStore = defineStore('category', () => {
     try {
       const response = await api.post('/api/categories', input);
       categories.value.push(response.data);
+      sortCategories(categories.value);
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to create category';
@@ -69,6 +77,7 @@ export const useCategoryStore = defineStore('category', () => {
       const index = categories.value.findIndex(c => c.id === id);
       if (index !== -1) {
         categories.value[index] = response.data;
+        sortCategories(categories.value);
       }
       return response.data;
     } catch (err: any) {
