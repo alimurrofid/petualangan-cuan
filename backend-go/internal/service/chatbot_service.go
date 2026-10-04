@@ -80,6 +80,10 @@ func NewChatbotService(
 }
 
 func (s *ChatbotService) GetUserContext(userID uint, message string) string {
+	if s == nil || s.userRepo == nil {
+		return ""
+	}
+
 	intent := DetectIntent(message)
 
 	if intent == IntentSmallTalk {
@@ -516,6 +520,57 @@ func (s *ChatbotService) SaveTransactions(userID uint, items []entity.Transactio
 		return results, fmt.Errorf("Beberapa transaksi gagal diproses:\n%s", strings.Join(errs, "\n"))
 	}
 	return results, nil
+}
+
+// RollbackSavedTransactions membatalkan atau menghapus entitas/transaksi yang telah dibuat oleh aksi chatbot sebelumnya
+func (s *ChatbotService) RollbackSavedTransactions(userID uint, txs []entity.SavedTransaction) error {
+	var errs []string
+	for _, tx := range txs {
+		action := strings.ToLower(tx.Action)
+		switch action {
+		case "create_transaction":
+			if tx.ID > 0 {
+				if err := s.transactionSvc.DeleteTransaction(tx.ID, userID); err != nil {
+					log.Warn().Err(err).Uint("user_id", userID).Uint("tx_id", tx.ID).Msg("Rollback create_transaction failed")
+					errs = append(errs, fmt.Sprintf("transaksi #%d (%v)", tx.ID, err))
+				} else {
+					log.Info().Uint("user_id", userID).Uint("tx_id", tx.ID).Msg("Rollback create_transaction succeeded")
+				}
+			}
+		case "create_wishlist":
+			if tx.ID > 0 {
+				if err := s.wishlistSvc.Delete(tx.ID, userID); err != nil {
+					log.Warn().Err(err).Uint("user_id", userID).Uint("wishlist_id", tx.ID).Msg("Rollback create_wishlist failed")
+					errs = append(errs, fmt.Sprintf("wishlist #%d (%v)", tx.ID, err))
+				} else {
+					log.Info().Uint("user_id", userID).Uint("wishlist_id", tx.ID).Msg("Rollback create_wishlist succeeded")
+				}
+			}
+		case "create_debt":
+			if tx.ID > 0 {
+				if err := s.debtSvc.DeleteDebt(tx.ID, userID); err != nil {
+					log.Warn().Err(err).Uint("user_id", userID).Uint("debt_id", tx.ID).Msg("Rollback create_debt failed")
+					errs = append(errs, fmt.Sprintf("utang #%d (%v)", tx.ID, err))
+				} else {
+					log.Info().Uint("user_id", userID).Uint("debt_id", tx.ID).Msg("Rollback create_debt succeeded")
+				}
+			}
+		case "create_goal":
+			if tx.ID > 0 {
+				if err := s.savingGoalSvc.DeleteGoal(userID, tx.ID); err != nil {
+					log.Warn().Err(err).Uint("user_id", userID).Uint("goal_id", tx.ID).Msg("Rollback create_goal failed")
+					errs = append(errs, fmt.Sprintf("target #%d (%v)", tx.ID, err))
+				} else {
+					log.Info().Uint("user_id", userID).Uint("goal_id", tx.ID).Msg("Rollback create_goal succeeded")
+				}
+			}
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("gagal membatalkan sebagian aksi: %s", strings.Join(errs, ", "))
+	}
+	return nil
 }
 
 func (s *ChatbotService) saveOne(userID uint, tx *entity.TransactionItemAI) (*entity.SavedTransaction, error) {

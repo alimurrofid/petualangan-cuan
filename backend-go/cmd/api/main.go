@@ -269,6 +269,8 @@ func main() {
 	ai.Post("/chat/stream", aiHandler.ChatMessageStream)
 	ai.Get("/chat/history", aiHandler.GetChatHistory)
 	ai.Delete("/chat/history", aiHandler.ClearChatHistory)
+	ai.Put("/chat/messages/:id", aiHandler.UpdateChatMessage)
+	ai.Delete("/chat/messages/:id", aiHandler.DeleteChatMessage)
 
 	app.Get("/swagger/*", swagger.New(swagger.Config{
 		PersistAuthorization: true,

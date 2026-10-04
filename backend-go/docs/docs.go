@@ -162,6 +162,139 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/ai/chat/messages/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates user message content, cancels previous assistant actions if any, and regenerates response",
+                "consumes": [
+                    "application/json",
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "text/event-stream",
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Edit user chat message and regenerate response",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Message ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "New message text",
+                        "name": "message",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.ChatResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a chat message by ID, optionally rolling back associated transactions",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Delete a chat message",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Message ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Rollback associated transactions",
+                        "name": "rollback",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/ai/chat/stream": {
             "post": {
                 "security": [
@@ -2604,6 +2737,18 @@ const docTemplate = `{
                 "image_url": {
                     "type": "string"
                 },
+                "is_edited": {
+                    "type": "boolean"
+                },
+                "reply_to_content": {
+                    "type": "string"
+                },
+                "reply_to_id": {
+                    "type": "integer"
+                },
+                "reply_to_role": {
+                    "type": "string"
+                },
                 "role": {
                     "description": "\"user\" | \"assistant\"",
                     "type": "string"
@@ -2614,6 +2759,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/entity.SavedTransaction"
                     }
                 },
+                "updated_at": {
+                    "type": "string"
+                },
                 "user_id": {
                     "type": "integer"
                 }
@@ -2622,8 +2770,14 @@ const docTemplate = `{
         "entity.ChatResponse": {
             "type": "object",
             "properties": {
+                "assistant_message_id": {
+                    "type": "integer"
+                },
                 "audio_url": {
                     "type": "string"
+                },
+                "id": {
+                    "type": "integer"
                 },
                 "image_url": {
                     "type": "string"
@@ -2636,6 +2790,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/entity.SavedTransaction"
                     }
+                },
+                "user_message_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -2815,7 +2972,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "action": {
-                    "description": "create, update, delete, transfer, pay_debt, save_goal, create_wishlist",
+                    "description": "create_transaction, update_transaction, delete_transaction, transfer, pay_debt, save_goal, create_wishlist...",
                     "type": "string"
                 },
                 "amount": {

@@ -57,8 +57,36 @@ func (m *mockChatHistoryService) SaveMessage(userID uint, role, content, audioUR
 	return nil
 }
 
+func (m *mockChatHistoryService) SaveMessageWithReply(userID uint, role, content, audioURL, imageURL string, transactions []entity.SavedTransaction, replyToID *uint, replyToRole, replyToContent string) (*entity.ChatMessage, error) {
+	return &entity.ChatMessage{
+		ID:             1,
+		UserID:         userID,
+		Role:           role,
+		Content:        content,
+		ReplyToID:      replyToID,
+		ReplyToRole:    replyToRole,
+		ReplyToContent: replyToContent,
+	}, nil
+}
+
 func (m *mockChatHistoryService) GetHistory(userID uint, limit int) ([]entity.ChatMessage, error) {
 	return nil, nil
+}
+
+func (m *mockChatHistoryService) GetMessageByID(id uint, userID uint) (*entity.ChatMessage, error) {
+	return &entity.ChatMessage{ID: id, UserID: userID, Role: "user", Content: "test"}, nil
+}
+
+func (m *mockChatHistoryService) FindNextAssistantMessage(userID uint, userMsgID uint) (*entity.ChatMessage, error) {
+	return nil, nil
+}
+
+func (m *mockChatHistoryService) UpdateMessageContent(id uint, userID uint, content string) (*entity.ChatMessage, error) {
+	return &entity.ChatMessage{ID: id, UserID: userID, Role: "user", Content: content, IsEdited: true}, nil
+}
+
+func (m *mockChatHistoryService) DeleteMessage(id uint, userID uint) error {
+	return nil
 }
 
 func (m *mockChatHistoryService) ClearHistory(userID uint) error {
@@ -88,6 +116,16 @@ func setupAIApp(aiSvc service.AIService, chatbotSvc *service.ChatbotService) (*f
 
 	app.Post("/api/ai/chat/stream/unauth", func(c *fiber.Ctx) error {
 		return h.ChatMessageStream(c)
+	})
+
+	app.Put("/api/ai/chat/messages/:id", func(c *fiber.Ctx) error {
+		c.Locals("userID", uint(1))
+		return h.UpdateChatMessage(c)
+	})
+
+	app.Delete("/api/ai/chat/messages/:id", func(c *fiber.Ctx) error {
+		c.Locals("userID", uint(1))
+		return h.DeleteChatMessage(c)
 	})
 
 	return app, h
@@ -191,4 +229,71 @@ func TestAIHandler_ChatMessage_Success(t *testing.T) {
 	var chatResp entity.ChatResponse
 	_ = json.NewDecoder(resp.Body).Decode(&chatResp)
 	assert.Equal(t, "Halo juga! Ada yang bisa saya bantu?", chatResp.Reply)
+	assert.Equal(t, uint(1), chatResp.UserMessageID)
+	assert.Equal(t, uint(1), chatResp.AssistantMessageID)
+}
+
+func TestAIHandler_DeleteChatMessage_Success(t *testing.T) {
+	mockAI := new(mockAIService)
+	app, _ := setupAIApp(mockAI, &service.ChatbotService{})
+
+	req := httptest.NewRequest("DELETE", "/api/ai/chat/messages/1", nil)
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+}
+
+func TestAIHandler_DeleteChatMessage_LargeID(t *testing.T) {
+	mockAI := new(mockAIService)
+	app, _ := setupAIApp(mockAI, &service.ChatbotService{})
+
+	// 1791095355005 exceeds 32-bit uint and tests 64-bit parsing
+	req := httptest.NewRequest("DELETE", "/api/ai/chat/messages/1791095355005", nil)
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	// Should not return 400 Bad Request ("ID pesan tidak valid")
+	assert.NotEqual(t, fiber.StatusBadRequest, resp.StatusCode)
+}
+
+func TestAIHandler_DeleteChatMessage_InvalidID(t *testing.T) {
+	mockAI := new(mockAIService)
+	app, _ := setupAIApp(mockAI, &service.ChatbotService{})
+
+	req := httptest.NewRequest("DELETE", "/api/ai/chat/messages/invalid-id", nil)
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+}
+
+func TestAIHandler_UpdateChatMessage_InvalidID(t *testing.T) {
+	mockAI := new(mockAIService)
+	app, _ := setupAIApp(mockAI, &service.ChatbotService{})
+
+	req := httptest.NewRequest("PUT", "/api/ai/chat/messages/not-a-number", nil)
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+}
+
+func TestAIHandler_UpdateChatMessage_Success(t *testing.T) {
+	mockAI := new(mockAIService)
+	mockAI.On("ChatStream", mock.MatchedBy(func(p service.ChatParams) bool {
+		return p.Message == "beli es teh 5rb"
+	}), mock.Anything).Return(&entity.ChatAIResponse{
+		Reply: "Oke, dicatat es teh 5rb",
+	}, nil)
+
+	app, _ := setupAIApp(mockAI, &service.ChatbotService{})
+
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("message", "beli es teh 5rb")
+	_ = writer.Close()
+
+	req := httptest.NewRequest("PUT", "/api/ai/chat/messages/1", body)
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
 }

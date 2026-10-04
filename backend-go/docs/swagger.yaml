@@ -31,6 +31,14 @@ definitions:
         type: integer
       image_url:
         type: string
+      is_edited:
+        type: boolean
+      reply_to_content:
+        type: string
+      reply_to_id:
+        type: integer
+      reply_to_role:
+        type: string
       role:
         description: '"user" | "assistant"'
         type: string
@@ -38,13 +46,19 @@ definitions:
         items:
           $ref: '#/definitions/entity.SavedTransaction'
         type: array
+      updated_at:
+        type: string
       user_id:
         type: integer
     type: object
   entity.ChatResponse:
     properties:
+      assistant_message_id:
+        type: integer
       audio_url:
         type: string
+      id:
+        type: integer
       image_url:
         type: string
       reply:
@@ -53,6 +67,8 @@ definitions:
         items:
           $ref: '#/definitions/entity.SavedTransaction'
         type: array
+      user_message_id:
+        type: integer
     type: object
   entity.Debt:
     properties:
@@ -173,7 +189,8 @@ definitions:
   entity.SavedTransaction:
     properties:
       action:
-        description: create, update, delete, transfer, pay_debt, save_goal, create_wishlist
+        description: create_transaction, update_transaction, delete_transaction, transfer,
+          pay_debt, save_goal, create_wishlist...
         type: string
       amount:
         type: number
@@ -605,6 +622,97 @@ paths:
       security:
       - BearerAuth: []
       summary: Get chat history
+      tags:
+      - ai
+  /api/ai/chat/messages/{id}:
+    delete:
+      description: Deletes a chat message by ID, optionally rolling back associated
+        transactions
+      parameters:
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Rollback associated transactions
+        in: query
+        name: rollback
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a chat message
+      tags:
+      - ai
+    put:
+      consumes:
+      - application/json
+      - multipart/form-data
+      description: Updates user message content, cancels previous assistant actions
+        if any, and regenerates response
+      parameters:
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New message text
+        in: formData
+        name: message
+        type: string
+      produces:
+      - text/event-stream
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.ChatResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Edit user chat message and regenerate response
       tags:
       - ai
   /api/ai/chat/stream:

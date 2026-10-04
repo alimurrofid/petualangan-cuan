@@ -18,10 +18,13 @@ type TransactionItemAI struct {
 }
 
 type ChatResponse struct {
-	Reply        string             `json:"reply"`
-	Transactions []SavedTransaction `json:"transactions,omitempty"`
-	AudioURL     string             `json:"audio_url,omitempty"`
-	ImageURL     string             `json:"image_url,omitempty"`
+	ID                 uint               `json:"id,omitempty"`
+	UserMessageID      uint               `json:"user_message_id,omitempty"`
+	AssistantMessageID uint               `json:"assistant_message_id,omitempty"`
+	Reply              string             `json:"reply"`
+	Transactions       []SavedTransaction `json:"transactions,omitempty"`
+	AudioURL           string             `json:"audio_url,omitempty"`
+	ImageURL           string             `json:"image_url,omitempty"`
 }
 type SavedTransaction struct {
 	ID           uint    `json:"id"`

@@ -23,6 +23,32 @@ func (m *ChatRepositoryMock) FindByUserID(userID uint, limit int) ([]entity.Chat
 	return args.Get(0).([]entity.ChatMessage), args.Error(1)
 }
 
+func (m *ChatRepositoryMock) FindByID(id uint, userID uint) (*entity.ChatMessage, error) {
+	args := m.Called(id, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ChatMessage), args.Error(1)
+}
+
+func (m *ChatRepositoryMock) FindNextAssistantMessage(userID uint, userMsgID uint) (*entity.ChatMessage, error) {
+	args := m.Called(userID, userMsgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entity.ChatMessage), args.Error(1)
+}
+
+func (m *ChatRepositoryMock) Update(msg *entity.ChatMessage) error {
+	args := m.Called(msg)
+	return args.Error(0)
+}
+
+func (m *ChatRepositoryMock) DeleteByID(id uint, userID uint) error {
+	args := m.Called(id, userID)
+	return args.Error(0)
+}
+
 func (m *ChatRepositoryMock) DeleteByUserID(userID uint) error {
 	args := m.Called(userID)
 	return args.Error(0)

@@ -16,7 +16,12 @@ type ChatMessage struct {
 	ImageURL        string             `gorm:"type:varchar(500)"        json:"image_url,omitempty"`
 	TransactionsRaw string             `gorm:"type:text"                json:"-"`
 	Transactions    []SavedTransaction `gorm:"-"                        json:"transactions,omitempty"`
+	ReplyToID       *uint              `gorm:"index"                    json:"reply_to_id,omitempty"`
+	ReplyToRole     string             `gorm:"type:varchar(20)"         json:"reply_to_role,omitempty"`
+	ReplyToContent  string             `gorm:"type:text"                json:"reply_to_content,omitempty"`
+	IsEdited        bool               `gorm:"default:false"            json:"is_edited"`
 	CreatedAt       time.Time          `json:"created_at"`
+	UpdatedAt       time.Time          `json:"updated_at"`
 }
 
 func (m *ChatMessage) AfterFind(tx *gorm.DB) (err error) {
