@@ -688,10 +688,20 @@ scp -r monitoring/* ubuntu@IP_PUBLIC_VPS:~/petualangan-cuan/staging/monitoring/
 ## 14. Setup Domain Cloudflare, SSL Origin, & Nginx Reverse Proxy
 
 ### 14.1 Konfigurasi DNS & SSL di Cloudflare
-1. Buka dashboard **Cloudflare → DNS → Records**:
-   * `A` Record `petualangancuan` → `IP_PUBLIC_VPS` (Proxy Status: ☁️ **Proxied / Orange Cloud**)
-   * `A` Record `stagingpetualangancuan` → `IP_PUBLIC_VPS` (Proxy Status: ☁️ **Proxied / Orange Cloud**)
-   * `A` Record `ssh` → `IP_PUBLIC_VPS` (Proxy Status: 🔘 **DNS Only / Grey Cloud**)
+1. Buka dashboard **Cloudflare → DNS → Records** dan buat **A Record** (Proxy status: ☁️ **Proxied / Orange Cloud**) mengarah ke `IP_PUBLIC_VPS`:
+
+| Type | Name / Subdomain | Target / IP | Proxy Status | Keterangan |
+|---|---|---|---|---|
+| `A` | `petualangancuan` | `IP_PUBLIC_VPS` | ☁️ Proxied | Web & API Production |
+| `A` | `wa-petualangancuan` | `IP_PUBLIC_VPS` | ☁️ Proxied | WA Gateway UI & QR Prod |
+| `A` | `grafana-petualangancuan` | `IP_PUBLIC_VPS` | ☁️ Proxied | Grafana Monitoring Prod |
+| `A` | `uptime-petualangancuan` | `IP_PUBLIC_VPS` | ☁️ Proxied | Uptime Kuma Status Prod |
+| `A` | `stagingpetualangancuan` | `IP_PUBLIC_VPS` | ☁️ Proxied | Web & API Staging |
+| `A` | `wa-stagingpetualangancuan` | `IP_PUBLIC_VPS` | ☁️ Proxied | WA Gateway UI & QR Staging |
+| `A` | `grafana-stagingpetualangancuan` | `IP_PUBLIC_VPS` | ☁️ Proxied | Grafana Monitoring Staging |
+| `A` | `uptime-stagingpetualangancuan` | `IP_PUBLIC_VPS` | ☁️ Proxied | Uptime Kuma Status Staging |
+| `A` | `ssh` | `IP_PUBLIC_VPS` | 🔘 DNS Only | Akses Terminal SSH |
+
 2. Buka **Cloudflare → SSL/TLS → Overview**:
    * Set Encryption Mode: **Full (strict)**
 
@@ -714,22 +724,38 @@ sudo chmod 644 /etc/ssl/cloudflare/origin.crt
 sudo chmod 600 /etc/ssl/cloudflare/origin.key
 ```
 
-### 14.3 Konfigurasi Nginx Virtual Host Production
-* **File**: `/etc/nginx/sites-available/petualangancuan_prod`
+### 14.3 Konfigurasi All-in-One Nginx Virtual Host (Production & Staging)
+Seluruh rute domain (Web App, WhatsApp Gateway, Grafana, dan Uptime Kuma) baik lingkungan **Production** maupun **Staging** disatukan dalam satu file konfigurasi Nginx tunggal agar mudah dikelola dan dimonitor.
 
+* **File**: `/etc/nginx/sites-available/petualangancuan`
+* **Cara Membuat**:
 ```bash
-sudo nano /etc/nginx/sites-available/petualangancuan_prod
+sudo nano /etc/nginx/sites-available/petualangancuan
 ```
 
 ```nginx
-# HTTP -> HTTPS Redirect
+# ==============================================================================
+# 0. HTTP -> HTTPS REDIRECT (UNIVERSAL UNTUK SEMUA SUBDOMAIN)
+# ==============================================================================
 server {
     listen 80;
-    server_name petualangancuan.rofid.me;
-    return 301 https://petualangancuan.rofid.me$request_uri;
+    server_name petualangancuan.rofid.me
+                wa-petualangancuan.rofid.me
+                grafana-petualangancuan.rofid.me
+                uptime-petualangancuan.rofid.me
+                stagingpetualangancuan.rofid.me
+                wa-stagingpetualangancuan.rofid.me
+                grafana-stagingpetualangancuan.rofid.me
+                uptime-stagingpetualangancuan.rofid.me;
+
+    return 301 https://$host$request_uri;
 }
 
-# HTTPS Server (Production)
+# ==============================================================================
+# 1. PRODUCTION ENVIRONMENT
+# ==============================================================================
+
+# 1.1 WEB UTAMA PRODUCTION (Frontend Port 3000 + Backend Port 8080)
 server {
     listen 443 ssl http2;
     server_name petualangancuan.rofid.me;
@@ -741,7 +767,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
 
-    # 1. FRONTEND (Vue SPA - Port 3000)
+    # Frontend Vue 3 (Port 3000)
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
@@ -752,7 +778,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # 2. BACKEND API (Go Fiber - Port 8080)
+    # Backend API Go Fiber (Port 8080)
     location /api/ {
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
@@ -763,7 +789,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # 3. AI STREAMING SSE (Disable Buffering for smooth chat stream)
+    # AI Streaming SSE (Disable Buffering)
     location /api/ai/chat/stream {
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
@@ -778,7 +804,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # 4. STATIC UPLOADS (Receipts, Images, Audio)
+    # Static Uploads
     location /uploads/ {
         proxy_pass http://127.0.0.1:8080/uploads/;
         proxy_http_version 1.1;
@@ -789,24 +815,87 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-```
 
-### 14.4 Konfigurasi Nginx Virtual Host Staging
-* **File**: `/etc/nginx/sites-available/petualangancuan_staging`
-
-```bash
-sudo nano /etc/nginx/sites-available/petualangancuan_staging
-```
-
-```nginx
-# HTTP -> HTTPS Redirect
+# 1.2 WA GATEWAY PRODUCTION (Port 3003 + WebSocket Support untuk Realtime QR Scan)
 server {
-    listen 80;
-    server_name stagingpetualangancuan.rofid.me;
-    return 301 https://stagingpetualangancuan.rofid.me$request_uri;
+    listen 443 ssl http2;
+    server_name wa-petualangancuan.rofid.me;
+
+    ssl_certificate     /etc/ssl/cloudflare/origin.crt;
+    ssl_certificate_key /etc/ssl/cloudflare/origin.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        proxy_pass http://127.0.0.1:3003;
+        proxy_http_version 1.1;
+
+        # WebSocket headers (Wajib untuk QR scanner & event stream)
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
 
-# HTTPS Server (Staging)
+# 1.3 GRAFANA PRODUCTION (Port 3002 + Live Streaming Support)
+server {
+    listen 443 ssl http2;
+    server_name grafana-petualangancuan.rofid.me;
+
+    ssl_certificate     /etc/ssl/cloudflare/origin.crt;
+    ssl_certificate_key /etc/ssl/cloudflare/origin.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        proxy_pass http://127.0.0.1:3002;
+        proxy_http_version 1.1;
+
+        # WebSocket headers (Wajib untuk live dashboard & alert streaming)
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# 1.4 UPTIME KUMA PRODUCTION (Port 3001 + Socket.IO Support)
+server {
+    listen 443 ssl http2;
+    server_name uptime-petualangancuan.rofid.me;
+
+    ssl_certificate     /etc/ssl/cloudflare/origin.crt;
+    ssl_certificate_key /etc/ssl/cloudflare/origin.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+
+        # WebSocket headers (Wajib untuk Socket.IO status heartbeat)
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# ==============================================================================
+# 2. STAGING ENVIRONMENT
+# ==============================================================================
+
+# 2.1 WEB UTAMA STAGING (Frontend Port 3300 + Backend Port 8888)
 server {
     listen 443 ssl http2;
     server_name stagingpetualangancuan.rofid.me;
@@ -818,7 +907,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
 
-    # 1. FRONTEND (Vue SPA - Staging Port 3300)
+    # Frontend Vue 3 Staging (Port 3300)
     location / {
         proxy_pass http://127.0.0.1:3300;
         proxy_http_version 1.1;
@@ -829,7 +918,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # 2. BACKEND API (Go Fiber - Staging Port 8888)
+    # Backend API Go Fiber Staging (Port 8888)
     location /api/ {
         proxy_pass http://127.0.0.1:8888;
         proxy_http_version 1.1;
@@ -840,7 +929,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # 3. AI STREAMING SSE
+    # AI Streaming SSE Staging
     location /api/ai/chat/stream {
         proxy_pass http://127.0.0.1:8888;
         proxy_http_version 1.1;
@@ -855,7 +944,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # 4. STATIC UPLOADS (Staging)
+    # Static Uploads Staging
     location /uploads/ {
         proxy_pass http://127.0.0.1:8888/uploads/;
         proxy_http_version 1.1;
@@ -866,23 +955,96 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
+
+# 2.2 WA GATEWAY STAGING (Port 3330 + WebSocket Support)
+server {
+    listen 443 ssl http2;
+    server_name wa-stagingpetualangancuan.rofid.me;
+
+    ssl_certificate     /etc/ssl/cloudflare/origin.crt;
+    ssl_certificate_key /etc/ssl/cloudflare/origin.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        proxy_pass http://127.0.0.1:3330;
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# 2.3 GRAFANA STAGING (Port 3302 + Live Streaming Support)
+server {
+    listen 443 ssl http2;
+    server_name grafana-stagingpetualangancuan.rofid.me;
+
+    ssl_certificate     /etc/ssl/cloudflare/origin.crt;
+    ssl_certificate_key /etc/ssl/cloudflare/origin.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        proxy_pass http://127.0.0.1:3302;
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# 2.4 UPTIME KUMA STAGING (Port 3301 + Socket.IO Support)
+server {
+    listen 443 ssl http2;
+    server_name uptime-stagingpetualangancuan.rofid.me;
+
+    ssl_certificate     /etc/ssl/cloudflare/origin.crt;
+    ssl_certificate_key /etc/ssl/cloudflare/origin.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        proxy_pass http://127.0.0.1:3301;
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
 ```
 
-### 14.5 Aktifkan Virtual Host & Restart Nginx
+### 14.4 Aktifkan Virtual Host & Restart Nginx
 * **Lokasi Eksekusi**: Terminal VPS.
 
 ```bash
-# Aktifkan konfigurasi
-sudo ln -sf /etc/nginx/sites-available/petualangancuan_prod /etc/nginx/sites-enabled/
-sudo ln -sf /etc/nginx/sites-available/petualangancuan_staging /etc/nginx/sites-enabled/
+# 1. Aktifkan konfigurasi all-in-one ke sites-enabled
+sudo ln -sf /etc/nginx/sites-available/petualangancuan /etc/nginx/sites-enabled/
 
-# Hapus default Nginx page jika ada
+# 2. Hapus default Nginx page atau config terpisah lama jika ada
 sudo rm -f /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/sites-enabled/petualangancuan_prod
+sudo rm -f /etc/nginx/sites-enabled/petualangancuan_staging
 
-# Test sintaks Nginx
+# 3. Test sintaks Nginx
 sudo nginx -t
 
-# Reload/Restart Nginx
+# 4. Reload/Restart Nginx
 sudo systemctl restart nginx
 ```
 
@@ -1119,7 +1281,7 @@ Gunakan checklist ini sebelum merilis sistem ke pengguna:
 - [ ] UFW aktif dan hanya membuka port 22, 80, dan 443.
 - [ ] Cloudflare DNS `A` Record terkonfigurasi (Proxied untuk web, DNS-Only untuk SSH).
 - [ ] Cloudflare Origin Certificate terpasang di `/etc/ssl/cloudflare/`.
-- [ ] Nginx virtual hosts (`petualangancuan_prod` & `petualangancuan_staging`) aktif dan lulus uji `nginx -t`.
+- [ ] Nginx virtual host all-in-one (`petualangancuan`) aktif dan lulus uji `nginx -t`.
 - [ ] File `.env.prod` dan `.env.staging` terisi lengkap dengan credentials aman.
 - [ ] Folder `uploads_prod` dan `uploads_staging` memiliki permission `100:101`.
 - [ ] GitHub Secrets (`SERVER_IP`, `SERVER_USER`, `SSH_PRIVATE_KEY`) terpasang di repository GitHub.
@@ -1129,6 +1291,16 @@ Gunakan checklist ini sebelum merilis sistem ke pengguna:
 
 ---
 
-**Aplikasi Siap Digunakan:**
-* 🚀 **Production**: [https://petualangancuan.rofid.me](https://petualangancuan.rofid.me)
-* 🧪 **Staging**: [https://stagingpetualangancuan.rofid.me](https://stagingpetualangancuan.rofid.me)
+**Aplikasi & Dashboard Siap Digunakan:**
+
+* 🚀 **Production**:
+  * 🌐 **Web App**: [https://petualangancuan.rofid.me](https://petualangancuan.rofid.me)
+  * 💬 **WA Gateway (Scan QR & Devices)**: [https://wa-petualangancuan.rofid.me](https://wa-petualangancuan.rofid.me)
+  * 📊 **Grafana Dashboard**: [https://grafana-petualangancuan.rofid.me](https://grafana-petualangancuan.rofid.me)
+  * 🚦 **Uptime Kuma Status**: [https://uptime-petualangancuan.rofid.me](https://uptime-petualangancuan.rofid.me)
+
+* 🧪 **Staging**:
+  * 🌐 **Web App**: [https://stagingpetualangancuan.rofid.me](https://stagingpetualangancuan.rofid.me)
+  * 💬 **WA Gateway (Scan QR & Devices)**: [https://wa-stagingpetualangancuan.rofid.me](https://wa-stagingpetualangancuan.rofid.me)
+  * 📊 **Grafana Dashboard**: [https://grafana-stagingpetualangancuan.rofid.me](https://grafana-stagingpetualangancuan.rofid.me)
+  * 🚦 **Uptime Kuma Status**: [https://uptime-stagingpetualangancuan.rofid.me](https://uptime-stagingpetualangancuan.rofid.me)
