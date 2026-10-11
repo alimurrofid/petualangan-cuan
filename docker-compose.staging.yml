@@ -160,7 +160,7 @@ services:
           memory: 24M
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.4.2
     container_name: stg_cuan_loki
     ports:
       - "${LOKI_PORT:-3110}:3100"
@@ -179,7 +179,7 @@ services:
           memory: 24M
 
   promtail:
-    image: grafana/promtail:latest
+    image: grafana/promtail:3.4.2
     container_name: stg_cuan_promtail
     user: root
     privileged: true
@@ -200,7 +200,7 @@ services:
           memory: 16M
 
   grafana:
-    image: grafana/grafana-oss:10.4.1
+    image: grafana/grafana-oss:11.5.2
     container_name: stg_cuan_grafana
     ports:
       - "${GRAFANA_PORT:-3302}:3000"
