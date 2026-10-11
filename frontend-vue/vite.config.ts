@@ -12,10 +12,10 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['petualangancuan.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
+        includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
           name: 'Petualangan Cuan',
-          short_name: 'CuanApp',
+          short_name: 'Petualangan Cuan',
           description: 'Aplikasi pencatat keuangan cerdas',
           theme_color: '#090d16',
           background_color: '#065f46',
@@ -23,12 +23,6 @@ export default defineConfig(({ mode }) => {
           orientation: 'portrait',
           start_url: '/',
           icons: [
-            {
-              src: 'pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'any'
-            },
             {
               src: 'pwa-192x192.png',
               sizes: '192x192',
