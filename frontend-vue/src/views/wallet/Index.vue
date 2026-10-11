@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { useSwal } from "@/composables/useSwal";
 
 
-import { emojiCategories, getEmoji, getIconComponent, walletIcons } from "@/lib/icons";
+import { emojiCategories, getEmoji, getIconComponent, walletIcons, bankIcons, getBankIcon, getBankLogo } from "@/lib/icons";
 import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrencyLive } from "@/lib/utils";
 import { Plus, Pencil, Trash2, Save, Nfc, Search } from "lucide-vue-next";
 
@@ -105,6 +105,12 @@ const selectIcon = (name: string) => {
 
 const iconSearch = ref('');
 
+const filteredBankIcons = computed(() => {
+  if (!iconSearch.value) return bankIcons;
+  const q = iconSearch.value.toLowerCase();
+  return bankIcons.filter(b => b.name.toLowerCase().includes(q) || b.label.toLowerCase().includes(q));
+});
+
 const filteredWalletIcons = computed(() => {
   if (!iconSearch.value) return walletIcons;
   const q = iconSearch.value.toLowerCase();
@@ -178,12 +184,16 @@ const handleDelete = async () => {
   }
 };
 
-const getCardGradient = (type: string) => {
-  switch (type) {
-    case 'Bank': return 'bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6] text-white';
-    case 'E-Wallet': return 'bg-gradient-to-br from-[#581c87] to-[#a855f7] text-white';
-    case 'Cash': return 'bg-gradient-to-br from-[#064e3b] to-[#10b981] text-white';
-    default: return 'bg-gradient-to-br from-slate-800 to-slate-600 text-white';
+const getCardGradient = (wallet: any) => {
+  const bank = getBankIcon(wallet?.icon);
+  if (bank) {
+    return `bg-gradient-to-br ${bank.gradient} ${bank.textColor}`;
+  }
+  switch (wallet?.type) {
+    case 'Bank': return 'bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 text-white';
+    case 'E-Wallet': return 'bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-900 text-white';
+    case 'Cash': return 'bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 text-white';
+    default: return 'bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 text-white';
   }
 };
 
@@ -208,14 +218,14 @@ const getCardGradient = (type: string) => {
           </div>
           <div class="flex items-baseline gap-2">
             <span
-              class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500"
+              class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300"
               :class="{ 'privacy-blur': authStore.isPrivacyMode }">
               {{ formatCurrency(totalAvailable) }}
             </span>
           </div>
-          <div class="flex items-center gap-2 text-sm font-medium text-muted-foreground/70">
+          <div class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <span>Total Keseluruhan:</span>
-            <span class="text-sm font-medium text-muted-foreground/70"
+            <span class="text-sm font-semibold text-foreground/80"
               :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(totalOverall) }}</span>
           </div>
         </div>
@@ -231,63 +241,68 @@ const getCardGradient = (type: string) => {
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
       <div v-for="item in wallets" :key="item.id" @click="openEdit(item)"
-        :class="['relative h-56 rounded-3xl p-6 flex flex-col justify-between shadow-2xl cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group overflow-hidden', getCardGradient(item.type)]">
+        :class="['relative h-[228px] rounded-3xl p-6 flex flex-col justify-between shadow-xl cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl group overflow-hidden border-none text-white', getCardGradient(item)]">
         <div
-          class="absolute top-0 right-0 w-48 h-48 -mt-16 -mr-16 rounded-full pointer-events-none bg-white/5 blur-3xl">
+          class="absolute top-0 right-0 w-48 h-48 -mt-16 -mr-16 rounded-full pointer-events-none bg-white/10 blur-3xl">
         </div>
         <div
-          class="absolute bottom-0 left-0 w-32 h-32 -mb-10 -ml-10 rounded-full pointer-events-none bg-black/10 blur-2xl">
+          class="absolute bottom-0 left-0 w-32 h-32 -mb-10 -ml-10 rounded-full pointer-events-none bg-black/15 blur-2xl">
         </div>
 
-        <div class="relative z-10 flex items-start justify-between">
-          <div class="flex items-center gap-3">
+        <!-- Upper Section: Bank Brand on Left, Type Badge on Right -->
+        <div>
+          <div class="relative z-10 flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <div
+                class="flex items-center justify-center w-11 h-11 border rounded-2xl shadow-xs bg-white/95 dark:bg-white/90 backdrop-blur-md border-white/40 dark:border-white/20 p-1.5 shrink-0">
+                <img v-if="getBankLogo(item.icon)" :src="getBankLogo(item.icon)"
+                  class="w-full h-full object-contain filter drop-shadow-xs" :alt="item.name" />
+                <span v-else-if="getEmoji(item.icon)" class="text-xl leading-none filter drop-shadow-xs">{{
+                  getEmoji(item.icon) }}</span>
+                <component v-else :is="getIconComponent(item.icon, 'Wallet')" class="w-5 h-5 text-slate-800" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-base font-bold tracking-wide truncate leading-tight drop-shadow-xs">{{ item.name }}</p>
+                <p class="text-[10px] uppercase font-bold opacity-75 tracking-widest mt-0.5">{{ item.type }}</p>
+              </div>
+            </div>
+
+            <!-- Contactless NFC Wave on Top Right (Larger & More Proportional) -->
+            <div class="shrink-0 pt-0.5">
+              <Nfc class="w-8 h-8 rotate-90 opacity-80 drop-shadow-xs" />
+            </div>
+          </div>
+
+          <!-- Real Physical EMV Gold Chip positioned under Bank Logo & Name -->
+          <div class="relative z-10 mt-4">
             <div
-              class="flex items-center justify-center w-10 h-10 border rounded-full shadow-inner bg-white/20 backdrop-blur-md border-white/10">
-              <component v-if="getIconComponent(item.icon)" :is="getIconComponent(item.icon)"
-                class="w-5 h-5 text-white" />
-              <span v-else-if="getEmoji(item.icon)" class="text-xl leading-none filter drop-shadow-sm">{{
-                getEmoji(item.icon) }}</span>
-              <component v-else :is="getIconComponent(null, 'Wallet')" class="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p class="text-lg font-bold tracking-wide">{{ item.name }}</p>
-              <p class="text-[10px] uppercase font-bold opacity-70 tracking-widest">{{ item.type }}</p>
-            </div>
-          </div>
-          <Nfc class="w-8 h-8 rotate-90 opacity-40" />
-        </div>
-
-        <div class="relative z-10 pl-1 my-auto">
-          <div
-            class="relative flex items-center justify-center w-12 mb-4 overflow-hidden border rounded-md shadow-sm h-9 bg-gradient-to-br from-yellow-200 to-yellow-500 border-yellow-600/30 opacity-90">
-            <div class="absolute inset-0 border-[0.5px] border-black/10 rounded-md"
-              style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);">
-            </div>
-          </div>
-
-          <div class="space-y-1">
-            <p class="text-[10px] font-bold opacity-70 uppercase tracking-widest text-emerald-100">Saldo Tersedia</p>
-            <p class="font-mono text-2xl font-bold tracking-tight filter drop-shadow-sm"
-              :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(item.available_balance ??
-                item.balance) }}</p>
-
-            <div class="flex items-center gap-1 pt-2 mt-1 border-t border-white/10 opacity-80">
-              <span class="text-[10px] uppercase font-medium">Total Saldo:</span>
-              <span class="font-mono text-xs font-bold" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{
-                formatCurrency(item.balance) }}</span>
+              class="relative flex items-center justify-center w-12 h-8.5 overflow-hidden rounded-md shadow-xs bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-500 border border-amber-600/40 shrink-0">
+              <div class="absolute inset-0 border-[0.5px] border-black/15 rounded-md"
+                style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px);">
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="relative z-10 flex items-center justify-between pl-1 font-mono text-xs tracking-widest opacity-70">
-          <span class="uppercase">{{ authStore.user?.name || 'USER' }}</span>
-          <span>**** ****</span>
+        <!-- Center / Bottom: Balance Information with Spacious Breathing Room -->
+        <div class="relative z-10 mt-auto pt-3">
+          <p class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Saldo Tersedia</p>
+          <p class="font-mono text-2xl sm:text-3xl font-extrabold tracking-tight filter drop-shadow-xs mt-0.5"
+            :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{ formatCurrency(item.available_balance ??
+              item.balance) }}</p>
+
+          <div class="flex items-center gap-1.5 pt-2 mt-2 border-t border-current/15 opacity-85">
+            <span class="text-[10px] uppercase font-medium">Total Saldo:</span>
+            <span class="font-mono text-xs font-bold" :class="{ 'privacy-blur': authStore.isPrivacyMode }">{{
+              formatCurrency(item.balance) }}</span>
+          </div>
         </div>
 
+        <!-- Hover Overlay -->
         <div
           class="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
           <span
-            class="px-4 py-2 text-xs font-bold text-black transition-transform transform scale-90 bg-white rounded-full shadow-lg group-hover:scale-100">
+            class="px-4 py-2 text-xs font-bold text-slate-900 bg-white/95 dark:bg-white rounded-full shadow-lg transition-transform transform scale-95 group-hover:scale-100">
             Edit Dompet
           </span>
         </div>
@@ -355,10 +370,11 @@ const getCardGradient = (type: string) => {
               </template>
               <template v-else>
                 <div
-                  :class="['h-14 w-14 rounded-2xl flex items-center justify-center text-white shadow-md transform group-hover:scale-105 transition-transform', getCardGradient(form.type)]">
-                  <component v-if="getIconComponent(form.icon)" :is="getIconComponent(form.icon)" class="h-7 w-7" />
+                  :class="['h-14 w-14 rounded-2xl flex items-center justify-center shadow-md transform group-hover:scale-105 transition-transform p-2', getCardGradient(form)]">
+                  <img v-if="getBankLogo(form.icon)" :src="getBankLogo(form.icon)" class="w-full h-full object-contain bg-white/90 rounded-xl p-1" :alt="form.name" />
+                  <component v-else-if="getIconComponent(form.icon)" :is="getIconComponent(form.icon)" class="h-7 w-7 text-white" />
                   <span v-else-if="getEmoji(form.icon)" class="text-3xl leading-none">{{ getEmoji(form.icon) }}</span>
-                  <component v-else :is="getIconComponent(null, 'Wallet')" class="h-7 w-7" />
+                  <component v-else :is="getIconComponent(null, 'Wallet')" class="h-7 w-7 text-white" />
                 </div>
                 <div class="text-left">
                   <p class="text-xs font-bold uppercase opacity-50">Icon Terpilih</p>
@@ -400,9 +416,10 @@ const getCardGradient = (type: string) => {
         <DialogHeader class="p-4 text-center border-b">
           <DialogTitle class="text-sm font-bold">Visual Dompet</DialogTitle>
         </DialogHeader>
-        <Tabs default-value="icons" class="flex flex-col flex-1 overflow-hidden">
+        <Tabs default-value="banks" class="flex flex-col flex-1 overflow-hidden">
           <div class="px-6 pt-4">
-            <TabsList class="grid w-full grid-cols-2 shadow-sm">
+            <TabsList class="grid w-full grid-cols-3 shadow-sm">
+              <TabsTrigger value="banks">Bank & E-Wallet</TabsTrigger>
               <TabsTrigger value="icons">Icons</TabsTrigger>
               <TabsTrigger value="emojis">Emojis</TabsTrigger>
             </TabsList>
@@ -410,10 +427,22 @@ const getCardGradient = (type: string) => {
           <div class="px-6 pt-3">
             <div class="relative">
               <Search class="absolute w-4 h-4 -translate-y-1/2 left-3 top-1/2 text-muted-foreground" />
-              <Input v-model="iconSearch" placeholder="Cari icon atau emoji..."
+              <Input v-model="iconSearch" placeholder="Cari bank, e-wallet, icon..."
                 class="text-sm rounded-lg h-9 pl-9 bg-background" />
             </div>
           </div>
+          <TabsContent value="banks" class="flex-1 p-6 mt-0 overflow-y-auto">
+            <div class="grid grid-cols-4 gap-4">
+              <Button v-for="item in filteredBankIcons" :key="item.name" variant="ghost" type="button"
+                class="flex flex-col h-20 gap-1.5 hover:bg-primary/10 rounded-2xl p-2 transition-transform hover:scale-105 active:scale-95" @click="selectIcon(item.name)">
+                <div class="w-10 h-10 rounded-xl bg-white p-1.5 shadow-sm border border-slate-200/60 flex items-center justify-center">
+                  <img :src="item.logo" class="w-full h-full object-contain" :alt="item.label" />
+                </div>
+                <span class="text-[10px] font-bold opacity-80 truncate w-full text-center tracking-tight">{{ item.label }}</span>
+              </Button>
+            </div>
+            <p v-if="filteredBankIcons.length === 0" class="py-8 text-sm text-center text-muted-foreground">Tidak ada bank cocok.</p>
+          </TabsContent>
           <TabsContent value="icons" class="flex-1 p-6 mt-0 overflow-y-auto">
             <div class="grid grid-cols-4 gap-4">
               <Button v-for="item in filteredWalletIcons" :key="item.name" variant="ghost" type="button"

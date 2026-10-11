@@ -4,6 +4,7 @@ import (
 	"cuan-backend/internal/entity"
 	"cuan-backend/internal/repository"
 	pkgutils "cuan-backend/pkg/utils"
+	"math"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -105,6 +106,59 @@ func (s *dashboardService) GetDashboardData(userID uint) (*entity.DashboardData,
 		return nil, err
 	}
 
+	// PaceMetric: Sisa Aman Per Hari berdasarkan Payday Billing Cycle
+	todayStr := now.Format("2006-01-02")
+	var todayExpense float64
+	todaySummary, err := s.transactionRepo.FindSummaryByDateRange(userID, todayStr, todayStr, nil, nil, "")
+	if err == nil {
+		for _, item := range todaySummary {
+			todayExpense += item.Expense
+		}
+	}
+
+	var totalBudget float64
+	for _, item := range expenseBreakdown {
+		totalBudget += item.BudgetLimit
+	}
+	if totalBudget <= 0 {
+		if totalIncomeMonth > 0 {
+			totalBudget = totalIncomeMonth
+		} else {
+			totalBudget = totalExpenseMonth
+		}
+	}
+
+	daysRemaining := int(math.Ceil(endCycle.Sub(now).Hours() / 24))
+	if daysRemaining < 1 {
+		daysRemaining = 1
+	}
+
+	remainingBudget := totalBudget - totalExpenseMonth
+	var dailySafeToSpend float64
+	if remainingBudget > 0 {
+		dailySafeToSpend = remainingBudget / float64(daysRemaining)
+	}
+
+	todayRemainingSafe := dailySafeToSpend - todayExpense
+	status := "SAFE"
+	if todayExpense > dailySafeToSpend && dailySafeToSpend > 0 {
+		status = "OVERPACE"
+	} else if remainingBudget <= 0 {
+		status = "OVERPACE"
+	} else if dailySafeToSpend > 0 && todayExpense > (dailySafeToSpend*0.8) {
+		status = "WARNING"
+	}
+
+	paceMetric := &entity.PaceMetric{
+		TotalBudget:        totalBudget,
+		RemainingBudget:    remainingBudget,
+		DaysRemaining:      daysRemaining,
+		DailySafeToSpend:   dailySafeToSpend,
+		TodayExpense:       todayExpense,
+		TodayRemainingSafe: todayRemainingSafe,
+		Status:             status,
+	}
+
 	return &entity.DashboardData{
 		TotalBalance:          totalBalance,
 		TotalAvailableBalance: totalAvailableBalance,
@@ -114,5 +168,6 @@ func (s *dashboardService) GetDashboardData(userID uint) (*entity.DashboardData,
 		RecentTransactions:    recentTransactions,
 		MonthlyTrend:          monthlyTrend,
 		ExpenseBreakdown:      expenseBreakdown,
+		PaceMetric:            paceMetric,
 	}, nil
 }

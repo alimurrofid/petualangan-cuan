@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Trash2, AlertCircle } from "lucide-vue-next";
 import Swal from "sweetalert2";
-import { getEmoji, getIconComponent } from "@/lib/icons";
+import { getEmoji, getIconComponent, getBankLogo } from "@/lib/icons";
 
 const props = defineProps<{
   open: boolean;
@@ -91,9 +91,10 @@ const handleDeletePayment = async (paymentId: number) => {
                           </TableCell>
                           <TableCell>
                              <div class="flex items-center gap-2 text-sm">
-                                 <component v-if="getIconComponent(payment.wallet.icon)" :is="getIconComponent(payment.wallet.icon)" class="h-3 w-3 text-muted-foreground" />
-                                 <span v-else>{{ getEmoji(payment.wallet.icon) || '💼' }}</span>
-                                 <span>{{ payment.wallet.name }}</span>
+                                 <img v-if="payment.wallet && getBankLogo(payment.wallet.icon)" :src="getBankLogo(payment.wallet.icon)" class="h-3.5 w-3.5 object-contain" />
+                                 <component v-else-if="payment.wallet && getIconComponent(payment.wallet.icon)" :is="getIconComponent(payment.wallet.icon)" class="h-3 w-3 text-muted-foreground" />
+                                 <span v-else>{{ payment.wallet ? (getEmoji(payment.wallet.icon) || '💼') : '💼' }}</span>
+                                 <span>{{ payment.wallet?.name }}</span>
                              </div>
                           </TableCell>
                           <TableCell class="text-sm text-muted-foreground max-w-[150px] truncate">
@@ -106,7 +107,7 @@ const handleDeletePayment = async (paymentId: number) => {
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                class="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                class="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg"
                                 @click="handleDeletePayment(payment.id)"
                               >
                                   <Trash2 class="h-3.5 w-3.5" />
@@ -135,8 +136,9 @@ const handleDeletePayment = async (paymentId: number) => {
                    </div>
                    
                    <div class="flex items-center gap-2 text-xs bg-muted/50 p-2 rounded-lg">
-                        <component v-if="getIconComponent(payment.wallet.icon)" :is="getIconComponent(payment.wallet.icon)" class="h-3.5 w-3.5 text-muted-foreground" />
-                        <span v-else>{{ getEmoji(payment.wallet.icon) || '💼' }}</span>
+                        <img v-if="payment.wallet && getBankLogo(payment.wallet.icon)" :src="getBankLogo(payment.wallet.icon)" class="h-3.5 w-3.5 object-contain" />
+                        <component v-else-if="payment.wallet && getIconComponent(payment.wallet.icon)" :is="getIconComponent(payment.wallet.icon)" class="h-3.5 w-3.5 text-muted-foreground" />
+                        <span v-else>{{ payment.wallet ? (getEmoji(payment.wallet.icon) || '💼') : '💼' }}</span>
                         <span class="font-medium">{{ payment.wallet.name }}</span>
                    </div>
 

@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { Check, ChevronsUpDown } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
-import { getEmoji, getIconComponent } from '@/lib/icons'
+import { getEmoji, getIconComponent, getBankLogo } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -67,7 +67,9 @@ const handleSelect = (value: string) => {
           <div class="flex items-center gap-2 truncate">
               <template v-if="selectedOption">
                    <slot name="trigger" :option="selectedOption">
-                        <component v-if="selectedOption.icon && getIconComponent(selectedOption.icon)"
+                        <img v-if="selectedOption.icon && getBankLogo(selectedOption.icon)"
+                            :src="getBankLogo(selectedOption.icon)" class="h-4 w-4 shrink-0 object-contain" />
+                        <component v-else-if="selectedOption.icon && getIconComponent(selectedOption.icon)"
                             :is="getIconComponent(selectedOption.icon)" class="h-4 w-4 shrink-0" />
                         <span v-else-if="selectedOption.icon && getEmoji(selectedOption.icon)" class="text-xs shrink-0">{{ getEmoji(selectedOption.icon) }}</span>
                         <span class="truncate">{{ selectedOption.label }}</span>
@@ -101,7 +103,8 @@ const handleSelect = (value: string) => {
                 
                 <slot name="option" :option="option">
                      <div class="flex items-center gap-2">
-                        <component v-if="option.icon && getIconComponent(option.icon)" :is="getIconComponent(option.icon)" class="h-4 w-4 shrink-0" />
+                        <img v-if="option.icon && getBankLogo(option.icon)" :src="getBankLogo(option.icon)" class="h-4 w-4 shrink-0 object-contain" />
+                        <component v-else-if="option.icon && getIconComponent(option.icon)" :is="getIconComponent(option.icon)" class="h-4 w-4 shrink-0" />
                         <span v-else-if="option.icon && getEmoji(option.icon)" class="text-base leading-none shrink-0">{{ getEmoji(option.icon) }}</span>
                         {{ option.label }}
                      </div>

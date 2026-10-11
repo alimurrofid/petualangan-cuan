@@ -10,6 +10,16 @@ export interface MonthlyTrend {
   expense: number;
 }
 
+export interface PaceMetric {
+  total_budget: number;
+  remaining_budget: number;
+  days_remaining: number;
+  daily_safe_to_spend: number;
+  today_expense: number;
+  today_remaining_safe: number;
+  status: 'SAFE' | 'WARNING' | 'OVERPACE';
+}
+
 export interface DashboardData {
   total_balance: number;
   total_available_balance: number;
@@ -19,6 +29,7 @@ export interface DashboardData {
   recent_transactions: Transaction[];
   monthly_trend: MonthlyTrend[];
   expense_breakdown: CategoryBreakdown[];
+  pace_metric?: PaceMetric | null;
 }
 
 export const useDashboardStore = defineStore('dashboard', () => {

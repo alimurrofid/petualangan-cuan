@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import SearchableSelect from "@/components/ui/searchable-select/SearchableSelect.vue";
-import { getEmoji, getIconComponent } from "@/lib/icons";
+import { getEmoji, getIconComponent, getBankLogo } from "@/lib/icons";
 import { Calendar } from "lucide-vue-next";
 import { parseCurrencyInput, formatCurrencyInput, formatCurrencyLive, formatDate } from "@/lib/utils";
 import { useSwal } from "@/composables/useSwal";
@@ -530,7 +530,8 @@ const onFeeBlur = () => {
                             <template #option="{ option }">
                                 <div class="flex items-center gap-2 justify-between w-full">
                                     <div class="flex items-center gap-2">
-                                        <component v-if="getIconComponent(option.icon)"
+                                        <img v-if="getBankLogo(option.icon)" :src="getBankLogo(option.icon)" class="h-4 w-4 shrink-0 object-contain" />
+                                        <component v-else-if="getIconComponent(option.icon)"
                                             :is="getIconComponent(option.icon)" class="h-4 w-4 shrink-0" />
                                         <span v-else class="text-xs shrink-0">{{ getEmoji(option.icon) || '💼' }}</span>
                                         <span>{{ option.label }}</span>
@@ -556,7 +557,8 @@ const onFeeBlur = () => {
                             <template #option="{ option }">
                                 <div class="flex items-center gap-2 justify-between w-full">
                                     <div class="flex items-center gap-2">
-                                        <component v-if="getIconComponent(option.icon)"
+                                        <img v-if="getBankLogo(option.icon)" :src="getBankLogo(option.icon)" class="h-4 w-4 shrink-0 object-contain" />
+                                        <component v-else-if="getIconComponent(option.icon)"
                                             :is="getIconComponent(option.icon)" class="h-4 w-4 shrink-0" />
                                         <span v-else class="text-xs shrink-0">{{ getEmoji(option.icon) || '💼' }}</span>
                                         <span>{{ option.label }}</span>

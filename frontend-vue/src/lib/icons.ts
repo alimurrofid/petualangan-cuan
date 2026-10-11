@@ -212,3 +212,51 @@ export const walletIcons: IconItem[] = [
   { name: "Building2", icon: (LucideIcons as any).Building2, label: "Rekening Perusahaan" },
   { name: "HardDrive", icon: (LucideIcons as any).HardDrive, label: "Aset Digital" },
 ];
+
+export interface BankIconItem {
+  name: string;
+  label: string;
+  logo: string;
+  gradient: string;
+  textColor: string;
+}
+
+export const bankIcons: BankIconItem[] = [
+  { name: "Bank_BCA", label: "BCA", logo: "/banks/bca.svg", gradient: "from-[#003893] to-[#0055d4]", textColor: "text-white" },
+  { name: "Bank_Mandiri", label: "Mandiri", logo: "/banks/mandiri.svg", gradient: "from-[#003D79] to-[#0a5cb0]", textColor: "text-white" },
+  { name: "Bank_BRI", label: "BRI", logo: "/banks/bri.svg", gradient: "from-[#00529C] to-[#0070d6]", textColor: "text-white" },
+  { name: "Bank_BNI", label: "BNI", logo: "/banks/bni.svg", gradient: "from-[#005E6A] to-[#008b9c]", textColor: "text-white" },
+  { name: "Bank_BTN", label: "BTN", logo: "/banks/btn.svg", gradient: "from-[#012f6b] to-[#015bfd]", textColor: "text-white" },
+  { name: "Bank_BSI", label: "BSI", logo: "/banks/bsi.svg", gradient: "from-[#00A39D] to-[#00cfc8]", textColor: "text-white" },
+  { name: "Bank_CIMB", label: "CIMB Niaga", logo: "/banks/cimb.svg", gradient: "from-[#7e0000] to-[#ED1C24]", textColor: "text-white" },
+  { name: "Bank_Permata", label: "Permata Bank", logo: "/banks/permata.svg", gradient: "from-[#005f59] to-[#009688]", textColor: "text-white" },
+  { name: "Bank_Danamon", label: "Bank Danamon", logo: "/banks/danamon.svg", gradient: "from-[#0b3c66] to-[#0066b2]", textColor: "text-white" },
+  { name: "Bank_OCBC", label: "Bank OCBC", logo: "/banks/ocbc.svg", gradient: "from-[#991b1b] to-[#dc2626]", textColor: "text-white" },
+  { name: "Bank_Mega", label: "Bank Mega", logo: "/banks/mega.svg", gradient: "from-[#b45309] to-[#ea580c]", textColor: "text-white" },
+  { name: "Bank_Sinarmas", label: "Bank Sinarmas", logo: "/banks/sinarmas.svg", gradient: "from-[#881337] to-[#e11d48]", textColor: "text-white" },
+  { name: "Bank_Muamalat", label: "Bank Muamalat", logo: "/banks/muamalat.svg", gradient: "from-[#3b1259] to-[#6b21a8]", textColor: "text-white" },
+  { name: "Bank_Jago", label: "Bank Jago", logo: "/banks/jago.svg", gradient: "from-[#b45309] via-[#d97706] to-[#f59e0b]", textColor: "text-white" },
+  { name: "Bank_Seabank", label: "Seabank", logo: "/banks/seabank.svg", gradient: "from-[#d43817] to-[#EE4D2D]", textColor: "text-white" },
+  { name: "Bank_Blu", label: "Blu (BCA Digital)", logo: "/banks/blu.svg", gradient: "from-[#0070c9] to-[#0091FF]", textColor: "text-white" },
+  { name: "Bank_Jenius", label: "Jenius (BTPN)", logo: "/banks/jenius.svg", gradient: "from-[#007b88] to-[#00A5B5]", textColor: "text-white" },
+  { name: "Bank_Allo", label: "Allo Bank", logo: "/banks/allo.svg", gradient: "from-[#0369a1] to-[#0284c7]", textColor: "text-white" },
+  { name: "Bank_Line", label: "Line Bank", logo: "/banks/linebank.svg", gradient: "from-[#047857] to-[#10b981]", textColor: "text-white" },
+  { name: "Bank_Superbank", label: "Superbank", logo: "/banks/superbank.svg", gradient: "from-[#1e293b] to-[#334155]", textColor: "text-white" },
+  { name: "Ew_GoPay", label: "GoPay", logo: "/banks/gopay.svg", gradient: "from-[#0089a8] to-[#00AED6]", textColor: "text-white" },
+  { name: "Ew_OVO", label: "OVO", logo: "/banks/ovo.svg", gradient: "from-[#351f6d] to-[#4C3494]", textColor: "text-white" },
+  { name: "Ew_DANA", label: "DANA", logo: "/banks/dana.svg", gradient: "from-[#0d6db3] to-[#118EEA]", textColor: "text-white" },
+  { name: "Ew_ShopeePay", label: "ShopeePay", logo: "/banks/shopeepay.svg", gradient: "from-[#d43817] to-[#EE4D2D]", textColor: "text-white" },
+  { name: "Ew_LinkAja", label: "LinkAja", logo: "/banks/linkaja.svg", gradient: "from-[#ab1218] to-[#EE2E24]", textColor: "text-white" },
+  { name: "QRIS", label: "QRIS", logo: "/banks/qris.svg", gradient: "from-[#171717] to-[#262626]", textColor: "text-white" },
+];
+
+export const getBankIcon = (name: string | undefined | null): BankIconItem | null => {
+  if (!name) return null;
+  return bankIcons.find((b) => b.name === name) || null;
+};
+
+export const getBankLogo = (name: string | undefined | null): string | undefined => {
+  if (!name) return undefined;
+  const found = bankIcons.find((b) => b.name === name);
+  return found ? found.logo : undefined;
+};

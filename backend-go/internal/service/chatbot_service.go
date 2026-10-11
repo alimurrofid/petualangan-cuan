@@ -231,6 +231,14 @@ func (s *ChatbotService) GetUserContext(userID uint, message string) string {
 		sb.WriteString("Saldo Tersedia: " + formatRupiah(dashboard.TotalAvailableBalance) + "\n")
 		sb.WriteString("Pemasukan Bulan Ini: " + formatRupiah(dashboard.TotalIncomeMonth) + "\n")
 		sb.WriteString("Pengeluaran Bulan Ini: " + formatRupiah(dashboard.TotalExpenseMonth) + "\n")
+		if dashboard.PaceMetric != nil {
+			sb.WriteString(fmt.Sprintf("Sisa Kuota Belanja Aman: %s/hari (Sisa %d hari menuju gajian, Status Pace: %s)\n",
+				formatRupiah(dashboard.PaceMetric.DailySafeToSpend),
+				dashboard.PaceMetric.DaysRemaining,
+				dashboard.PaceMetric.Status,
+			))
+			sb.WriteString("Pengeluaran Hari Ini: " + formatRupiah(dashboard.PaceMetric.TodayExpense) + "\n")
+		}
 
 		// Top Kategori Pengeluaran Bulan Ini
 		if len(dashboard.ExpenseBreakdown) > 0 && needsReportContext(intent) {

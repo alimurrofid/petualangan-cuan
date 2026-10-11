@@ -12,24 +12,33 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+        includeAssets: ['petualangancuan.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'petualangancuan-white.svg'],
         manifest: {
           name: 'Petualangan Cuan',
-          short_name: 'Petualangan Cuan',
-          description: 'Aplikasi pencatat keuangan pribadi',
-          theme_color: '#ffffff',
-          background_color: '#065f46',
+          short_name: 'CuanApp',
+          description: 'Aplikasi pencatat keuangan cerdas & pelacak cuan',
+          theme_color: '#090d16',
+          background_color: '#090d16',
+          display: 'standalone',
+          orientation: 'portrait',
+          start_url: '/',
           icons: [
+            {
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png'
+            },
             {
               src: 'pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: 'pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png'
-            },
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
+            }
           ]
         },
         workbox: {

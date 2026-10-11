@@ -7,7 +7,7 @@ import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { AlertCircle, Trash2 } from "lucide-vue-next";
-import { getEmoji, getIconComponent } from "@/lib/icons";
+import { getEmoji, getIconComponent, getBankLogo } from "@/lib/icons";
 import { useSavingGoalStore } from "@/stores/saving_goal";
 import Swal from "sweetalert2";
 
@@ -89,7 +89,8 @@ const handleDeleteContribution = async (contributionId: number) => {
                           </TableCell>
                           <TableCell>
                              <div class="flex items-center gap-2 text-sm max-w-[200px]">
-                                 <component v-if="contribution.wallet && getIconComponent(contribution.wallet.icon)" :is="getIconComponent(contribution.wallet.icon)" class="h-3 w-3 text-muted-foreground shrink-0" />
+                                 <img v-if="contribution.wallet && getBankLogo(contribution.wallet.icon)" :src="getBankLogo(contribution.wallet.icon)" class="h-3.5 w-3.5 object-contain shrink-0" />
+                                 <component v-else-if="contribution.wallet && getIconComponent(contribution.wallet.icon)" :is="getIconComponent(contribution.wallet.icon)" class="h-3 w-3 text-muted-foreground shrink-0" />
                                  <span v-else-if="contribution.wallet">{{ getEmoji(contribution.wallet.icon) || '💼' }}</span>
                                  <span v-else>💼</span>
                                  <span class="truncate" :title="contribution.wallet?.name">{{ contribution.wallet?.name || '-' }}</span>
@@ -105,7 +106,7 @@ const handleDeleteContribution = async (contributionId: number) => {
                                <Button 
                                  variant="ghost" 
                                  size="icon" 
-                                 class="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                 class="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg"
                                  @click="handleDeleteContribution(contribution.id)"
                                >
                                    <Trash2 class="h-3.5 w-3.5" />
@@ -134,7 +135,8 @@ const handleDeleteContribution = async (contributionId: number) => {
                    </div>
                    
                    <div class="flex items-center gap-2 text-xs bg-muted/50 p-2 rounded-lg">
-                        <component v-if="contribution.wallet && getIconComponent(contribution.wallet.icon)" :is="getIconComponent(contribution.wallet.icon)" class="h-3.5 w-3.5 text-muted-foreground" />
+                        <img v-if="contribution.wallet && getBankLogo(contribution.wallet.icon)" :src="getBankLogo(contribution.wallet.icon)" class="h-3.5 w-3.5 object-contain" />
+                        <component v-else-if="contribution.wallet && getIconComponent(contribution.wallet.icon)" :is="getIconComponent(contribution.wallet.icon)" class="h-3.5 w-3.5 text-muted-foreground" />
                         <span v-else-if="contribution.wallet">{{ getEmoji(contribution.wallet.icon) || '💼' }}</span>
                         <span v-else>💼</span>
                         <span class="font-medium">{{ contribution.wallet?.name || '-' }}</span>

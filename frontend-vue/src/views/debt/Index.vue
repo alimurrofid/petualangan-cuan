@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import SearchableSelect from "@/components/ui/searchable-select/SearchableSelect.vue";
 import MultiSelect from "@/components/ui/multi-select/MultiSelect.vue";
 import { Plus, ArrowUpRight, ArrowDownLeft, Pencil, Trash2, HandCoins, CircleFadingArrowUp, Eye, Calendar, CheckCircle, X, ClipboardClock } from "lucide-vue-next";
-import { getEmoji, getIconComponent } from "@/lib/icons";
+import { getEmoji, getIconComponent, getBankLogo } from "@/lib/icons";
 import { formatCurrency, parseCurrencyInput, formatCurrencyInput, formatCurrencyLive, formatDate } from "@/lib/utils";
 import { format } from "date-fns";
 import Swal from "sweetalert2";
@@ -434,7 +434,8 @@ const handleDelete = async (id: number) => {
 
               <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground font-medium p-2">
                 <div class="flex items-center gap-1.5">
-                  <component v-if="item.wallet && getIconComponent(item.wallet.icon)"
+                  <img v-if="item.wallet && getBankLogo(item.wallet.icon)" :src="getBankLogo(item.wallet.icon)" class="h-4 w-4 object-contain" />
+                  <component v-else-if="item.wallet && getIconComponent(item.wallet.icon)"
                     :is="getIconComponent(item.wallet.icon)" class="h-4 w-4" />
                   <span v-else-if="item.wallet">{{ getEmoji(item.wallet.icon) || '💼' }}</span>
                   <span v-else>💼</span>
@@ -519,7 +520,8 @@ const handleDelete = async (id: number) => {
                   <div
                     class="flex items-center gap-3 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                     <div class="flex items-center gap-1">
-                      <component v-if="item.wallet && getIconComponent(item.wallet.icon)"
+                      <img v-if="item.wallet && getBankLogo(item.wallet.icon)" :src="getBankLogo(item.wallet.icon)" class="h-3 w-3 object-contain" />
+                      <component v-else-if="item.wallet && getIconComponent(item.wallet.icon)"
                         :is="getIconComponent(item.wallet.icon)" class="h-3 w-3" />
                       <span v-else-if="item.wallet">{{ getEmoji(item.wallet.icon) || '💼' }}</span>
                       <span>{{ item.wallet?.name }}</span>
@@ -606,7 +608,8 @@ const handleDelete = async (id: number) => {
             <SearchableSelect v-model="createWalletIdProxy" :options="walletOptions" placeholder="Pilih Dompet">
               <template #option="{ option }">
                 <div class="flex items-center gap-2">
-                  <component v-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)"
+                  <img v-if="getBankLogo(option.icon)" :src="getBankLogo(option.icon)" class="h-4 w-4 shrink-0 object-contain" />
+                  <component v-else-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)"
                     class="h-4 w-4 shrink-0" />
                   <span v-else class="text-xs shrink-0">{{ getEmoji(option.icon) || '💼' }}</span>
                   <span>{{ option.label }}</span>
@@ -682,7 +685,8 @@ const handleDelete = async (id: number) => {
             <SearchableSelect v-model="payWalletIdProxy" :options="walletOptions" placeholder="Pilih Dompet">
               <template #option="{ option }">
                 <div class="flex items-center gap-2">
-                  <component v-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)"
+                  <img v-if="getBankLogo(option.icon)" :src="getBankLogo(option.icon)" class="h-4 w-4 shrink-0 object-contain" />
+                  <component v-else-if="getIconComponent(option.icon)" :is="getIconComponent(option.icon)"
                     class="h-4 w-4 shrink-0" />
                   <span v-else class="text-xs shrink-0">{{ getEmoji(option.icon) || '💼' }}</span>
                   <span>{{ option.label }}</span>
