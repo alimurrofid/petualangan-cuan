@@ -12,13 +12,13 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['petualangancuan.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'petualangancuan-white.svg'],
+        includeAssets: ['petualangancuan.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
           name: 'Petualangan Cuan',
           short_name: 'CuanApp',
-          description: 'Aplikasi pencatat keuangan cerdas & pelacak cuan',
+          description: 'Aplikasi pencatat keuangan cerdas',
           theme_color: '#090d16',
-          background_color: '#090d16',
+          background_color: '#065f46',
           display: 'standalone',
           orientation: 'portrait',
           start_url: '/',
@@ -26,18 +26,20 @@ export default defineConfig(({ mode }) => {
             {
               src: 'pwa-192x192.png',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any'
             },
             {
-              src: 'pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png'
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'maskable'
             },
             {
               src: 'pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'maskable'
+              purpose: 'any'
             }
           ]
         },
