@@ -15,6 +15,9 @@ scrape_configs:
         refresh_interval: 10s
     relabel_configs:
       - source_labels: ['__meta_docker_container_name']
+        regex: '/(${CONTAINER_FILTER:-.*})'
+        action: keep
+      - source_labels: ['__meta_docker_container_name']
         regex: '/(.*)'
         target_label: 'container'
     pipeline_stages:

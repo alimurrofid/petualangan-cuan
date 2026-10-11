@@ -183,11 +183,13 @@ services:
     container_name: stg_cuan_promtail
     user: root
     privileged: true
+    environment:
+      - CONTAINER_FILTER=stg_cuan_.*
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
-    command: -config.file=/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml -config.expand-env=true
     networks:
       - staging-network
     restart: unless-stopped
