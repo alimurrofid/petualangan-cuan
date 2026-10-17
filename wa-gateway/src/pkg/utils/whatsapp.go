@@ -31,6 +31,10 @@ var knownDocumentMIMEByExtension = map[string]string{
 	".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 	".ppt":  "application/vnd.ms-powerpoint",
 	".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+	// .zip is listed explicitly for cross-platform determinism:
+	// mime.TypeByExtension falls back to the OS registry, which answers
+	// "application/x-zip-compressed" on Windows but "application/zip" on Linux.
+	".zip": "application/zip",
 }
 
 var knownDocumentExtensionByMIME map[string]string

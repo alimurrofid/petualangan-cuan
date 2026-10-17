@@ -1,0 +1,100 @@
+name: CI Quality Gate
+
+# Runs the same verification loop as the local `verify` skill / AGENTS.md SOP:
+# - backend-go:    go vet + go test + go build  (mirrors `make check`)
+# - frontend-vue:  eslint (baseline enforced) + vue-tsc production build
+# - wa-gateway:    go vet + go test
+# Deploy pipelines (deploy.yml / deploy-staging.yml) only build & ship images.
+# This gate is the quality barrier in front of them on the same branches.
+
+on:
+  push:
+    branches: [ "main", "staging" ]
+  pull_request:
+    branches: [ "main", "staging" ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend Go (vet · test · build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend-go
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go (version pinned by backend-go/go.mod)
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend-go/go.mod
+          cache-dependency-path: backend-go/go.sum
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build
+        run: go build -o bin/api ./cmd/api
+
+  frontend:
+    name: Frontend Vue (lint · typecheck · build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend-vue
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm (version pinned by package.json packageManager)
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend-vue/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Check-only mode (no --fix). Legacy errors are tolerated via the
+      # committed eslint-suppressions.json baseline; NEW violations fail here,
+      # exactly like the local `pnpm lint` policy.
+      - name: Lint
+        run: pnpm exec eslint .
+
+      # `vue-tsc -b && vite build`: full type-check + production bundle,
+      # same command the deploy image build relies on.
+      - name: Type-check + production build
+        run: pnpm run build
+
+  wa-gateway:
+    name: WA Gateway Go (vet · test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wa-gateway/src
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go (version pinned by wa-gateway/src/go.mod)
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: wa-gateway/src/go.mod
+          cache-dependency-path: wa-gateway/src/go.sum
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
