@@ -28,15 +28,16 @@ Per-file checklist for adding a new domain/endpoint in `backend-go/`. Use togeth
   - data success: `c.JSON(data)`; action success: `c.JSON(fiber.Map{"message": "..."})`.
 - [ ] **Complete Swagger annotations** (`@Summary`, `@Description`, `@Tags`, `@Security`, `@Param`, `@Success`, `@Failure`, `@Router`) following existing handlers.
 - [ ] `x_handler_test.go` included as well.
+- [ ] Regenerate the docs afterwards with `make swagger` — never hand-edit `backend-go/docs/`.
 
 ## 5. Routes — `cmd/api/main.go`
 
 - [ ] ALL routes are centralized here. New domain: `api.Group("/<resource>", middleware.Protected())`.
-- [ ] Resource path naming (kebab/plural) matches existing groups (`/wallets`, `/categories`, `/transactions`, `/debts`, `/wishlist`, `/saving-goals`, `/ai`).
+- [ ] Resource path naming (kebab/plural) matches existing groups (`/auth`, `/wallets`, `/categories`, `/transactions`, `/user`, `/debts`, `/wishlist`, `/saving-goals`, `/ai`).
 - [ ] Public routes only when truly user-independent (the `/auth` group is the only example).
 
 ## 6. Miscellaneous
 
 - [ ] Seeder: new dummy data goes into `internal/seeder` (invoked via `seeder.SeedAll`).
 - [ ] New env vars are only registered in `.env.example` with explanatory comments.
-- [ ] Final verification: `make check` green before reporting done.
+- [ ] Final verification: `make swagger` (if annotations changed) then `make check` green before reporting done.

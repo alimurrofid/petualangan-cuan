@@ -1,0 +1,41 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Format files after write/edit/patch. Built-in gofmt applies to .go files.
+  // Frontend formatting stays with `pnpm lint` (eslint --fix) — no prettier in the repo.
+  "formatter": true,
+
+  // Mechanically enforce the rules written in AGENTS.md instead of relying on
+  // prose alone. Rules are evaluated in order and the LAST match wins, so
+  // specific guards are placed at the end, after the broad baseline.
+  "permissions": [
+    // Broad baseline: the repo's own SOP (skills `verify`/`cleanup`) expects the
+    // agent to run build/test/lint commands autonomously.
+    { "action": "shell", "resource": "*", "effect": "allow" },
+
+    // --- Dangerous / irreversible commands require confirmation -------------
+    // `make fresh` drops and re-migrates the whole database.
+    { "action": "shell", "resource": "make fresh *", "effect": "ask" },
+    { "action": "shell", "resource": "make fresh-seed *", "effect": "ask" },
+    { "action": "shell", "resource": "git reset *", "effect": "ask" },
+    { "action": "shell", "resource": "git clean *", "effect": "ask" },
+    { "action": "shell", "resource": "docker compose down *", "effect": "ask" },
+    // Push to main/staging triggers the CD pipelines (deploy.yml → production,
+    // deploy-staging.yml → staging).
+    { "action": "shell", "resource": "git push *", "effect": "ask" },
+
+    // --- Secrets: shell is best-effort (documented OpenCode limitation) -----
+    { "action": "shell", "resource": "cat *.env*", "effect": "deny" },
+    { "action": "shell", "resource": "cat *.env.example", "effect": "allow" },
+
+    // --- Secrets: hard enforcement for the file tools (root AGENTS.md §1) ---
+    // OpenCode's default only *asks* for .env reads and does not guard .env
+    // edits at all. Harden to deny, while keeping .env.example readable.
+    { "action": "read", "resource": "*.env", "effect": "deny" },
+    { "action": "read", "resource": "*.env.*", "effect": "deny" },
+    { "action": "read", "resource": "*.env.example", "effect": "allow" },
+    { "action": "edit", "resource": "*.env", "effect": "deny" },
+    { "action": "edit", "resource": "*.env.*", "effect": "deny" },
+    { "action": "edit", "resource": "*.env.example", "effect": "allow" }
+  ]
+}

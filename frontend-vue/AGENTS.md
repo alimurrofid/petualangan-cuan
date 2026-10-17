@@ -38,7 +38,9 @@ pnpm run preview        # preview the production build
    **Never create a second axios instance.**
 6. **Styling**: Tailwind CSS v4 utility classes. shadcn-vue atomic components live in `src/components/ui/` (Button, Dialog, Card, etc.) — **use existing ones; never reimplement from scratch**. Single-word component filenames are allowed in `ui/` (the `vue/multi-word-component-names` rule is intentionally off).
 7. **UI Handling States**: every data fetch must have clear visual feedback: Loading (skeleton/spinner), Empty state (render `-`), Error (toast/alert). Confirmations use `sweetalert2` (helper: `src/composables/useSwal.ts`).
-8. **Views**: `src/views/<domain>/Index.vue`, `Detail.vue`, etc. (snake_case for domain folders — follow the existing naming of the domain you work on, e.g. `saving_goal/`, `financial-health/`).
+8. **Views**: `src/views/<domain>/Index.vue`, `Detail.vue`, etc. The existing domains — reuse the closest one instead of inventing a new layout:
+   `auth/`, `calendar/`, `category/`, `chat/`, `debt/`, `financial-health/`, `report/`, `saving_goal/`, `setting/`, `transaction/`, `wallet/`, `wishlist/`, plus a bare `views/Dashboard.vue`.
+   Folder naming is mixed (snake_case and kebab-case) and `Dashboard.vue` sits outside a folder — follow the domain you touch; never rename existing files.
 9. **Icons/others**: `src/lib/icons.ts`, `src/lib/utils.ts`, `src/composables/` — check these before creating new utilities.
 10. **i18n**: `vue-i18n` is available; never hardcode inline duplicated strings.
 

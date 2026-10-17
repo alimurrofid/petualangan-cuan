@@ -16,7 +16,7 @@ Rules in area files **tighten** this file (they may be stricter, never looser). 
 
 > [!CAUTION]
 > ### PRIVACY POLICY & .ENV FILES
-> 1. **STRICTLY FORBIDDEN TO READ / ACCESS / PRINT REAL `.env` FILES** (`.env`, `.env.prod`, `.env.staging`, or any other local secret files).
+> 1. **STRICTLY FORBIDDEN TO READ / ACCESS / PRINT REAL `.env` FILES** (`.env`, `.env.prod`, `.env.staging`, or any other local secret files). This is mechanically enforced: `opencode.jsonc` `permissions` **deny** `read`/`edit` on `*.env` and `*.env.*` (only `*.env.example` stays readable) — do not weaken those rules.
 > 2. **USE TEMPLATE FILES ONLY**: Environment variable references may **ONLY** point to `.env.example` files (root & each project).
 > 3. **NEVER WRITE REAL CREDENTIALS/SECRETS** into source code, markdown files, commit messages, or log output.
 > 4. New features requiring config variables → register them in `.env.example` with explanatory comments.
@@ -64,16 +64,24 @@ Native development commands per area: see that area's AGENTS.md.
 
 ---
 
-## 🧰 5. Installed Project Skills (`.opencode/skills/`)
+## 🧰 5. Agent Configuration (`.opencode/` + `opencode.jsonc`)
+
+**Skills** — auto-discovered from their `description`, or loaded manually via `@<skill-id>` (e.g. `@verify`). Skill rules tighten area AGENTS.md files — **keep both sides in sync** whenever project conventions change.
 
 | Skill | Purpose |
 |---|---|
 | `verify` | Verification loop for touched areas (make check / pnpm lint & typecheck / go vet & test), must pass before done |
-| `add-endpoint` | SOP for adding a backend endpoint/CRUD (entity → repo → service → handler → route → `make check`) |
+| `add-endpoint` | SOP for adding a backend endpoint/CRUD (entity → repo → service → handler → route → `make swagger` → `make check`) |
 | `add-view` | SOP for adding a frontend page (store → view → router → menu → `pnpm lint && typecheck`) |
 | `cleanup` | Evidence-based sweep of dead code / property fallbacks, then verification |
 
-Skills are auto-discovered from their `description` when the task matches, or loaded manually via `@<skill-id>` (e.g. `@verify`). Skill rules tighten area AGENTS.md files — **keep both sides in sync** whenever project conventions change.
+**Commands** (`.opencode/commands/`) — explicit entry points for the loops above: `/verify`, `/cleanup`.
+
+**Subagents** (`.opencode/agents/`) — `reviewer`: read-only review of current changes against this file's layering, typing, and no-legacy rules (no edits, no shell beyond `git diff`/`status`/`log`).
+
+**`opencode.jsonc`** (repo root) — the only place permissions are configured. It mechanically enforces the rules written here: `*.env` reads/edits are denied (§1), and the high-impact commands ask for confirmation — `git push` (triggers the CD pipelines: `deploy.yml` → production, `deploy-staging.yml` → staging), `make fresh` / `make fresh-seed` (drop + re-migrate the database), `git reset`, `git clean`, `docker compose down`. `formatter: true` runs gofmt after Go edits.
+
+> When adding a new rule that matters (a forbidden file, a dangerous command), encode it in `opencode.jsonc` instead of relying on prose alone.
 
 ---
 

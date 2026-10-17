@@ -102,7 +102,7 @@
 ### 1. Prerequisites
 Ensure you have the following installed on your host machine:
 - **[Docker Engine & Docker Compose](https://docs.docker.com/get-docker/)**
-- **[Go 1.22+](https://go.dev/dl/)** (Optional, for native backend running)
+- **[Go 1.26](https://go.dev/dl/)** (Optional, for native backend/wa-gateway running — see `backend-go/go.mod` and `wa-gateway/src/go.mod`)
 - **[Node.js 18+](https://nodejs.org/) & [Pnpm](https://pnpm.io/)** (Optional, for frontend hacking)
 
 ### 2. Environment Variables

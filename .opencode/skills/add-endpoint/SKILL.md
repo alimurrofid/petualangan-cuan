@@ -21,9 +21,9 @@ Adding an endpoint/new CRUD in `backend-go/`. It is MANDATORY to read [`backend-
 4. If new environment variables are needed: register them in `backend-go/.env.example` with comments. **Never read/touch the real `.env`.**
 5. Run verification:
    ```bash
-   cd backend-go && make check
+   cd backend-go && make swagger && make check
    ```
-   Loop until green; never report done before `make check` passes.
+   `make swagger` regenerates `docs/` from the annotations (never hand-edit `docs/`); loop until `make check` is green; never report done before it passes.
 6. Report: summarize the files created/changed per layer and the final endpoint (method + path + route group).
 
 ## Hard Rules

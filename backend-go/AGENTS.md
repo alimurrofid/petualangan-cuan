@@ -21,6 +21,10 @@ make vet            # go vet ./...
 make test           # go test ./... (handler & service suites)
 make build          # build binary → bin/api
 make check          # vet + test + build in one go
+
+# --- Swagger docs (run after changing/adding handler annotations) ---
+make swagger        # = swag init -g cmd/api/main.go -o docs
+                    # requires: go install github.com/swaggo/swag/cmd/swag@v1.16.4
 ```
 
 > Build artifacts (`bin/api`) are gitignored; never commit build outputs.
@@ -47,7 +51,7 @@ Required flow: `Handler → Service → Repository → Entity`.
    - Data success: `c.JSON(data)` / `c.JSON(categories)` directly.
    - Action success: `c.JSON(fiber.Map{"message": "..."})`.
    - Always check errors explicitly (`if err != nil`) — no silent ignores.
-3. **Swagger**: annotations (`@Summary`, `@Router`, etc.) are written in handler comments; generated output lives in `backend-go/docs/` (`docs.go`, `swagger.json`, `swagger.yaml`). Every new endpoint must have annotations.
+3. **Swagger**: annotations (`@Summary`, `@Router`, etc.) are written in handler comments; generated output lives in `backend-go/docs/` (`docs.go`, `swagger.json`, `swagger.yaml`). Every new endpoint must have annotations, then regenerate with `make swagger` (never hand-edit `docs/`).
 4. **Multi-tenancy via context**: get the user via `pkg/utils.GetUserIDFromContext(ctx)` — the userID is set into fiber locals by the `Protected()` middleware.
 5. **Logging**: `zerolog` structured JSON, always include `request_id`. Never print passwords/tokens/secrets.
 6. **Mocks**: repository mocks for tests live in `internal/repository/mock/`.
