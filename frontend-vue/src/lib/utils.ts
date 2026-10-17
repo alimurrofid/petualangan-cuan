@@ -64,7 +64,7 @@ export function formatCompactNumber(number: number): string {
 
 export function parseCurrencyInput(value: string): number {
   if (!value) return 0;
-  let clean = value.replace(/[^0-9,]/g, "");
+  const clean = value.replace(/[^0-9,]/g, "");
   const normalized = clean.replace(",", ".");
   return parseFloat(normalized) || 0;
 }
@@ -82,7 +82,7 @@ export function formatCurrencyInput(value: number | string): string {
 }
 
 export function formatCurrencyLive(value: string): string {
-  let clean = value.replace(/[^0-9,]/g, "");
+  const clean = value.replace(/[^0-9,]/g, "");
   const parts = clean.split(',');
   if (parts.length > 0 && typeof parts[0] === 'string') {
       parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");

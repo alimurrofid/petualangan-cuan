@@ -53,9 +53,9 @@ onUnmounted(() => {
 });
 
 const handleDelete = async (t: any) => {
-    let title = 'Hapus Transaksi?';
+    const title = 'Hapus Transaksi?';
     let text = `Apakah Anda yakin ingin menghapus transaksi "${t.description}" senilai ${formatCurrency(t.amount)}?`;
-    let icon = 'warning';
+    const icon = 'warning';
 
     if (t.type === 'income') {
         text = "Menghapus Pemasukan akan mengurangi saldo Anda. Pastikan saldo cukup!";

@@ -16,5 +16,8 @@ vendor/
 *.out
 coverage.txt
 
+# Build output
+bin/
+
 # upload file
 uploads/
