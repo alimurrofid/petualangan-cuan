@@ -1,0 +1,38 @@
+# =============================================================================
+# Docker build context exclusions for backend-go/ (build context = ./backend-go).
+# Everything here is excluded from `COPY . .`, so it never lands in a build layer
+# (including the GitHub Actions build cache used by .github/workflows/deploy.yml).
+# =============================================================================
+
+# --- Secrets (root AGENTS.md §1) ---------------------------------------------
+# Real .env files must NEVER enter the build context. The backend receives its
+# configuration from docker-compose `environment:` at runtime, not from a baked
+# file. (.env.example is excluded too — it is not needed at build time.)
+.env
+.env.*
+
+# --- Build artifacts & local output (mirrors backend-go/.gitignore) ----------
+cuan-backend
+cuan-backend.exe
+main
+main.exe
+*.exe
+*.test
+*.bin
+bin/
+vendor/
+*.out
+coverage.txt
+tmp/
+
+# --- Runtime data ------------------------------------------------------------
+# User uploads (audio/receipts) are mounted as a volume, never baked into an image.
+uploads/
+
+# --- VCS metadata & editor/OS junk -------------------------------------------
+.git
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
